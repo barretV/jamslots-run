@@ -387,7 +387,10 @@ body {
 .reel-desc-crawl-viewport {
   max-height: 5.25rem;
   overflow: hidden;
-  perspective: 520px;
+  padding-inline: 0.45rem;
+  margin-inline: -0.2rem;
+  width: calc(100% + 0.4rem);
+  perspective: 720px;
   perspective-origin: 50% 0%;
   -webkit-mask-image: linear-gradient(
     to bottom,
@@ -435,18 +438,18 @@ body {
 @keyframes reel-desc-crawl {
   0%,
   10% {
-    transform: perspective(520px) rotateX(11deg) translate3d(0, 0, 0);
+    transform: perspective(720px) rotateX(9deg) scale(0.98) translate3d(0, 0, 0);
   }
   72% {
-    transform: perspective(520px) rotateX(11deg)
+    transform: perspective(720px) rotateX(9deg) scale(0.98)
       translate3d(0, calc(-1 * var(--reel-crawl-distance, 0px)), 0);
   }
   84% {
-    transform: perspective(520px) rotateX(11deg)
+    transform: perspective(720px) rotateX(9deg) scale(0.98)
       translate3d(0, calc(-1 * var(--reel-crawl-distance, 0px)), 0);
   }
   100% {
-    transform: perspective(520px) rotateX(11deg) translate3d(0, 0, 0);
+    transform: perspective(720px) rotateX(9deg) scale(0.98) translate3d(0, 0, 0);
   }
 }
 

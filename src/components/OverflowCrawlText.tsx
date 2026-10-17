@@ -30,14 +30,17 @@ function crawlKeyframesName(rawId: string): string {
   return `reel-desc-crawl-${rawId.replace(/:/g, '')}`;
 }
 
+function crawlTransform(translateY: string): string {
+  return `perspective(720px) rotateX(9deg) scale(0.98) translate3d(0, ${translateY}, 0)`;
+}
+
 function buildCrawlKeyframes(name: string, durationSec: number): string {
   const bottomPausePct = (BOTTOM_PAUSE_SEC / durationSec) * 100;
   const scrollDownEndPct = 100 - RETURN_PORTION_PCT - bottomPausePct;
   const bottomEndPct = scrollDownEndPct + bottomPausePct;
 
-  const top = 'perspective(520px) rotateX(11deg) translate3d(0, 0, 0)';
-  const bottom =
-    'perspective(520px) rotateX(11deg) translate3d(0, calc(-1 * var(--reel-crawl-distance, 0px)), 0)';
+  const top = crawlTransform('0');
+  const bottom = crawlTransform('calc(-1 * var(--reel-crawl-distance, 0px))');
 
   return `@keyframes ${name} {
   0%,

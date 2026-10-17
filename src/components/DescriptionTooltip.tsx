@@ -1,9 +1,22 @@
-import { useId, useState, type ReactNode } from 'react';
+import {
+  cloneElement,
+  useId,
+  useState,
+  type FocusEvent,
+  type MouseEvent,
+  type ReactElement,
+} from 'react';
 import { descriptionTeaser } from '../lib/descriptionTeaser';
 
 interface DescriptionTooltipProps {
   description: string;
-  children: ReactNode;
+  children: ReactElement<{
+    onFocus?: (e: FocusEvent<HTMLElement>) => void;
+    onBlur?: (e: FocusEvent<HTMLElement>) => void;
+    onMouseEnter?: (e: MouseEvent<HTMLElement>) => void;
+    onMouseLeave?: (e: MouseEvent<HTMLElement>) => void;
+    'aria-describedby'?: string;
+  }>;
   disabled?: boolean;
   placement?: 'above' | 'below';
 }
@@ -31,12 +44,26 @@ export function DescriptionTooltip({
       : 'top-full mt-1.5';
 
   return (
-    <span
-      className="relative isolate inline-block w-full max-w-full align-top"
-      onMouseEnter={show}
-      onMouseLeave={hide}
-    >
-      {children}
+    <span className="relative block h-fit w-full shrink-0">
+      {cloneElement(children, {
+        onMouseEnter: (e: MouseEvent<HTMLElement>) => {
+          children.props.onMouseEnter?.(e);
+          show();
+        },
+        onMouseLeave: (e: MouseEvent<HTMLElement>) => {
+          children.props.onMouseLeave?.(e);
+          hide();
+        },
+        onFocus: (e: FocusEvent<HTMLElement>) => {
+          children.props.onFocus?.(e);
+          show();
+        },
+        onBlur: (e: FocusEvent<HTMLElement>) => {
+          children.props.onBlur?.(e);
+          hide();
+        },
+        'aria-describedby': open ? tooltipId : undefined,
+      })}
       {open && (
         <span
           id={tooltipId}

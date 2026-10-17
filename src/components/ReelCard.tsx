@@ -191,17 +191,17 @@ export function ReelCard({
         disabled ? 'pointer-events-none' : ''
       }`}
     >
-      <DescriptionTooltip
-        description={tooltipDescription}
-        disabled={infoLocked}
-        placement="above"
+      <button
+        type="button"
+        className="relative block w-full shrink-0 overflow-hidden text-left"
+        onClick={onPlay}
+        aria-label={`Play ${game.title}`}
+        aria-busy={reelSpinning}
       >
-        <button
-          type="button"
-          className="relative block w-full shrink-0 overflow-hidden text-left"
-          onClick={onPlay}
-          aria-label={`Play ${game.title}`}
-          aria-busy={reelSpinning}
+        <DescriptionTooltip
+          description={tooltipDescription}
+          disabled={infoLocked}
+          placement="above"
         >
           <div
             ref={windowRef}
@@ -228,8 +228,8 @@ export function ReelCard({
               <div className="reel-scanlines pointer-events-none absolute inset-0" aria-hidden />
             )}
           </div>
-        </button>
-      </DescriptionTooltip>
+        </DescriptionTooltip>
+      </button>
 
       <button
         type="button"
@@ -247,7 +247,7 @@ export function ReelCard({
         <button
           type="button"
           className={`line-clamp-2 min-w-0 text-left font-display font-bold text-amber-50 ${titleTextClass(game.title)} ${
-            reelSpinning ? 'pointer-events-none opacity-40' : 'hover:text-amber-100 hover:underline'
+            reelSpinning ? 'pointer-events-none opacity-40' : 'hover:text-amber-100'
           }`}
           onClick={() => {
             if (!infoLocked) onShowDescription();
@@ -274,7 +274,7 @@ export function ReelCard({
         <button
           type="button"
           className={`col-start-1 min-w-0 truncate pb-1.5 text-left text-[1.05rem] text-violet-200/90 sm:text-[1.1rem] ${
-            reelSpinning ? 'pointer-events-none' : 'hover:text-violet-100 hover:underline'
+            reelSpinning ? 'pointer-events-none' : 'hover:text-violet-100'
           }`}
           onClick={() => {
             if (!infoLocked) onShowDescription();

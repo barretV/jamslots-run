@@ -52,12 +52,12 @@ export function GamePosterGrid({
         return (
           <li key={item.key} className="poster-tile min-w-0">
             <div className="poster-tile-card group">
-              <DescriptionTooltip
-                description={item.description ?? ''}
-                placement="above"
-                disabled={!item.description?.trim()}
-              >
-                <div className="poster-tile-poster">
+              <div className="poster-tile-poster">
+                <DescriptionTooltip
+                  description={item.description ?? ''}
+                  placement="above"
+                  disabled={!item.description?.trim()}
+                >
                   <button
                     type="button"
                     className="poster-tile-open"
@@ -70,21 +70,21 @@ export function GamePosterGrid({
                       fit="cover"
                     />
                   </button>
-                  {showStar && (
-                    <button
-                      type="button"
-                      className={`poster-tile-star ${favorited ? 'poster-tile-star--on' : ''}`}
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        onToggleFavorite?.(item.gameId);
-                      }}
-                      aria-label={favorited ? 'Remove from favorites' : 'Add to favorites'}
-                    >
-                      {favorited ? '★' : '☆'}
-                    </button>
-                  )}
-                </div>
-              </DescriptionTooltip>
+                </DescriptionTooltip>
+                {showStar && (
+                  <button
+                    type="button"
+                    className={`poster-tile-star ${favorited ? 'poster-tile-star--on' : ''}`}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onToggleFavorite?.(item.gameId);
+                    }}
+                    aria-label={favorited ? 'Remove from favorites' : 'Add to favorites'}
+                  >
+                    {favorited ? '★' : '☆'}
+                  </button>
+                )}
+              </div>
               <button
                 type="button"
                 className="poster-tile-meta"

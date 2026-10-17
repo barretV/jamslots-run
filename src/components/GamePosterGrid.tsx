@@ -51,12 +51,12 @@ export function GamePosterGrid({
 
         return (
           <li key={item.key} className="poster-tile min-w-0">
-            <DescriptionTooltip
-              description={item.description ?? ''}
-              placement="above"
-              disabled={!item.description?.trim()}
-            >
-              <div className="poster-tile-card group">
+            <div className="poster-tile-card group">
+              <DescriptionTooltip
+                description={item.description ?? ''}
+                placement="above"
+                disabled={!item.description?.trim()}
+              >
                 <div className="poster-tile-poster">
                   <button
                     type="button"
@@ -84,22 +84,22 @@ export function GamePosterGrid({
                     </button>
                   )}
                 </div>
-                <button
-                  type="button"
-                  className="poster-tile-meta"
-                  onClick={() => onOpen(item)}
-                >
-                  <span className={`poster-tile-title line-clamp-2 ${titleTextClass(item.title)}`}>
-                    {item.title}
+              </DescriptionTooltip>
+              <button
+                type="button"
+                className="poster-tile-meta"
+                onClick={() => onOpen(item)}
+              >
+                <span className={`poster-tile-title line-clamp-2 ${titleTextClass(item.title)}`}>
+                  {item.title}
+                </span>
+                {item.creatorName ? (
+                  <span className="poster-tile-creator line-clamp-1 text-[1.1rem] text-zinc-500">
+                    {item.creatorName}
                   </span>
-                  {item.creatorName ? (
-                    <span className="poster-tile-creator line-clamp-1 text-[1.1rem] text-zinc-500">
-                      {item.creatorName}
-                    </span>
-                  ) : null}
-                </button>
-              </div>
-            </DescriptionTooltip>
+                ) : null}
+              </button>
+            </div>
           </li>
         );
       })}

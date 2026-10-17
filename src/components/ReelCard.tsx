@@ -240,21 +240,19 @@ export function ReelCard({
       </button>
 
       <div className="grid grid-cols-[minmax(0,1fr)_auto] items-start gap-x-1 border-t border-white/10 px-1.5 pt-1 sm:gap-x-2 sm:px-3 sm:pt-2">
-        <DescriptionTooltip description={tooltipDescription} disabled={infoLocked} placement="above">
-          <button
-            type="button"
-            className={`line-clamp-2 min-w-0 text-left font-display font-bold text-amber-50 ${titleTextClass(game.title)} ${
-              reelSpinning ? 'pointer-events-none opacity-40' : 'hover:text-amber-100 hover:underline'
-            }`}
-            onClick={() => {
-              if (!infoLocked) onShowDescription();
-            }}
-            disabled={infoLocked}
-            aria-label={`About ${game.title}`}
-          >
-            {reelSpinning ? '…' : game.title}
-          </button>
-        </DescriptionTooltip>
+        <button
+          type="button"
+          className={`line-clamp-2 min-w-0 text-left font-display font-bold text-amber-50 ${titleTextClass(game.title)} ${
+            reelSpinning ? 'pointer-events-none opacity-40' : 'hover:text-amber-100 hover:underline'
+          }`}
+          onClick={() => {
+            if (!infoLocked) onShowDescription();
+          }}
+          disabled={infoLocked}
+          aria-label={`About ${game.title}`}
+        >
+          {reelSpinning ? '…' : game.title}
+        </button>
         <button
           type="button"
           className={`row-span-2 shrink-0 rounded-lg px-1.5 py-0.5 text-[1.25rem] leading-none transition sm:px-2 sm:py-1 ${
@@ -269,21 +267,19 @@ export function ReelCard({
         >
           {favorited ? '★' : '☆'}
         </button>
-        <DescriptionTooltip description={tooltipDescription} disabled={infoLocked} placement="above">
-          <button
-            type="button"
-            className={`col-start-1 min-w-0 truncate pb-1.5 text-left text-[1.05rem] text-violet-200/90 sm:text-[1.1rem] ${
-              reelSpinning ? 'pointer-events-none' : 'hover:text-violet-100 hover:underline'
-            }`}
-            onClick={() => {
-              if (!infoLocked) onShowDescription();
-            }}
-            disabled={infoLocked}
-            aria-label={`About ${game.title}`}
-          >
-            {reelSpinning ? 'Rolling…' : `by ${game.creatorName}`}
-          </button>
-        </DescriptionTooltip>
+        <button
+          type="button"
+          className={`col-start-1 min-w-0 truncate pb-1.5 text-left text-[1.05rem] text-violet-200/90 sm:text-[1.1rem] ${
+            reelSpinning ? 'pointer-events-none' : 'hover:text-violet-100 hover:underline'
+          }`}
+          onClick={() => {
+            if (!infoLocked) onShowDescription();
+          }}
+          disabled={infoLocked}
+          aria-label={`About ${game.title}`}
+        >
+          {reelSpinning ? 'Rolling…' : `by ${game.creatorName}`}
+        </button>
       </div>
     </article>
   );

@@ -7,7 +7,7 @@ export function App() {
 
   if (loading) {
     return (
-      <div className="app-shell flex items-center justify-center px-4">
+      <div className="app-shell flex h-dvh max-h-dvh items-center justify-center px-4">
         <p className="animate-pulse font-display text-[1.25rem] font-bold text-amber-200">
           Loading jam games…
         </p>
@@ -17,7 +17,7 @@ export function App() {
 
   if (error || !bundle) {
     return (
-      <div className="app-shell flex flex-col items-center justify-center gap-3 px-4 text-center">
+      <div className="app-shell flex h-dvh max-h-dvh flex-col items-center justify-center gap-3 px-4 text-center">
         <p className="text-[1.15rem] text-red-300">Could not load the game list.</p>
         <p className="text-[1.1rem] text-zinc-400">{error ?? 'Unknown error'}</p>
       </div>

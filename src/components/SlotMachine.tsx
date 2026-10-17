@@ -14,7 +14,7 @@ import { LibraryList } from './LibraryList';
 import { GameDescriptionModal } from './GameDescriptionModal';
 import { PlayedList } from './PlayedList';
 import { ReelCard } from './ReelCard';
-import { JamVoteHeaderLink } from './JamVoteHeaderLink';
+import { PickerSidePanel } from './PickerSidePanel';
 import { TabBar, type PickerTab } from './TabBar';
 
 const BASE_SPIN_MS = 1200;
@@ -277,13 +277,15 @@ export function SlotMachine({ pool, jamName, jamSlug }: SlotMachineProps) {
   );
 
   return (
-    <div className="app-shell mx-auto w-full max-w-4xl">
+    <div className="app-layout">
+      <PickerSidePanel jamSlug={jamSlug} />
+      <div className="app-layout__main">
+        <div className="app-shell mx-auto w-full max-w-4xl">
       <header className="app-header shrink-0">
         <div className="app-header-top">
           <h1 className="app-title font-display font-black uppercase tracking-tight text-transparent bg-gradient-to-r from-amber-300 via-fuchsia-400 to-cyan-300 bg-clip-text">
             JamSlots
           </h1>
-          <JamVoteHeaderLink jamSlug={jamSlug} />
         </div>
         <p className="app-subtitle text-violet-100/85" title={jamName}>
           {jamName}
@@ -443,6 +445,8 @@ export function SlotMachine({ pool, jamName, jamSlug }: SlotMachineProps) {
       </main>
 
       <GameDescriptionModal game={descriptionGame} onClose={() => setDescriptionGame(null)} />
+        </div>
+      </div>
     </div>
   );
 }

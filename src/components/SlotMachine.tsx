@@ -8,6 +8,7 @@ import {
   toggleFavorite,
 } from '../state/persistence';
 import type { HistoryEntry, JamGame } from '../types';
+import { useFavoriteCounts } from './FavoriteCountsProvider';
 import { FavoritesList } from './FavoritesList';
 import { LibraryList } from './LibraryList';
 import { GameDescriptionModal } from './GameDescriptionModal';
@@ -29,6 +30,7 @@ interface SlotMachineProps {
 }
 
 export function SlotMachine({ pool, jamName, jamSlug }: SlotMachineProps) {
+  const { applyDelta } = useFavoriteCounts();
   const reducedMotion = useReducedMotion();
   const [triplet, setTriplet] = useState<JamGame[]>(() => pickRandom(pool, 3));
   const [reelSpinning, setReelSpinning] = useState<[boolean, boolean, boolean]>([
@@ -57,6 +59,16 @@ export function SlotMachine({ pool, jamName, jamSlug }: SlotMachineProps) {
   const timersRef = useRef<number[]>([]);
 
   const refreshStats = () => setStatsTick((n) => n + 1);
+
+  const toggleFavoriteWithCount = useCallback(
+    (gameId: string) => {
+      const wasFavorite = isFavorite(gameId);
+      toggleFavorite(gameId);
+      applyDelta(gameId, wasFavorite ? -1 : 1);
+      refreshStats();
+    },
+    [applyDelta],
+  );
 
   const clearTimers = useCallback(() => {
     timersRef.current.forEach((id) => window.clearTimeout(id));
@@ -317,10 +329,7 @@ export function SlotMachine({ pool, jamName, jamSlug }: SlotMachineProps) {
                   favorited={isFavorite(game.gameId)}
                   onPlay={() => playFromReel(game)}
                   onShowDescription={() => setDescriptionGame(game)}
-                  onToggleFavorite={() => {
-                    toggleFavorite(game.gameId);
-                    refreshStats();
-                  }}
+                  onToggleFavorite={() => toggleFavoriteWithCount(game.gameId)}
                 />
               ))}
             </div>
@@ -372,10 +381,7 @@ export function SlotMachine({ pool, jamName, jamSlug }: SlotMachineProps) {
             <FavoritesList
               games={favoriteGames}
               onOpen={launchGame}
-              onToggleFavorite={(gameId) => {
-                toggleFavorite(gameId);
-                refreshStats();
-              }}
+              onToggleFavorite={toggleFavoriteWithCount}
               embedded
             />
           </div>
@@ -396,10 +402,7 @@ export function SlotMachine({ pool, jamName, jamSlug }: SlotMachineProps) {
               creatorFor={(gameId) => pool.find((g) => g.gameId === gameId)?.creatorName}
               totalPlaysFor={(gameId) => pool.find((g) => g.gameId === gameId)?.totalPlays}
               isFavorite={isFavorite}
-              onToggleFavorite={(gameId) => {
-                toggleFavorite(gameId);
-                refreshStats();
-              }}
+              onToggleFavorite={toggleFavoriteWithCount}
               embedded
             />
           </div>
@@ -416,10 +419,7 @@ export function SlotMachine({ pool, jamName, jamSlug }: SlotMachineProps) {
               games={pool}
               onOpen={launchGame}
               isFavorite={isFavorite}
-              onToggleFavorite={(gameId) => {
-                toggleFavorite(gameId);
-                refreshStats();
-              }}
+              onToggleFavorite={toggleFavoriteWithCount}
               embedded
             />
           </div>

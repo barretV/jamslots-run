@@ -1,10 +1,11 @@
 import tailwindcss from '@tailwindcss/vite';
 import react from '@vitejs/plugin-react';
 import { defineConfig } from 'vite';
+import { favoritesDevApiPlugin } from './scripts/vite-favorites-dev-api';
 
 export default defineConfig({
   base: './',
-  plugins: [react(), tailwindcss()],
+  plugins: [favoritesDevApiPlugin(), react(), tailwindcss()],
   server: {
     port: 5290,
     strictPort: true,

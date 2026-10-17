@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react';
 import { DescriptionTooltip } from './DescriptionTooltip';
+import { FavoriteCountChip } from './FavoriteCountChip';
 import { GameThumbnail } from './GameThumbnail';
 import { TotalPlaysChip } from './TotalPlaysChip';
 
@@ -75,6 +76,7 @@ export function GamePosterGrid({
                       />
                     </button>
                   </DescriptionTooltip>
+                  <FavoriteCountChip gameId={item.gameId} />
                   {item.totalPlays != null && item.totalPlays > 0 ? (
                     <TotalPlaysChip totalPlays={item.totalPlays} />
                   ) : null}

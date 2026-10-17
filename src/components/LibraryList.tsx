@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import type { JamGame } from '../types';
+import { useFavoriteCounts } from './FavoriteCountsProvider';
 import { GamePosterGrid } from './GamePosterGrid';
 
 interface LibraryListProps {
@@ -15,7 +16,9 @@ type LibrarySortMode =
   | 'published-desc'
   | 'published-asc'
   | 'plays-desc'
-  | 'plays-asc';
+  | 'plays-asc'
+  | 'favorites-desc'
+  | 'favorites-asc';
 
 function matchesQuery(game: JamGame, query: string): boolean {
   const q = query.toLowerCase();
@@ -29,7 +32,11 @@ function compareByTitle(a: JamGame, b: JamGame): number {
   return a.title.localeCompare(b.title, undefined, { sensitivity: 'base' });
 }
 
-function sortGames(games: JamGame[], mode: LibrarySortMode): JamGame[] {
+function sortGames(
+  games: JamGame[],
+  mode: LibrarySortMode,
+  favoriteCount: (gameId: string) => number,
+): JamGame[] {
   const list = [...games];
   if (mode === 'title-asc') {
     list.sort(compareByTitle);
@@ -40,6 +47,14 @@ function sortGames(games: JamGame[], mode: LibrarySortMode): JamGame[] {
       const pubDiff =
         mode === 'published-desc' ? b.publishedAt - a.publishedAt : a.publishedAt - b.publishedAt;
       if (pubDiff !== 0) return pubDiff;
+      return compareByTitle(a, b);
+    }
+    if (mode === 'favorites-desc' || mode === 'favorites-asc') {
+      const favDiff =
+        mode === 'favorites-desc'
+          ? favoriteCount(b.gameId) - favoriteCount(a.gameId)
+          : favoriteCount(a.gameId) - favoriteCount(b.gameId);
+      if (favDiff !== 0) return favDiff;
       return compareByTitle(a, b);
     }
     const playsDiff =
@@ -62,6 +77,10 @@ function sortLabel(mode: LibrarySortMode): string {
       return 'most plays';
     case 'plays-asc':
       return 'least plays';
+    case 'favorites-desc':
+      return 'most favorited';
+    case 'favorites-asc':
+      return 'least favorited';
   }
 }
 
@@ -72,6 +91,7 @@ export function LibraryList({
   onToggleFavorite,
   embedded = false,
 }: LibraryListProps) {
+  const { getCount } = useFavoriteCounts();
   const [query, setQuery] = useState('');
   const [debouncedQuery, setDebouncedQuery] = useState('');
   const [sortMode, setSortMode] = useState<LibrarySortMode>('title-asc');
@@ -81,7 +101,10 @@ export function LibraryList({
     return () => window.clearTimeout(id);
   }, [query]);
 
-  const sortedGames = useMemo(() => sortGames(games, sortMode), [games, sortMode]);
+  const sortedGames = useMemo(
+    () => sortGames(games, sortMode, getCount),
+    [games, sortMode, getCount],
+  );
 
   const visibleGames = useMemo(() => {
     if (!debouncedQuery) return sortedGames;
@@ -142,6 +165,8 @@ export function LibraryList({
             <option value="published-asc">Oldest</option>
             <option value="plays-desc">Most plays</option>
             <option value="plays-asc">Least plays</option>
+            <option value="favorites-desc">Most favorited</option>
+            <option value="favorites-asc">Least favorited</option>
           </select>
         </div>
         <p className="library-search-hint" aria-live="polite">{hint}</p>

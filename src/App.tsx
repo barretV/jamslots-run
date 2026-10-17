@@ -1,3 +1,4 @@
+import { FavoriteCountsProvider } from './components/FavoriteCountsProvider';
 import { SlotMachine } from './components/SlotMachine';
 import { useGames } from './lib/useGames';
 
@@ -24,6 +25,8 @@ export function App() {
   }
 
   return (
-    <SlotMachine pool={bundle.games} jamName={bundle.jamName} jamSlug={bundle.jamSlug} />
+    <FavoriteCountsProvider>
+      <SlotMachine pool={bundle.games} jamName={bundle.jamName} jamSlug={bundle.jamSlug} />
+    </FavoriteCountsProvider>
   );
 }

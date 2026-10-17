@@ -7,6 +7,7 @@ import {
   type CSSProperties,
 } from 'react';
 import type { JamGame } from '../types';
+import { FavoriteCountChip } from './FavoriteCountChip';
 import { GameThumbnail } from './GameThumbnail';
 import { OverflowCrawlText } from './OverflowCrawlText';
 import { TotalPlaysChip } from './TotalPlaysChip';
@@ -298,7 +299,10 @@ export function ReelCard({
           )}
         </div>
         {!reelSpinning && (
-          <TotalPlaysChip totalPlays={game.totalPlays} className="reel-cover-plays-chip" />
+          <>
+            <FavoriteCountChip gameId={game.gameId} className="reel-cover-favorites-chip" />
+            <TotalPlaysChip totalPlays={game.totalPlays} className="reel-cover-plays-chip" />
+          </>
         )}
       </button>
 

@@ -1,6 +1,6 @@
 **Live app:** https://jamslots-run.vercel.app
 
-October Jam slot picker for [RUN.world](https://run.world) games. Spin the reels to pick a random jam entry; favorites and played history stay in your browser (`localStorage`).
+October Jam slot picker for [RUN.world](https://run.world) games. Spin the reels to pick a random jam entry; favorites and played history stay in your browser (`localStorage`). **Community favorite counts** (★ on posters) use Vercel KV in production; see [docs/FAVORITE_COUNTS.md](docs/FAVORITE_COUNTS.md).
 
 ## Local dev
 

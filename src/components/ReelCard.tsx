@@ -7,10 +7,9 @@ import {
   type CSSProperties,
 } from 'react';
 import type { JamGame } from '../types';
-import { FavoriteCountChip } from './FavoriteCountChip';
+import { CoverStatsRow } from './CoverStatsRow';
 import { GameThumbnail } from './GameThumbnail';
 import { OverflowCrawlText } from './OverflowCrawlText';
-import { TotalPlaysChip } from './TotalPlaysChip';
 
 function panelDescriptionText(description: string): string {
   return description.trim().replace(/\s+/g, ' ');
@@ -300,8 +299,11 @@ export function ReelCard({
         </div>
         {!reelSpinning && (
           <>
-            <FavoriteCountChip gameId={game.gameId} className="reel-cover-favorites-chip" />
-            <TotalPlaysChip totalPlays={game.totalPlays} className="reel-cover-plays-chip" />
+            <CoverStatsRow
+              gameId={game.gameId}
+              totalPlays={game.totalPlays}
+              className="reel-cover-stats-row"
+            />
           </>
         )}
       </button>

@@ -4,11 +4,25 @@ import {
   useContext,
   useEffect,
   useMemo,
+  useRef,
   useState,
   type ReactNode,
 } from 'react';
+import { setFavoriteReported, syncLocalFavoritesToServer } from '../state/favoriteServerSync';
+import { getStats } from '../state/persistence';
 
 type CountsMap = Record<string, number>;
+
+async function postFavoriteDelta(gameId: string, delta: 1 | -1): Promise<void> {
+  const res = await fetch('/api/favorites', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ gameId, delta }),
+  });
+  if (!res.ok && res.status !== 503) {
+    throw new Error(`favorites POST ${res.status}`);
+  }
+}
 
 interface FavoriteCountsContextValue {
   getCount: (gameId: string) => number;
@@ -21,12 +35,15 @@ const FavoriteCountsContext = createContext<FavoriteCountsContextValue | null>(n
 export function FavoriteCountsProvider({ children }: { children: ReactNode }) {
   const [counts, setCounts] = useState<CountsMap>({});
   const [ready, setReady] = useState(false);
+  const legacySyncDone = useRef(false);
 
   useEffect(() => {
     let cancelled = false;
     void (async () => {
+      let apiReady = false;
       try {
         const res = await fetch('/api/favorites');
+        apiReady = res.ok;
         if (!res.ok) throw new Error('fetch failed');
         const data = (await res.json()) as { counts?: CountsMap };
         if (!cancelled) setCounts(data.counts ?? {});
@@ -34,6 +51,19 @@ export function FavoriteCountsProvider({ children }: { children: ReactNode }) {
         if (!cancelled) setCounts({});
       } finally {
         if (!cancelled) setReady(true);
+      }
+
+      if (cancelled || !apiReady || legacySyncDone.current) return;
+      legacySyncDone.current = true;
+      try {
+        await syncLocalFavoritesToServer(getStats().favorites, postFavoriteDelta);
+        const res = await fetch('/api/favorites');
+        if (!cancelled && res.ok) {
+          const data = (await res.json()) as { counts?: CountsMap };
+          setCounts(data.counts ?? {});
+        }
+      } catch {
+        legacySyncDone.current = false;
       }
     })();
     return () => {
@@ -49,6 +79,8 @@ export function FavoriteCountsProvider({ children }: { children: ReactNode }) {
       else updated[gameId] = next;
       return updated;
     });
+
+    setFavoriteReported(gameId, delta === 1);
 
     void fetch('/api/favorites', {
       method: 'POST',

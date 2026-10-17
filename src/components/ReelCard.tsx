@@ -261,8 +261,10 @@ export function ReelCard({
           {reelSpinning && (
             <div className="reel-scanlines pointer-events-none absolute inset-0" aria-hidden />
           )}
-          {!reelSpinning && <TotalPlaysChip totalPlays={game.totalPlays} />}
         </div>
+        {!reelSpinning && (
+          <TotalPlaysChip totalPlays={game.totalPlays} className="reel-cover-plays-chip" />
+        )}
       </button>
 
       <button

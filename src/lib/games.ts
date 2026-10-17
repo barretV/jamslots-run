@@ -8,9 +8,22 @@ function isBundle(value: unknown): value is GamesBundle {
   return Array.isArray(g) && g.length > 0;
 }
 
+function normalizeBundle(raw: GamesBundle): GamesBundle {
+  const games: JamGame[] = raw.games.map((g) => ({
+    ...g,
+    votes: Number(g.votes ?? 0),
+    totalPlays: Number(g.totalPlays ?? 0),
+  }));
+  return {
+    ...raw,
+    count: games.length,
+    games,
+  };
+}
+
 async function tryFetchBundle(url: string): Promise<GamesBundle | null> {
   try {
-    const res = await fetch(url);
+    const res = await fetch(url, { cache: 'no-store' });
     if (!res.ok) return null;
     const json = (await res.json()) as unknown;
     return isBundle(json) ? json : null;
@@ -19,10 +32,8 @@ async function tryFetchBundle(url: string): Promise<GamesBundle | null> {
   }
 }
 
-/** Load games: bundled JSON first, then public file, then dev proxy to RUN API. */
+/** Load games: public games.json first, then bundled JSON, then dev proxy to RUN API. */
 export async function loadGames(): Promise<GamesBundle> {
-  if (isBundle(bundled)) return bundled;
-
   const base = import.meta.env.BASE_URL ?? '/';
   const publicPaths = [
     '/games.json',
@@ -32,15 +43,17 @@ export async function loadGames(): Promise<GamesBundle> {
 
   for (const path of publicPaths) {
     const b = await tryFetchBundle(path);
-    if (b) return b;
+    if (b) return normalizeBundle(b);
   }
+
+  if (isBundle(bundled)) return normalizeBundle(bundled);
 
   try {
     const res = await fetch('/api/run-jam');
     if (res.ok) {
       const api = (await res.json()) as { jam?: { name?: string; slug?: string }; entries?: [] };
       const b = bundleFromJamApi(api);
-      if (b.games.length > 0) return b;
+      if (b.games.length > 0) return normalizeBundle(b);
     }
   } catch {
     /* proxy only in dev */

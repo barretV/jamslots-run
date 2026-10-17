@@ -195,7 +195,7 @@ export function ReelCard({
 
   return (
     <article
-      className={`reel-card flex h-auto min-h-0 flex-col overflow-hidden rounded-xl border-2 bg-zinc-950/80 backdrop-blur sm:rounded-2xl ${
+      className={`reel-card flex h-full min-h-0 flex-col overflow-hidden rounded-xl border-2 bg-zinc-950/80 backdrop-blur sm:rounded-2xl ${
         locked ? 'reel-locked border-cyan-400/70' : highlight ? 'reel-highlight border-amber-300' : 'border-violet-500/40'
       } ${reelSpinning ? 'reel-active' : ''} ${justLanded ? 'reel-landed' : ''} ${
         disabled ? 'pointer-events-none' : ''
@@ -223,14 +223,14 @@ export function ReelCard({
       )}
       <button
         type="button"
-        className="relative block w-full shrink-0 overflow-hidden text-left"
+        className="reel-thumb-trigger relative block w-full overflow-hidden text-left"
         onClick={onPlay}
         aria-label={`Play ${game.title}`}
         aria-busy={reelSpinning}
       >
         <div
           ref={windowRef}
-          className="reel-thumb-window relative aspect-[2/3] w-full max-h-[min(28dvh,16rem)] overflow-hidden bg-zinc-900 sm:max-h-[min(32dvh,18rem)] lg:max-h-[min(36dvh,19.5rem)]"
+          className="reel-thumb-window relative overflow-hidden bg-zinc-900"
           style={
             cellHeight > 0
               ? ({ '--reel-cell-h': `${cellHeight}px` } as CSSProperties)

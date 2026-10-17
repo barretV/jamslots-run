@@ -393,14 +393,14 @@ body {
     to bottom,
     transparent 0%,
     #000 12%,
-    #000 88%,
+    #000 92%,
     transparent 100%
   );
   mask-image: linear-gradient(
     to bottom,
     transparent 0%,
     #000 12%,
-    #000 88%,
+    #000 92%,
     transparent 100%
   );
 }
@@ -414,6 +414,14 @@ body {
 .reel-desc-crawl-inner {
   transform-origin: 50% 0%;
   will-change: transform;
+}
+
+.reel-desc-crawl-inner--overflow {
+  padding-bottom: 0.35rem;
+}
+
+.reel-desc-crawl-inner--animating-dynamic {
+  animation: none;
 }
 
 .reel-desc-crawl-inner--animating {
@@ -1118,7 +1126,8 @@ body {
     transition: none !important;
   }
 
-  .reel-desc-crawl-inner--animating {
+  .reel-desc-crawl-inner--animating,
+  .reel-desc-crawl-inner--animating-dynamic {
     animation: none !important;
     transform: none !important;
   }

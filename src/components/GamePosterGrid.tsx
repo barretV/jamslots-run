@@ -75,7 +75,11 @@ export function GamePosterGrid({
                       />
                     </button>
                   </DescriptionTooltip>
-                  <CoverStatsRow gameId={item.gameId} totalPlays={item.totalPlays} />
+                  <CoverStatsRow
+                    gameId={item.gameId}
+                    totalPlays={item.totalPlays}
+                    density="compact"
+                  />
                   {showStar && (
                     <button
                       type="button"

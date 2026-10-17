@@ -5,9 +5,16 @@ interface CoverStatsRowProps {
   gameId: string;
   totalPlays?: number;
   className?: string;
+  /** Tighter copy for narrow library posters (reels use default). */
+  density?: 'normal' | 'compact';
 }
 
-export function CoverStatsRow({ gameId, totalPlays, className }: CoverStatsRowProps) {
+export function CoverStatsRow({
+  gameId,
+  totalPlays,
+  className,
+  density = 'normal',
+}: CoverStatsRowProps) {
   const { getCount } = useFavoriteCounts();
   const favCount = getCount(gameId);
   const showPlays = totalPlays != null && totalPlays > 0;
@@ -15,16 +22,32 @@ export function CoverStatsRow({ gameId, totalPlays, className }: CoverStatsRowPr
 
   if (!showPlays && !showFavs) return null;
 
-  const playsLabel = showPlays ? `${formatPlays(totalPlays)} plays` : '';
-  const favsLabel = showFavs ? `★ ${formatPlays(favCount)} favs` : '';
+  const playsLabel = showPlays ? formatPlays(totalPlays!) : '';
+  const favsLabel = showFavs
+    ? density === 'compact'
+      ? `★${formatPlays(favCount)}`
+      : `★ ${formatPlays(favCount)} favs`
+    : '';
+  const playsAria = showPlays ? `${formatPlays(totalPlays)} plays` : '';
+  const favsAria = showFavs ? `${formatPlays(favCount)} favorites` : '';
 
   return (
     <div
-      className={['cover-stats-row', className].filter(Boolean).join(' ')}
-      aria-label={[playsLabel, favsLabel].filter(Boolean).join(', ')}
+      className={[
+        'cover-stats-row',
+        density === 'compact' ? 'cover-stats-row--compact' : '',
+        className,
+      ]
+        .filter(Boolean)
+        .join(' ')}
+      aria-label={[playsAria, favsAria].filter(Boolean).join(', ')}
     >
-      <span className="cover-stats-row__plays">{showPlays ? playsLabel : ''}</span>
-      <span className="cover-stats-row__favs">{showFavs ? favsLabel : ''}</span>
+      <span className="cover-stats-row__plays" title={playsAria}>
+        {showPlays ? playsLabel : ''}
+      </span>
+      <span className="cover-stats-row__favs" title={favsAria}>
+        {showFavs ? favsLabel : ''}
+      </span>
     </div>
   );
 }

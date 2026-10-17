@@ -182,14 +182,24 @@ export function ReelCard({
         setLanding(true);
         setOffset(finalY);
       });
-      const t = window.setTimeout(() => setLanding(false), LAND_MS);
       return () => {
         cancelAnimationFrame(frame);
-        window.clearTimeout(t);
       };
     }
 
   }, [reelSpinning, game, pool, cellHeight, stopSpinLoop, setOffset]);
+
+  useEffect(() => {
+    if (!landing) return;
+    const t = window.setTimeout(() => setLanding(false), LAND_MS);
+    return () => window.clearTimeout(t);
+  }, [landing]);
+
+  useEffect(() => {
+    if (reelSpinning || !landing) return;
+    const t = window.setTimeout(() => setLanding(false), LAND_MS + 80);
+    return () => window.clearTimeout(t);
+  }, [reelSpinning, landing]);
 
   useEffect(() => {
     preloadThumbnail(game.thumbnailUrl);
@@ -254,34 +264,33 @@ export function ReelCard({
           }}
           onMouseLeave={() => setCoverHover(false)}
         >
-          <div
-            className={`reel-idle-thumb ${showStrip ? 'reel-idle-thumb--hidden' : ''}`}
-            aria-hidden={showStrip}
-          >
-            <GameThumbnail
-              key={game.gameId}
-              url={game.thumbnailUrl}
-              title={game.title}
-              loading="eager"
-              fit="cover"
-            />
-          </div>
-          <div
-            className={`reel-strip ${showStrip ? '' : 'reel-strip--hidden'} ${reelSpinning ? 'reel-strip-spinning' : ''} ${landing ? 'reel-strip-landing' : ''}`}
-            style={stripStyle}
-            aria-hidden={!showStrip}
-          >
-            {strip.map((g, i) => (
-              <div key={`${g.gameId}-${i}`} className="reel-strip-cell">
-                <GameThumbnail
-                  url={g.thumbnailUrl}
-                  title={g.title}
-                  loading="eager"
-                  fit="cover"
-                />
-              </div>
-            ))}
-          </div>
+          {showStrip ? (
+            <div
+              className={`reel-strip ${reelSpinning ? 'reel-strip-spinning' : ''} ${landing ? 'reel-strip-landing' : ''}`}
+              style={stripStyle}
+            >
+              {strip.map((g, i) => (
+                <div key={`${g.gameId}-${i}`} className="reel-strip-cell">
+                  <GameThumbnail
+                    url={g.thumbnailUrl}
+                    title={g.title}
+                    loading="eager"
+                    fit="cover"
+                  />
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="reel-idle-thumb">
+              <GameThumbnail
+                key={game.gameId}
+                url={game.thumbnailUrl}
+                title={game.title}
+                loading="eager"
+                fit="cover"
+              />
+            </div>
+          )}
           <div className="reel-window-shade reel-window-shade-top pointer-events-none" aria-hidden />
           <div className="reel-window-shade reel-window-shade-bottom pointer-events-none" aria-hidden />
           {reelSpinning && (

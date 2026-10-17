@@ -465,11 +465,6 @@ body {
   overflow: hidden;
 }
 
-.reel-idle-thumb--hidden {
-  visibility: hidden;
-  pointer-events: none;
-}
-
 .reel-strip {
   position: absolute;
   left: 0;
@@ -479,11 +474,6 @@ body {
   display: flex;
   flex-direction: column;
   will-change: transform;
-}
-
-.reel-strip--hidden {
-  visibility: hidden;
-  pointer-events: none;
 }
 
 .reel-strip-cell {

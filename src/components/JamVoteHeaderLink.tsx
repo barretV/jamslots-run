@@ -13,7 +13,7 @@ export function JamVoteHeaderLink({ jamSlug }: JamVoteHeaderLinkProps) {
       rel="noopener noreferrer"
       className="jam-vote-header-cta font-display shrink-0"
     >
-      Vote here
+      <span className="relative z-[1]">Vote here</span>
     </a>
   );
 }

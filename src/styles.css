@@ -217,6 +217,15 @@ body {
     transform: none;
     box-shadow: 0 0 20px rgba(244, 114, 182, 0.45);
   }
+
+  .cover-vote-badge--link {
+    animation: none !important;
+    box-shadow: 0 0 10px rgba(34, 211, 238, 0.4);
+  }
+
+  .cover-vote-badge--link:hover {
+    transform: none;
+  }
 }
 
 .app-title {
@@ -1444,16 +1453,26 @@ body {
   pointer-events: auto;
   text-decoration: none;
   cursor: pointer;
+  transform-origin: center center;
+  animation:
+    jam-vote-wiggle 4.2s ease-in-out infinite,
+    cover-vote-glow-pulse 2.8s ease-in-out infinite;
   transition:
     background 0.15s ease,
     border-color 0.15s ease,
-    color 0.15s ease;
+    color 0.15s ease,
+    transform 0.2s ease;
 }
 
 .cover-vote-badge--link:hover {
-  border-color: rgba(34, 211, 238, 0.85);
+  animation-play-state: paused, paused;
+  transform: scale(1.08);
+  border-color: rgba(34, 211, 238, 0.95);
   background: rgba(8, 47, 73, 0.92);
   color: #fff;
+  box-shadow:
+    0 0 16px rgba(34, 211, 238, 0.7),
+    0 0 8px rgba(232, 121, 249, 0.35);
 }
 
 .cover-vote-badge--link:focus-visible {
@@ -1461,8 +1480,27 @@ body {
   outline-offset: 2px;
 }
 
+@keyframes cover-vote-glow-pulse {
+  0%,
+  100% {
+    box-shadow:
+      0 0 8px rgba(34, 211, 238, 0.35),
+      0 2px 8px rgba(0, 0, 0, 0.4);
+  }
+  50% {
+    box-shadow:
+      0 0 14px rgba(34, 211, 238, 0.62),
+      0 0 8px rgba(232, 121, 249, 0.28),
+      0 2px 8px rgba(0, 0, 0, 0.4);
+  }
+}
+
 .reel-cover-vote-badge {
   z-index: 30;
+}
+
+.reel-cover-vote-badge.cover-vote-badge--link {
+  animation-duration: 3.2s, 2.4s;
 }
 
 @media (min-width: 640px) {

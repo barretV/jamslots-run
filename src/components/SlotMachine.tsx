@@ -267,7 +267,7 @@ export function SlotMachine({ pool, jamName, jamSlug }: SlotMachineProps) {
   );
 
   return (
-    <div className="app-shell mx-auto w-full max-w-4xl">
+    <div className="app-shell mx-auto w-full max-w-4xl lg:max-w-6xl xl:max-w-[82rem]">
       <header className="app-header shrink-0">
         <div className="app-header-top">
           <h1 className="app-title font-display font-black uppercase tracking-tight text-transparent bg-gradient-to-r from-amber-300 via-fuchsia-400 to-cyan-300 bg-clip-text">
@@ -401,6 +401,7 @@ export function SlotMachine({ pool, jamName, jamSlug }: SlotMachineProps) {
               thumbnailFor={(gameId) => pool.find((g) => g.gameId === gameId)?.thumbnailUrl ?? ''}
               creatorFor={(gameId) => pool.find((g) => g.gameId === gameId)?.creatorName}
               totalPlaysFor={(gameId) => pool.find((g) => g.gameId === gameId)?.totalPlays}
+              votesFor={(gameId) => pool.find((g) => g.gameId === gameId)?.votes}
               isFavorite={isFavorite}
               onToggleFavorite={toggleFavoriteWithCount}
               embedded

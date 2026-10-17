@@ -8,6 +8,7 @@ import {
 } from 'react';
 import type { JamGame } from '../types';
 import { CoverStatsRow } from './CoverStatsRow';
+import { CoverVoteBadge } from './CoverVoteBadge';
 import { GameThumbnail } from './GameThumbnail';
 import { OverflowCrawlText } from './OverflowCrawlText';
 
@@ -299,6 +300,7 @@ export function ReelCard({
         </div>
         {!reelSpinning && (
           <>
+            <CoverVoteBadge votes={game.votes} className="reel-cover-vote-badge" />
             <CoverStatsRow
               gameId={game.gameId}
               totalPlays={game.totalPlays}

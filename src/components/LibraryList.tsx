@@ -18,7 +18,9 @@ type LibrarySortMode =
   | 'plays-desc'
   | 'plays-asc'
   | 'favorites-desc'
-  | 'favorites-asc';
+  | 'favorites-asc'
+  | 'votes-desc'
+  | 'votes-asc';
 
 function matchesQuery(game: JamGame, query: string): boolean {
   const q = query.toLowerCase();
@@ -57,6 +59,11 @@ function sortGames(
       if (favDiff !== 0) return favDiff;
       return compareByTitle(a, b);
     }
+    if (mode === 'votes-desc' || mode === 'votes-asc') {
+      const voteDiff = mode === 'votes-desc' ? b.votes - a.votes : a.votes - b.votes;
+      if (voteDiff !== 0) return voteDiff;
+      return compareByTitle(a, b);
+    }
     const playsDiff =
       mode === 'plays-desc' ? b.totalPlays - a.totalPlays : a.totalPlays - b.totalPlays;
     if (playsDiff !== 0) return playsDiff;
@@ -81,6 +88,10 @@ function sortLabel(mode: LibrarySortMode): string {
       return 'most favorited';
     case 'favorites-asc':
       return 'least favorited';
+    case 'votes-desc':
+      return 'most votes';
+    case 'votes-asc':
+      return 'least votes';
   }
 }
 
@@ -123,6 +134,7 @@ export function LibraryList({
     creatorName: game.creatorName,
     description: game.description,
     totalPlays: game.totalPlays,
+    votes: game.votes,
   }));
 
   const sortPhrase = sortLabel(sortMode);
@@ -167,6 +179,8 @@ export function LibraryList({
             <option value="plays-asc">Least plays</option>
             <option value="favorites-desc">Most favorited</option>
             <option value="favorites-asc">Least favorited</option>
+            <option value="votes-desc">Most votes</option>
+            <option value="votes-asc">Least votes</option>
           </select>
         </div>
         <p className="library-search-hint" aria-live="polite">{hint}</p>

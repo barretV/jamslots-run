@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react';
 import { DescriptionTooltip } from './DescriptionTooltip';
 import { CoverStatsRow } from './CoverStatsRow';
+import { CoverVoteBadge } from './CoverVoteBadge';
 import { GameThumbnail } from './GameThumbnail';
 
 export interface PosterGridItem {
@@ -11,6 +12,7 @@ export interface PosterGridItem {
   creatorName?: string;
   description?: string;
   totalPlays?: number;
+  votes?: number;
 }
 
 interface GamePosterGridProps {
@@ -75,6 +77,7 @@ export function GamePosterGrid({
                       />
                     </button>
                   </DescriptionTooltip>
+                  <CoverVoteBadge votes={item.votes} />
                   <CoverStatsRow
                     gameId={item.gameId}
                     totalPlays={item.totalPlays}

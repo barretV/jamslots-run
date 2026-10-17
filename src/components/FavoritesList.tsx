@@ -26,6 +26,7 @@ export function FavoritesList({
     creatorName: game.creatorName,
     description: game.description,
     totalPlays: game.totalPlays,
+    votes: game.votes,
   }));
 
   return (

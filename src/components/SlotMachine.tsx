@@ -447,6 +447,7 @@ export function SlotMachine({ pool, jamName, jamSlug }: SlotMachineProps) {
       <GameDescriptionModal game={descriptionGame} onClose={() => setDescriptionGame(null)} />
         </div>
       </div>
+      <div className="app-layout__balance" aria-hidden="true" />
     </div>
   );
 }

@@ -8,57 +8,38 @@ export function PickerSidePanel({ jamSlug }: PickerSidePanelProps) {
   const jamVotesUrl = runJamVotesPageUrl(jamSlug);
 
   return (
-    <aside
-      className="picker-side-panel"
-      aria-label="JamSlots guide"
-    >
+    <aside className="picker-side-panel" aria-label="JamSlots guide">
+      <div className="picker-side-panel__glow" aria-hidden />
       <div className="picker-side-panel__inner">
-        <h2 className="picker-side-panel__title font-display">Guide</h2>
+        <header className="picker-side-hero">
+          <p className="picker-side-hero__eyebrow font-display">JamSlots</p>
+          <h2 className="picker-side-hero__title font-display">
+            <span className="picker-side-hero__line">Quick</span>
+            <span className="picker-side-hero__line">Guide</span>
+          </h2>
+        </header>
 
-        <section className="picker-side-panel__section" aria-labelledby="side-vote-heading">
-          <h3 id="side-vote-heading" className="picker-side-panel__heading">
-            How to vote
-          </h3>
-          <p className="picker-side-panel__copy">
-            Tap the glowing cyan{' '}
-            <span className="picker-side-icon-sample picker-side-icon-sample--vote" aria-hidden>
-              ▲
-            </span>{' '}
-            on any cover. RUN opens that game&apos;s ballot so you can vote in one tap.
-          </p>
-          <p className="picker-side-panel__copy picker-side-panel__copy--muted">
-            <a
-              href={jamVotesUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="picker-side-panel__link"
-            >
-              Browse all jam games on RUN
-            </a>
-          </p>
-        </section>
+        <div className="picker-side-vote-card">
+          <span className="picker-side-tap-hand" aria-hidden>
+            <span className="picker-side-tap-hand__emoji">👆</span>
+            <span className="picker-side-tap-hand__ring" />
+          </span>
+          <p className="picker-side-tap-label font-display">Tap to vote</p>
+          <p className="picker-side-tap-hint">Use the glowing badge on any game cover</p>
+        </div>
 
-        <section className="picker-side-panel__section" aria-labelledby="side-key-heading">
-          <h3 id="side-key-heading" className="picker-side-panel__heading">
-            Cover icons
+        <section className="picker-side-key-block" aria-labelledby="side-key-heading">
+          <h3 id="side-key-heading" className="picker-side-key-heading font-display">
+            Icons
           </h3>
           <ul className="picker-side-key">
-            <li className="picker-side-key__row">
-              <span className="picker-side-icon-sample picker-side-icon-sample--vote" aria-hidden>
-                ▲
-              </span>
-              <span>
-                <strong className="picker-side-key__label">RUN votes</strong>
-                <span className="picker-side-key__desc">Official jam ballot for this game</span>
-              </span>
-            </li>
             <li className="picker-side-key__row">
               <span className="picker-side-icon-sample picker-side-icon-sample--plays" aria-hidden>
                 1.2k
               </span>
               <span>
                 <strong className="picker-side-key__label">Plays</strong>
-                <span className="picker-side-key__desc">Total plays on RUN (bottom left)</span>
+                <span className="picker-side-key__desc">RUN total, bottom left</span>
               </span>
             </li>
             <li className="picker-side-key__row">
@@ -67,7 +48,7 @@ export function PickerSidePanel({ jamSlug }: PickerSidePanelProps) {
               </span>
               <span>
                 <strong className="picker-side-key__label">JamSlots stars</strong>
-                <span className="picker-side-key__desc">Favorites from players here (bottom right)</span>
+                <span className="picker-side-key__desc">Community favorites here</span>
               </span>
             </li>
             <li className="picker-side-key__row">
@@ -76,7 +57,7 @@ export function PickerSidePanel({ jamSlug }: PickerSidePanelProps) {
               </span>
               <span>
                 <strong className="picker-side-key__label">Your favorites</strong>
-                <span className="picker-side-key__desc">Star on a poster to save it</span>
+                <span className="picker-side-key__desc">Star a poster to save it</span>
               </span>
             </li>
             <li className="picker-side-key__row">
@@ -85,11 +66,22 @@ export function PickerSidePanel({ jamSlug }: PickerSidePanelProps) {
               </span>
               <span>
                 <strong className="picker-side-key__label">Lock reel</strong>
-                <span className="picker-side-key__desc">Slots only: keep a reel when you roll again</span>
+                <span className="picker-side-key__desc">Slots: keep a reel on roll</span>
               </span>
             </li>
           </ul>
         </section>
+
+        <p className="picker-side-footer">
+          <a
+            href={jamVotesUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="picker-side-panel__link"
+          >
+            All games on RUN
+          </a>
+        </p>
       </div>
     </aside>
   );

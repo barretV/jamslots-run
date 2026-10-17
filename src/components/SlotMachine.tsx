@@ -13,6 +13,7 @@ import { LibraryList } from './LibraryList';
 import { GameDescriptionModal } from './GameDescriptionModal';
 import { PlayedList } from './PlayedList';
 import { ReelCard } from './ReelCard';
+import { JamVoteHeaderLink } from './JamVoteHeaderLink';
 import { TabBar, type PickerTab } from './TabBar';
 
 const BASE_SPIN_MS = 1200;
@@ -21,9 +22,10 @@ const REEL_STAGGER_MS = [0, 250, 500];
 interface SlotMachineProps {
   pool: JamGame[];
   jamName: string;
+  jamSlug: string;
 }
 
-export function SlotMachine({ pool, jamName }: SlotMachineProps) {
+export function SlotMachine({ pool, jamName, jamSlug }: SlotMachineProps) {
   const reducedMotion = useReducedMotion();
   const [triplet, setTriplet] = useState<JamGame[]>(() => pickRandom(pool, 3));
   const [reelSpinning, setReelSpinning] = useState<[boolean, boolean, boolean]>([
@@ -163,6 +165,7 @@ export function SlotMachine({ pool, jamName }: SlotMachineProps) {
         <h1 className="app-title font-display font-black uppercase tracking-tight text-transparent bg-gradient-to-r from-amber-300 via-fuchsia-400 to-cyan-300 bg-clip-text">
           JamSlots
         </h1>
+        <JamVoteHeaderLink jamSlug={jamSlug} />
         <p className="app-subtitle min-w-0 truncate text-violet-100/85" title={jamName}>
           {jamName}
           <span className="text-zinc-500">

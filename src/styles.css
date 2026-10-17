@@ -51,11 +51,51 @@ body {
 .app-header {
   display: flex;
   flex-wrap: wrap;
-  align-items: baseline;
+  align-items: center;
   justify-content: center;
   gap: 0.35rem 0.65rem;
   padding-bottom: 0.35rem;
   text-align: center;
+}
+
+.jam-vote-header-cta {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.4rem 1rem;
+  border-radius: 9999px;
+  font-size: 1.1rem;
+  font-weight: 700;
+  line-height: 1.2;
+  color: #0a0a0c;
+  text-decoration: none;
+  background: linear-gradient(135deg, #fbbf24, #f472b6, #22d3ee);
+  background-size: 200% 200%;
+  animation: btn-shine 3s ease infinite;
+  box-shadow: 0 0 18px rgba(251, 191, 36, 0.4);
+  transition:
+    transform 0.15s ease,
+    box-shadow 0.15s ease;
+}
+
+.jam-vote-header-cta:hover {
+  transform: scale(1.04);
+  box-shadow: 0 0 24px rgba(244, 114, 182, 0.5);
+}
+
+.jam-vote-header-cta:focus-visible {
+  outline: 2px solid rgba(34, 211, 238, 0.85);
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .jam-vote-header-cta {
+    animation: none;
+  }
+
+  .jam-vote-header-cta:hover {
+    transform: none;
+  }
 }
 
 .app-title {

@@ -23,5 +23,7 @@ export function App() {
     );
   }
 
-  return <SlotMachine pool={bundle.games} jamName={bundle.jamName} />;
+  return (
+    <SlotMachine pool={bundle.games} jamName={bundle.jamName} jamSlug={bundle.jamSlug} />
+  );
 }

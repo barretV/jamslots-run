@@ -1,4 +1,5 @@
 import type { CSSProperties } from 'react';
+import { PlayedTabIcon } from './PlayedTabIcon';
 
 export type PickerTab = 'slots' | 'favorites' | 'played' | 'library';
 
@@ -66,12 +67,15 @@ export function TabBar({
               {isPlayed && <span className="picker-tab-progress-fill" aria-hidden />}
               {isPlayed ? (
                 <>
-                  <span className="picker-tab-played-copy">
-                    <span className="picker-tab-label">
-                      <span className="sm:hidden">{tab.shortLabel}</span>
-                      <span className="hidden sm:inline">{tab.label}</span>
+                  <span className="picker-tab-played-row">
+                    <PlayedTabIcon className="picker-tab-played-icon" />
+                    <span className="picker-tab-played-copy">
+                      <span className="picker-tab-label">
+                        <span className="sm:hidden">{tab.shortLabel}</span>
+                        <span className="hidden sm:inline">{tab.label}</span>
+                      </span>
+                      <span className="picker-tab-played-meta" aria-hidden>{playedLabel}</span>
                     </span>
-                    <span className="picker-tab-played-meta" aria-hidden>{playedLabel}</span>
                   </span>
                   <span className="picker-tab-played-pct" aria-hidden>{playedPct}%</span>
                 </>

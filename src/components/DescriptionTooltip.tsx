@@ -12,7 +12,7 @@ export function DescriptionTooltip({
   description,
   children,
   disabled = false,
-  placement = 'below',
+  placement = 'above',
 }: DescriptionTooltipProps) {
   const teaser = descriptionTeaser(description);
   const tooltipId = useId();
@@ -32,7 +32,7 @@ export function DescriptionTooltip({
 
   return (
     <span
-      className="relative block min-w-0"
+      className="relative isolate inline-block w-full max-w-full align-top"
       onMouseEnter={show}
       onMouseLeave={hide}
     >

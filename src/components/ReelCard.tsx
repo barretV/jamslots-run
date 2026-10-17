@@ -191,7 +191,11 @@ export function ReelCard({
         disabled ? 'pointer-events-none' : ''
       }`}
     >
-      <DescriptionTooltip description={tooltipDescription} disabled={infoLocked}>
+      <DescriptionTooltip
+        description={tooltipDescription}
+        disabled={infoLocked}
+        placement="above"
+      >
         <button
           type="button"
           className="relative block w-full shrink-0 overflow-hidden text-left"

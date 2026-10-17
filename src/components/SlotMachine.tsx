@@ -246,11 +246,13 @@ export function SlotMachine({ pool, jamName, jamSlug }: SlotMachineProps) {
   return (
     <div className="app-shell mx-auto w-full max-w-4xl">
       <header className="app-header shrink-0">
-        <h1 className="app-title font-display font-black uppercase tracking-tight text-transparent bg-gradient-to-r from-amber-300 via-fuchsia-400 to-cyan-300 bg-clip-text">
-          JamSlots
-        </h1>
-        <JamVoteHeaderLink jamSlug={jamSlug} />
-        <p className="app-subtitle min-w-0 truncate text-violet-100/85" title={jamName}>
+        <div className="app-header-top">
+          <h1 className="app-title font-display font-black uppercase tracking-tight text-transparent bg-gradient-to-r from-amber-300 via-fuchsia-400 to-cyan-300 bg-clip-text">
+            JamSlots
+          </h1>
+          <JamVoteHeaderLink jamSlug={jamSlug} />
+        </div>
+        <p className="app-subtitle text-violet-100/85" title={jamName}>
           {jamName}
           <span className="text-zinc-500">
             {' '}
@@ -274,7 +276,7 @@ export function SlotMachine({ pool, jamName, jamSlug }: SlotMachineProps) {
             id="panel-slots"
             role="tabpanel"
             aria-labelledby="tab-slots"
-            className={`slot-frame tab-panel flex min-h-0 flex-1 flex-col overflow-hidden rounded-2xl border border-fuchsia-500/30 bg-gradient-to-b from-violet-950/60 to-black/80 p-2 shadow-[inset_0_0_60px_rgba(168,85,247,0.15)] sm:rounded-3xl sm:p-4 md:p-5 ${
+            className={`slot-frame tab-panel flex min-h-0 flex-1 flex-col overflow-hidden rounded-2xl border border-fuchsia-500/30 bg-gradient-to-b from-violet-950/60 to-black/80 p-1.5 shadow-[inset_0_0_60px_rgba(168,85,247,0.15)] sm:rounded-3xl sm:p-4 md:p-5 ${
               jackpotFlash ? 'jackpot-flash' : ''
             } ${frameShake ? 'slot-shake' : ''}`}
           >
@@ -312,37 +314,39 @@ export function SlotMachine({ pool, jamName, jamSlug }: SlotMachineProps) {
               ))}
             </div>
 
-            <div className="mt-2 flex shrink-0 flex-col items-center gap-2 sm:mt-3">
-              <label
-                className={`flex cursor-pointer items-center gap-2.5 text-[1.1rem] text-violet-100/90 ${
-                  interactionLocked ? 'pointer-events-none opacity-50' : ''
-                }`}
-              >
-                <input
-                  type="checkbox"
-                  className="size-[1.15rem] rounded border-violet-400/60 accent-fuchsia-400"
-                  checked={onlyUnplayed}
-                  onChange={(e) => setOnlyUnplayed(e.target.checked)}
-                  disabled={interactionLocked}
-                />
-                Only unplayed
-              </label>
+            <div className="slot-footer mt-1.5 shrink-0 sm:mt-3">
               {onlyUnplayed && unplayedCount < 3 && (
-                <p className="max-w-sm px-2 text-center text-[1.1rem] leading-snug text-amber-200/85">
+                <p className="slot-footer-hint mb-1.5 px-1 text-center text-[1.1rem] leading-snug text-amber-200/85 sm:mb-2 sm:max-w-sm sm:px-2">
                   {unplayedCount === 0
                     ? 'You have played every game. Rolls use the full list.'
                     : 'Few unplayed games left. Rolls may include games you already played.'}
                 </p>
               )}
-              <button
-                type="button"
-                className="slot-btn w-full max-w-sm rounded-xl px-6 py-3 text-[1.15rem] font-bold uppercase tracking-wide text-black sm:max-w-xs sm:rounded-2xl sm:py-3.5 sm:text-[1.2rem]"
-                onClick={roll}
-                disabled={interactionLocked || pool.length < 3}
-                aria-busy={interactionLocked}
-              >
-                {interactionLocked ? 'Rolling…' : 'Roll again'}
-              </button>
+              <div className="slot-footer-row">
+                <label
+                  className={`slot-footer-unplayed flex cursor-pointer items-center gap-2 text-[1.1rem] text-violet-100/90 ${
+                    interactionLocked ? 'pointer-events-none opacity-50' : ''
+                  }`}
+                >
+                  <input
+                    type="checkbox"
+                    className="size-[1.15rem] shrink-0 rounded border-violet-400/60 accent-fuchsia-400"
+                    checked={onlyUnplayed}
+                    onChange={(e) => setOnlyUnplayed(e.target.checked)}
+                    disabled={interactionLocked}
+                  />
+                  <span className="leading-tight">Only unplayed</span>
+                </label>
+                <button
+                  type="button"
+                  className="slot-btn slot-footer-roll rounded-xl px-4 py-2.5 text-[1.1rem] font-bold uppercase tracking-wide text-black sm:rounded-2xl sm:px-6 sm:py-3.5 sm:text-[1.2rem]"
+                  onClick={roll}
+                  disabled={interactionLocked || pool.length < 3}
+                  aria-busy={interactionLocked}
+                >
+                  {interactionLocked ? 'Rolling…' : 'Roll again'}
+                </button>
+              </div>
             </div>
           </div>
         )}

@@ -7,11 +7,11 @@ interface TabBarProps {
   playedCount: number;
 }
 
-const TABS: { id: PickerTab; label: string }[] = [
-  { id: 'slots', label: 'Slots' },
-  { id: 'library', label: 'Library' },
-  { id: 'favorites', label: 'Favorites' },
-  { id: 'played', label: 'Played' },
+const TABS: { id: PickerTab; label: string; shortLabel: string }[] = [
+  { id: 'slots', label: 'Slots', shortLabel: 'Slots' },
+  { id: 'library', label: 'Library', shortLabel: 'Library' },
+  { id: 'favorites', label: 'Favorites', shortLabel: 'Faves' },
+  { id: 'played', label: 'Played', shortLabel: 'Played' },
 ];
 
 export function TabBar({ active, onChange, favoriteCount, playedCount }: TabBarProps) {
@@ -37,7 +37,10 @@ export function TabBar({ active, onChange, favoriteCount, playedCount }: TabBarP
               className={`picker-tab ${selected ? 'picker-tab-active' : ''}`}
               onClick={() => onChange(tab.id)}
             >
-              <span className="picker-tab-label">{tab.label}</span>
+              <span className="picker-tab-label">
+                <span className="sm:hidden">{tab.shortLabel}</span>
+                <span className="hidden sm:inline">{tab.label}</span>
+              </span>
               {badge != null && badge > 0 && (
                 <span className="picker-tab-badge" aria-hidden>{badge}</span>
               )}

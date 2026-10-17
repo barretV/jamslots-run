@@ -39,8 +39,8 @@ function pickFromPool(pool: JamGame[]): JamGame {
 
 function titleTextClass(title: string): string {
   const len = title.length;
-  if (len > 32) return 'text-[0.95rem] leading-tight sm:text-[1.05rem]';
-  if (len > 22) return 'text-[1.05rem] leading-snug sm:text-[1.1rem]';
+  if (len > 28) return 'text-[1.1rem] leading-tight line-clamp-3 sm:text-[1.1rem] sm:line-clamp-2';
+  if (len > 18) return 'text-[1.1rem] leading-snug line-clamp-2 sm:text-[1.15rem]';
   return 'text-[1.1rem] leading-snug sm:text-[1.15rem]';
 }
 
@@ -204,7 +204,7 @@ export function ReelCard({
       {!reelSpinning && !disabled && (
         <button
           type="button"
-          className={`reel-lock-btn pointer-events-auto absolute left-2 top-2 z-20 flex items-center gap-1 rounded-lg border px-2 py-1 text-[1.05rem] font-semibold shadow-md backdrop-blur-sm sm:text-[1.1rem] ${
+          className={`reel-lock-btn pointer-events-auto absolute left-1 top-1 z-20 flex items-center gap-0.5 rounded-md border px-1.5 py-0.5 text-[1.1rem] font-semibold shadow-md backdrop-blur-sm sm:left-2 sm:top-2 sm:gap-1 sm:rounded-lg sm:px-2 sm:py-1 ${
             locked
               ? 'border-cyan-300/60 bg-cyan-950/90 text-cyan-100'
               : 'border-white/20 bg-black/55 text-zinc-200 hover:bg-black/75'
@@ -261,7 +261,7 @@ export function ReelCard({
 
       <button
         type="button"
-        className={`reel-play-row reel-play-row--${reelIndex} mx-1.5 mt-1.5 w-[calc(100%-0.75rem)] shrink-0 rounded-xl bg-amber-400/95 py-2 text-center text-[1.1rem] font-bold text-black sm:mx-3 sm:mt-2 sm:py-2.5 sm:text-[1.15rem] ${
+        className={`reel-play-row reel-play-row--${reelIndex} mx-1 mt-1 w-[calc(100%-0.5rem)] shrink-0 rounded-lg bg-amber-400/95 py-1.5 text-center text-[1.1rem] font-bold text-black sm:mx-3 sm:mt-2 sm:w-[calc(100%-1.5rem)] sm:rounded-xl sm:py-2.5 sm:text-[1.15rem] ${
           playInvitePaused ? 'reel-play-row--paused pointer-events-none opacity-0' : ''
         }`}
         onClick={onPlay}
@@ -318,7 +318,7 @@ export function ReelCard({
               </button>
               <button
                 type="button"
-                className={`col-start-1 min-w-0 truncate pb-2 text-left text-[1.05rem] text-violet-200/90 sm:pb-2.5 sm:text-[1.1rem] ${
+                className={`col-start-1 min-w-0 truncate pb-1.5 text-left text-[1.1rem] text-violet-200/90 sm:pb-2.5 ${
                   reelSpinning ? 'pointer-events-none' : 'hover:text-violet-100'
                 }`}
                 onClick={() => {
@@ -333,7 +333,7 @@ export function ReelCard({
           </div>
           {panelDescription ? (
             <p
-              className="reel-meta-face reel-meta-face--desc line-clamp-4 pb-1.5 pt-1 text-[1.05rem] leading-snug text-zinc-300 sm:pt-2 sm:text-[1.1rem]"
+              className="reel-meta-face reel-meta-face--desc line-clamp-4 pb-1.5 pt-1 text-[1.1rem] leading-snug text-zinc-300 sm:pt-2"
               aria-hidden={!showPanelDescription}
             >
               {panelDescription}

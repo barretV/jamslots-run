@@ -50,12 +50,34 @@ body {
 
 .app-header {
   display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.25rem;
+  padding-bottom: 0.3rem;
+  text-align: center;
+}
+
+.app-header-top {
+  display: flex;
   flex-wrap: wrap;
   align-items: center;
   justify-content: center;
-  gap: 0.35rem 0.65rem;
-  padding-bottom: 0.35rem;
-  text-align: center;
+  gap: 0.35rem 0.55rem;
+  width: 100%;
+}
+
+@media (min-width: 640px) {
+  .app-header {
+    flex-direction: row;
+    flex-wrap: wrap;
+    gap: 0.35rem 0.65rem;
+    padding-bottom: 0.35rem;
+  }
+
+  .app-header-top {
+    display: contents;
+  }
 }
 
 .jam-vote-header-cta {
@@ -174,6 +196,12 @@ body {
   }
 }
 
+@media (max-width: 639px) {
+  .jam-vote-header-cta {
+    padding: 0.32rem 0.7rem;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .jam-vote-header-cta {
     animation: none;
@@ -199,7 +227,30 @@ body {
 .app-subtitle {
   font-size: clamp(1.1rem, 2.5vw, 1.15rem);
   line-height: 1.25;
+  width: 100%;
   max-width: 100%;
+  margin: 0;
+  padding: 0 0.15rem;
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+}
+
+@media (min-width: 640px) {
+  .app-subtitle {
+    width: auto;
+    flex: 1 1 12rem;
+    min-width: 0;
+    padding: 0;
+    white-space: nowrap;
+    display: block;
+    -webkit-line-clamp: unset;
+    line-clamp: unset;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
 }
 
 .app-tab-rail {
@@ -273,7 +324,7 @@ body {
 .reel-meta-stack {
   position: relative;
   display: grid;
-  min-height: 4.75rem;
+  min-height: 4.35rem;
 }
 
 @media (min-width: 640px) {
@@ -612,6 +663,86 @@ body {
 .picker-tab-active .picker-tab-badge {
   background: rgba(0, 0, 0, 0.28);
   color: inherit;
+}
+
+@media (max-width: 639px) {
+  .picker-tabs-inner {
+    gap: 0.2rem;
+    padding: 0.25rem;
+    border-radius: 0.85rem;
+  }
+
+  .picker-tab {
+    flex-direction: column;
+    gap: 0.05rem;
+    min-height: 2.85rem;
+    padding: 0.3rem 0.12rem;
+    border-radius: 0.65rem;
+  }
+
+  .picker-tab-label {
+    font-size: 1.1rem;
+    letter-spacing: -0.03em;
+  }
+
+  .picker-tab-badge {
+    font-size: 1rem;
+    padding: 0.05rem 0.35rem;
+    line-height: 1.1;
+  }
+}
+
+.slot-footer {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  width: 100%;
+  padding-bottom: max(0.15rem, env(safe-area-inset-bottom, 0px));
+}
+
+.slot-footer-row {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  width: 100%;
+}
+
+.slot-footer-unplayed {
+  flex: 0 1 auto;
+  min-width: 0;
+}
+
+.slot-footer-roll {
+  flex: 1 1 9rem;
+  min-width: 0;
+  max-width: 14rem;
+}
+
+@media (min-width: 640px) {
+  .slot-footer {
+    align-items: center;
+    padding-bottom: 0;
+  }
+
+  .slot-footer-row {
+    flex-direction: column;
+    align-items: center;
+    gap: 0.5rem;
+    max-width: 20rem;
+    margin-inline: auto;
+  }
+
+  .slot-footer-unplayed {
+    justify-content: center;
+  }
+
+  .slot-footer-roll {
+    width: 100%;
+    max-width: 20rem;
+    flex: none;
+  }
 }
 
 .tab-panel {

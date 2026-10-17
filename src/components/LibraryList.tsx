@@ -10,12 +10,44 @@ interface LibraryListProps {
   embedded?: boolean;
 }
 
+type LibrarySortMode = 'title-asc' | 'plays-desc' | 'plays-asc';
+
 function matchesQuery(game: JamGame, query: string): boolean {
   const q = query.toLowerCase();
   if (game.title.toLowerCase().includes(q)) return true;
   if (game.creatorName.toLowerCase().includes(q)) return true;
   if (game.description.toLowerCase().includes(q)) return true;
   return false;
+}
+
+function compareByTitle(a: JamGame, b: JamGame): number {
+  return a.title.localeCompare(b.title, undefined, { sensitivity: 'base' });
+}
+
+function sortGames(games: JamGame[], mode: LibrarySortMode): JamGame[] {
+  const list = [...games];
+  if (mode === 'title-asc') {
+    list.sort(compareByTitle);
+    return list;
+  }
+  list.sort((a, b) => {
+    const playsDiff =
+      mode === 'plays-desc' ? b.totalPlays - a.totalPlays : a.totalPlays - b.totalPlays;
+    if (playsDiff !== 0) return playsDiff;
+    return compareByTitle(a, b);
+  });
+  return list;
+}
+
+function sortLabel(mode: LibrarySortMode): string {
+  switch (mode) {
+    case 'title-asc':
+      return 'A to Z';
+    case 'plays-desc':
+      return 'most plays';
+    case 'plays-asc':
+      return 'least plays';
+  }
 }
 
 export function LibraryList({
@@ -27,16 +59,14 @@ export function LibraryList({
 }: LibraryListProps) {
   const [query, setQuery] = useState('');
   const [debouncedQuery, setDebouncedQuery] = useState('');
+  const [sortMode, setSortMode] = useState<LibrarySortMode>('title-asc');
 
   useEffect(() => {
     const id = window.setTimeout(() => setDebouncedQuery(query.trim()), 200);
     return () => window.clearTimeout(id);
   }, [query]);
 
-  const sortedGames = useMemo(
-    () => [...games].sort((a, b) => a.title.localeCompare(b.title, undefined, { sensitivity: 'base' })),
-    [games],
-  );
+  const sortedGames = useMemo(() => sortGames(games, sortMode), [games, sortMode]);
 
   const visibleGames = useMemo(() => {
     if (!debouncedQuery) return sortedGames;
@@ -57,29 +87,46 @@ export function LibraryList({
     totalPlays: game.totalPlays,
   }));
 
+  const sortPhrase = sortLabel(sortMode);
   const hint =
     debouncedQuery.length === 0
-      ? `All ${games.length} games, A to Z`
+      ? `All ${games.length} games, sorted ${sortPhrase}`
       : visibleGames.length === 0
         ? 'No matches'
-        : `${visibleGames.length} match${visibleGames.length === 1 ? '' : 'es'}`;
+        : `${visibleGames.length} match${visibleGames.length === 1 ? '' : 'es'}, sorted ${sortPhrase}`;
 
   return (
     <section className={shellClass} role={embedded ? 'presentation' : undefined}>
-      <div className="library-search-bar shrink-0">
-        <label className="library-search-label" htmlFor="library-search-input">
-          Search library
-        </label>
-        <input
-          id="library-search-input"
-          type="search"
-          className="library-search-input"
-          placeholder="Search games or creators…"
-          value={query}
-          onChange={(e) => setQuery(e.target.value)}
-          autoComplete="off"
-          enterKeyHint="search"
-        />
+      <div className="library-toolbar shrink-0">
+        <div className="library-toolbar-row">
+          <label className="library-search-label" htmlFor="library-search-input">
+            Search library
+          </label>
+          <input
+            id="library-search-input"
+            type="search"
+            className="library-search-input"
+            placeholder="Search games or creators…"
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            autoComplete="off"
+            enterKeyHint="search"
+          />
+          <label className="library-search-label" htmlFor="library-sort-select">
+            Sort library
+          </label>
+          <select
+            id="library-sort-select"
+            className="library-sort-select"
+            value={sortMode}
+            onChange={(e) => setSortMode(e.target.value as LibrarySortMode)}
+            aria-label="Sort library"
+          >
+            <option value="title-asc">A to Z</option>
+            <option value="plays-desc">Most plays</option>
+            <option value="plays-asc">Least plays</option>
+          </select>
+        </div>
         <p className="library-search-hint" aria-live="polite">{hint}</p>
       </div>
       <GamePosterGrid

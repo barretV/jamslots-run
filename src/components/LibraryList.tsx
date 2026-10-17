@@ -10,7 +10,12 @@ interface LibraryListProps {
   embedded?: boolean;
 }
 
-type LibrarySortMode = 'title-asc' | 'plays-desc' | 'plays-asc';
+type LibrarySortMode =
+  | 'title-asc'
+  | 'published-desc'
+  | 'published-asc'
+  | 'plays-desc'
+  | 'plays-asc';
 
 function matchesQuery(game: JamGame, query: string): boolean {
   const q = query.toLowerCase();
@@ -31,6 +36,12 @@ function sortGames(games: JamGame[], mode: LibrarySortMode): JamGame[] {
     return list;
   }
   list.sort((a, b) => {
+    if (mode === 'published-desc' || mode === 'published-asc') {
+      const pubDiff =
+        mode === 'published-desc' ? b.publishedAt - a.publishedAt : a.publishedAt - b.publishedAt;
+      if (pubDiff !== 0) return pubDiff;
+      return compareByTitle(a, b);
+    }
     const playsDiff =
       mode === 'plays-desc' ? b.totalPlays - a.totalPlays : a.totalPlays - b.totalPlays;
     if (playsDiff !== 0) return playsDiff;
@@ -43,6 +54,10 @@ function sortLabel(mode: LibrarySortMode): string {
   switch (mode) {
     case 'title-asc':
       return 'A to Z';
+    case 'published-desc':
+      return 'newest first';
+    case 'published-asc':
+      return 'oldest first';
     case 'plays-desc':
       return 'most plays';
     case 'plays-asc':
@@ -123,6 +138,8 @@ export function LibraryList({
             aria-label="Sort library"
           >
             <option value="title-asc">A to Z</option>
+            <option value="published-desc">Newest</option>
+            <option value="published-asc">Oldest</option>
             <option value="plays-desc">Most plays</option>
             <option value="plays-asc">Least plays</option>
           </select>

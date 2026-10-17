@@ -13,6 +13,7 @@ function normalizeBundle(raw: GamesBundle): GamesBundle {
     ...g,
     votes: Number(g.votes ?? 0),
     totalPlays: Number(g.totalPlays ?? 0),
+    publishedAt: Number(g.publishedAt ?? 0),
   }));
   return {
     ...raw,

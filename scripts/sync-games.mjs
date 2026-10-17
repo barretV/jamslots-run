@@ -28,6 +28,7 @@ for (const e of d.entries ?? []) {
     shareUrl: e.shareUrl,
     votes: e.votes ?? 0,
     totalPlays: e.totalPlays ?? 0,
+    publishedAt: e.publishedAt ?? 0,
     rank: e.rank,
   });
 }

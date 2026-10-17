@@ -8,6 +8,7 @@ export interface JamGame {
   shareUrl: string;
   votes: number;
   totalPlays: number;
+  publishedAt: number;
   rank?: number;
 }
 

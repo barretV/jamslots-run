@@ -7,8 +7,12 @@ import {
   type CSSProperties,
 } from 'react';
 import type { JamGame } from '../types';
-import { descriptionPanelTeaser } from '../lib/descriptionTeaser';
 import { GameThumbnail } from './GameThumbnail';
+import { OverflowCrawlText } from './OverflowCrawlText';
+
+function panelDescriptionText(description: string): string {
+  return description.trim().replace(/\s+/g, ' ');
+}
 
 interface ReelCardProps {
   reelIndex: 0 | 1 | 2;
@@ -185,7 +189,7 @@ export function ReelCard({
 
   const infoLocked = disabled || reelSpinning;
   const playInvitePaused = infoLocked;
-  const panelDescription = reelSpinning ? '' : descriptionPanelTeaser(game.description);
+  const panelDescription = reelSpinning ? '' : panelDescriptionText(game.description);
   const showPanelDescription = coverHover && Boolean(panelDescription) && !infoLocked;
 
   const stripStyle = {
@@ -332,12 +336,13 @@ export function ReelCard({
             </div>
           </div>
           {panelDescription ? (
-            <p
-              className="reel-meta-face reel-meta-face--desc line-clamp-4 pb-1.5 pt-1 text-[1.1rem] leading-snug text-zinc-300 sm:pt-2"
+            <OverflowCrawlText
+              active={showPanelDescription}
+              className="reel-meta-face reel-meta-face--desc pb-1.5 pt-1 text-[1.1rem] leading-snug text-zinc-300 sm:pt-2"
               aria-hidden={!showPanelDescription}
             >
               {panelDescription}
-            </p>
+            </OverflowCrawlText>
           ) : null}
         </div>
       </div>

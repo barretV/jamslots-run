@@ -9,9 +9,9 @@ interface TabBarProps {
 
 const TABS: { id: PickerTab; label: string }[] = [
   { id: 'slots', label: 'Slots' },
+  { id: 'library', label: 'Library' },
   { id: 'favorites', label: 'Favorites' },
   { id: 'played', label: 'Played' },
-  { id: 'library', label: 'Library' },
 ];
 
 export function TabBar({ active, onChange, favoriteCount, playedCount }: TabBarProps) {

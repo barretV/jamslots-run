@@ -1109,9 +1109,13 @@ body {
   padding: 0.28rem 0.45rem;
   border-radius: 0;
   border: none;
-  border-top: 1px solid rgba(255, 255, 255, 0.1);
-  background: linear-gradient(to top, rgba(5, 5, 8, 0.94), rgba(5, 5, 8, 0.78));
-  backdrop-filter: blur(6px);
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  background: linear-gradient(
+    to top,
+    rgba(5, 5, 8, 0.72),
+    rgba(5, 5, 8, 0.38)
+  );
+  backdrop-filter: blur(4px);
   pointer-events: none;
   font-size: 1.1rem;
   font-weight: 600;
@@ -1123,6 +1127,7 @@ body {
   flex: 0 0 auto;
   min-width: 0;
   white-space: nowrap;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.75);
 }
 
 .cover-stats-row__plays {

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 
 interface GameThumbnailProps {
   url: string;
@@ -24,6 +24,7 @@ export function GameThumbnail({
   const [loaded, setLoaded] = useState(false);
   const [failed, setFailed] = useState(false);
   const [retried, setRetried] = useState(false);
+  const imgRef = useRef<HTMLImageElement>(null);
 
   const trimmed = url?.trim() ?? '';
 
@@ -34,6 +35,14 @@ export function GameThumbnail({
   }, [trimmed]);
 
   const src = useMemo(() => (trimmed ? thumbSrc(trimmed, retried) : ''), [trimmed, retried]);
+
+  useLayoutEffect(() => {
+    const img = imgRef.current;
+    if (!img || !src) return;
+    if (img.complete && img.naturalWidth > 0) {
+      setLoaded(true);
+    }
+  }, [src]);
 
   const showErrorPlaceholder = trimmed.length === 0 || failed;
   const showLoadingShell = !showErrorPlaceholder && !loaded;
@@ -61,6 +70,7 @@ export function GameThumbnail({
             />
           )}
           <img
+            ref={imgRef}
             src={src}
             alt=""
             className={`absolute inset-0 h-full w-full object-center ${

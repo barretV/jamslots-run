@@ -64,15 +64,6 @@ function preloadThumbnail(url: string | undefined): void {
   img.src = u;
 }
 
-function ReelStripFake({ title }: { title: string }) {
-  const initial = title.slice(0, 1).toUpperCase() || '?';
-  return (
-    <div className="reel-strip-fake" aria-hidden>
-      <span className="reel-strip-fake-letter font-display">{initial}</span>
-    </div>
-  );
-}
-
 export function ReelCard({
   reelIndex,
   game,
@@ -138,9 +129,8 @@ export function ReelCard({
 
     setCoverHover(false);
 
-    preloadThumbnail(spinTarget?.thumbnailUrl);
-
     const spinStrip = buildSpinStrip(pool, spinTarget);
+    for (const g of spinStrip) preloadThumbnail(g.thumbnailUrl);
     spinStripRef.current = spinStrip;
     setStrip(spinStrip);
     setLanding(false);
@@ -269,6 +259,7 @@ export function ReelCard({
             aria-hidden={showStrip}
           >
             <GameThumbnail
+              key={game.gameId}
               url={game.thumbnailUrl}
               title={game.title}
               loading="eager"
@@ -280,23 +271,16 @@ export function ReelCard({
             style={stripStyle}
             aria-hidden={!showStrip}
           >
-            {strip.map((g, i) => {
-              const isWinnerCell = i === strip.length - 1;
-              return (
-                <div key={`${g.gameId}-${i}`} className="reel-strip-cell">
-                  {isWinnerCell ? (
-                    <GameThumbnail
-                      url={g.thumbnailUrl}
-                      title={g.title}
-                      loading="eager"
-                      fit="cover"
-                    />
-                  ) : (
-                    <ReelStripFake title={g.title} />
-                  )}
-                </div>
-              );
-            })}
+            {strip.map((g, i) => (
+              <div key={`${g.gameId}-${i}`} className="reel-strip-cell">
+                <GameThumbnail
+                  url={g.thumbnailUrl}
+                  title={g.title}
+                  loading="eager"
+                  fit="cover"
+                />
+              </div>
+            ))}
           </div>
           <div className="reel-window-shade reel-window-shade-top pointer-events-none" aria-hidden />
           <div className="reel-window-shade reel-window-shade-bottom pointer-events-none" aria-hidden />

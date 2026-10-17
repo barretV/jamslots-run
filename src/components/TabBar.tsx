@@ -1,3 +1,5 @@
+import type { CSSProperties } from 'react';
+
 export type PickerTab = 'slots' | 'favorites' | 'played' | 'library';
 
 interface TabBarProps {
@@ -5,6 +7,7 @@ interface TabBarProps {
   onChange: (tab: PickerTab) => void;
   favoriteCount: number;
   playedCount: number;
+  totalJamGames: number;
 }
 
 const TABS: { id: PickerTab; label: string; shortLabel: string }[] = [
@@ -14,18 +17,35 @@ const TABS: { id: PickerTab; label: string; shortLabel: string }[] = [
   { id: 'played', label: 'Played', shortLabel: 'Played' },
 ];
 
-export function TabBar({ active, onChange, favoriteCount, playedCount }: TabBarProps) {
+export function TabBar({
+  active,
+  onChange,
+  favoriteCount,
+  playedCount,
+  totalJamGames,
+}: TabBarProps) {
+  const playedPct =
+    totalJamGames > 0
+      ? Math.min(100, Math.round((playedCount / totalJamGames) * 100))
+      : 0;
+
   return (
     <nav className="picker-tabs" aria-label="Game picker sections">
       <div className="picker-tabs-inner" role="tablist">
         {TABS.map((tab) => {
           const selected = active === tab.id;
-          const badge =
-            tab.id === 'favorites'
-              ? favoriteCount
-              : tab.id === 'played'
-                ? playedCount
-                : null;
+          const isPlayed = tab.id === 'played';
+          const favBadge = tab.id === 'favorites' && favoriteCount > 0 ? favoriteCount : null;
+
+          const playedStyle = isPlayed
+            ? ({ '--jam-progress': `${playedPct}%` } as CSSProperties)
+            : undefined;
+
+          const playedLabel =
+            totalJamGames > 0
+              ? `${playedCount} of ${totalJamGames.toLocaleString()}`
+              : `${playedCount}`;
+
           return (
             <button
               key={tab.id}
@@ -34,15 +54,25 @@ export function TabBar({ active, onChange, favoriteCount, playedCount }: TabBarP
               id={`tab-${tab.id}`}
               aria-selected={selected}
               aria-controls={`panel-${tab.id}`}
-              className={`picker-tab ${selected ? 'picker-tab-active' : ''}`}
+              className={`picker-tab ${selected ? 'picker-tab-active' : ''} ${isPlayed ? 'picker-tab--played' : ''}`}
+              style={playedStyle}
               onClick={() => onChange(tab.id)}
+              aria-label={
+                isPlayed
+                  ? `Played, ${playedCount} of ${totalJamGames} jam games, ${playedPct} percent`
+                  : undefined
+              }
             >
+              {isPlayed && <span className="picker-tab-progress-fill" aria-hidden />}
               <span className="picker-tab-label">
                 <span className="sm:hidden">{tab.shortLabel}</span>
                 <span className="hidden sm:inline">{tab.label}</span>
               </span>
-              {badge != null && badge > 0 && (
-                <span className="picker-tab-badge" aria-hidden>{badge}</span>
+              {isPlayed ? (
+                <span className="picker-tab-played-meta" aria-hidden>{playedLabel}</span>
+              ) : null}
+              {favBadge != null && (
+                <span className="picker-tab-badge" aria-hidden>{favBadge}</span>
               )}
             </button>
           );

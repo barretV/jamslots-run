@@ -776,6 +776,89 @@ body {
   color: inherit;
 }
 
+.picker-tab--played {
+  position: relative;
+  overflow: hidden;
+  isolation: isolate;
+  flex-direction: column;
+  gap: 0.1rem;
+  background: rgba(18, 12, 32, 0.75);
+}
+
+.picker-tab-progress-fill {
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: var(--jam-progress, 0%);
+  min-width: 0;
+  border-radius: inherit;
+  background: linear-gradient(
+    90deg,
+    rgba(34, 211, 238, 0.55) 0%,
+    rgba(192, 132, 252, 0.6) 48%,
+    rgba(251, 191, 36, 0.55) 100%
+  );
+  box-shadow: inset 0 -1px 0 rgba(255, 255, 255, 0.12);
+  transition: width 0.55s cubic-bezier(0.22, 1, 0.36, 1);
+  z-index: 0;
+}
+
+.picker-tab--played .picker-tab-label,
+.picker-tab--played .picker-tab-played-meta {
+  position: relative;
+  z-index: 1;
+}
+
+.picker-tab-played-meta {
+  font-size: 0.95rem;
+  font-weight: 600;
+  line-height: 1.1;
+  font-variant-numeric: tabular-nums;
+  color: rgba(165, 243, 252, 0.9);
+  letter-spacing: -0.01em;
+}
+
+.picker-tab--played:hover:not(.picker-tab-active) {
+  background: rgba(22, 14, 38, 0.85);
+}
+
+.picker-tab--played.picker-tab-active {
+  animation: none;
+  color: #fafafa;
+  background: rgba(12, 8, 22, 0.88) !important;
+  border-color: rgba(34, 211, 238, 0.55);
+  box-shadow:
+    0 0 20px rgba(192, 132, 252, 0.35),
+    inset 0 1px 0 rgba(255, 255, 255, 0.08);
+  transform: translateY(-1px);
+}
+
+.picker-tab--played.picker-tab-active .picker-tab-progress-fill {
+  background: linear-gradient(90deg, #22d3ee 0%, #c084fc 50%, #fbbf24 100%);
+  box-shadow:
+    0 0 18px rgba(34, 211, 238, 0.4),
+    inset 0 1px 0 rgba(255, 255, 255, 0.2);
+}
+
+.picker-tab--played.picker-tab-active .picker-tab-played-meta {
+  color: rgba(254, 243, 199, 0.95);
+}
+
+@media (min-width: 640px) {
+  .picker-tab--played {
+    flex-direction: row;
+    flex-wrap: wrap;
+    justify-content: center;
+    row-gap: 0;
+    column-gap: 0.35rem;
+  }
+
+  .picker-tab-played-meta {
+    font-size: 1rem;
+  }
+}
+
 @media (max-width: 639px) {
   .picker-tabs-inner {
     gap: 0.2rem;
@@ -859,170 +942,6 @@ body {
 .played-panel .poster-grid-scroll {
   flex: 1;
   min-height: 0;
-}
-
-.jam-play-progress {
-  border-radius: 1rem;
-  border: 1px solid rgba(34, 211, 238, 0.45);
-  background:
-    radial-gradient(ellipse 120% 80% at 50% -20%, rgba(34, 211, 238, 0.22), transparent 55%),
-    linear-gradient(160deg, rgba(12, 35, 55, 0.92), rgba(18, 8, 32, 0.95));
-  padding: 1rem 1rem 1.1rem;
-  box-shadow:
-    0 8px 28px rgba(0, 0, 0, 0.45),
-    0 0 0 1px rgba(255, 255, 255, 0.04) inset,
-    0 0 40px rgba(34, 211, 238, 0.12);
-  text-align: center;
-}
-
-.jam-play-progress--panel {
-  margin-bottom: 0.75rem;
-  flex-shrink: 0;
-}
-
-.jam-play-progress--featured {
-  padding: 1.15rem 1rem 1.25rem;
-}
-
-.jam-play-progress-hero {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: baseline;
-  justify-content: center;
-  gap: 0.35rem 0.5rem;
-  line-height: 1.1;
-  margin-bottom: 0.25rem;
-}
-
-.jam-play-progress-played {
-  font-family: var(--font-display, inherit);
-  font-size: clamp(2.35rem, 9vw, 3.25rem);
-  font-weight: 900;
-  font-variant-numeric: tabular-nums;
-  letter-spacing: -0.02em;
-  background: linear-gradient(180deg, #fef3c7 0%, #fbbf24 45%, #f59e0b 100%);
-  -webkit-background-clip: text;
-  background-clip: text;
-  color: transparent;
-  filter: drop-shadow(0 2px 8px rgba(251, 191, 36, 0.45));
-}
-
-.jam-play-progress-of {
-  font-size: 1.1rem;
-  font-weight: 600;
-  text-transform: lowercase;
-  color: rgba(161, 161, 170, 0.95);
-}
-
-.jam-play-progress-total {
-  font-family: var(--font-display, inherit);
-  font-size: clamp(1.65rem, 6vw, 2.25rem);
-  font-weight: 800;
-  font-variant-numeric: tabular-nums;
-  color: rgba(228, 228, 231, 0.92);
-}
-
-.jam-play-progress-caption {
-  margin: 0 0 0.85rem;
-  font-size: 1.1rem;
-  color: rgba(165, 243, 252, 0.88);
-}
-
-.jam-play-progress-track-wrap {
-  display: flex;
-  align-items: center;
-  gap: 0.65rem;
-}
-
-.jam-play-progress-track {
-  flex: 1;
-  height: 1.05rem;
-  border-radius: 9999px;
-  overflow: hidden;
-  background: rgba(0, 0, 0, 0.55);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  box-shadow: inset 0 3px 8px rgba(0, 0, 0, 0.65);
-}
-
-.jam-play-progress-fill {
-  position: relative;
-  height: 100%;
-  min-width: 0.35rem;
-  border-radius: inherit;
-  background: linear-gradient(
-    90deg,
-    #22d3ee 0%,
-    #a78bfa 45%,
-    #fbbf24 85%,
-    #f472b6 100%
-  );
-  background-size: 200% 100%;
-  animation: jam-progress-gradient 3s ease-in-out infinite;
-  box-shadow:
-    0 0 16px rgba(34, 211, 238, 0.55),
-    0 0 28px rgba(192, 132, 252, 0.35);
-  transition: width 0.6s cubic-bezier(0.22, 1, 0.36, 1);
-}
-
-.jam-play-progress-shine {
-  position: absolute;
-  inset: 0;
-  background: linear-gradient(
-    105deg,
-    transparent 0%,
-    rgba(255, 255, 255, 0.45) 45%,
-    transparent 70%
-  );
-  transform: translateX(-100%);
-  animation: jam-progress-shine 2.8s ease-in-out infinite;
-}
-
-.jam-play-progress-pct {
-  flex-shrink: 0;
-  min-width: 2.75rem;
-  font-size: 1.2rem;
-  font-weight: 800;
-  font-variant-numeric: tabular-nums;
-  color: rgba(251, 191, 36, 0.98);
-  text-shadow: 0 0 14px rgba(251, 191, 36, 0.4);
-}
-
-.jam-play-progress-msg {
-  margin: 0.65rem 0 0;
-  font-size: 1.1rem;
-  line-height: 1.35;
-  color: rgba(216, 180, 254, 0.92);
-}
-
-@keyframes jam-progress-gradient {
-  0%,
-  100% {
-    background-position: 0% 50%;
-  }
-  50% {
-    background-position: 100% 50%;
-  }
-}
-
-@keyframes jam-progress-shine {
-  0%,
-  35% {
-    transform: translateX(-120%);
-  }
-  65%,
-  100% {
-    transform: translateX(120%);
-  }
-}
-
-@media (min-width: 640px) {
-  .jam-play-progress--panel {
-    margin-bottom: 1rem;
-  }
-
-  .jam-play-progress-track {
-    height: 1.15rem;
-  }
 }
 
 .tab-panel {

@@ -300,6 +300,7 @@ export function SlotMachine({ pool, jamName, jamSlug }: SlotMachineProps) {
           onChange={setActiveTab}
           favoriteCount={favoriteGames.length}
           playedCount={uniquePlayedInJam}
+          totalJamGames={pool.length}
         />
       </div>
 
@@ -406,8 +407,6 @@ export function SlotMachine({ pool, jamName, jamSlug }: SlotMachineProps) {
           >
             <PlayedList
               entries={stats.history}
-              uniquePlayed={uniquePlayedInJam}
-              totalJamGames={pool.length}
               onOpen={openFromHistory}
               descriptionFor={(gameId) => pool.find((g) => g.gameId === gameId)?.description}
               thumbnailFor={(gameId) => pool.find((g) => g.gameId === gameId)?.thumbnailUrl ?? ''}

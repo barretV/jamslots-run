@@ -1,4 +1,4 @@
-export type PickerTab = 'slots' | 'favorites' | 'played';
+export type PickerTab = 'slots' | 'favorites' | 'played' | 'library';
 
 interface TabBarProps {
   active: PickerTab;
@@ -11,6 +11,7 @@ const TABS: { id: PickerTab; label: string }[] = [
   { id: 'slots', label: 'Slots' },
   { id: 'favorites', label: 'Favorites' },
   { id: 'played', label: 'Played' },
+  { id: 'library', label: 'Library' },
 ];
 
 export function TabBar({ active, onChange, favoriteCount, playedCount }: TabBarProps) {

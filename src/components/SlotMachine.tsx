@@ -9,6 +9,7 @@ import {
 } from '../state/persistence';
 import type { HistoryEntry, JamGame } from '../types';
 import { FavoritesList } from './FavoritesList';
+import { LibraryList } from './LibraryList';
 import { GameDescriptionModal } from './GameDescriptionModal';
 import { PlayedList } from './PlayedList';
 import { ReelCard } from './ReelCard';
@@ -264,6 +265,26 @@ export function SlotMachine({ pool, jamName }: SlotMachineProps) {
               descriptionFor={(gameId) => pool.find((g) => g.gameId === gameId)?.description}
               thumbnailFor={(gameId) => pool.find((g) => g.gameId === gameId)?.thumbnailUrl ?? ''}
               creatorFor={(gameId) => pool.find((g) => g.gameId === gameId)?.creatorName}
+              isFavorite={isFavorite}
+              onToggleFavorite={(gameId) => {
+                toggleFavorite(gameId);
+                refreshStats();
+              }}
+              embedded
+            />
+          </div>
+        )}
+
+        {activeTab === 'library' && (
+          <div
+            id="panel-library"
+            role="tabpanel"
+            aria-labelledby="tab-library"
+            className="tab-panel flex min-h-0 flex-1 flex-col overflow-hidden rounded-2xl border border-violet-500/30 bg-gradient-to-b from-violet-950/45 to-black/80 p-2 sm:rounded-3xl sm:p-4 md:p-5"
+          >
+            <LibraryList
+              games={pool}
+              onOpen={launchGame}
               isFavorite={isFavorite}
               onToggleFavorite={(gameId) => {
                 toggleFavorite(gameId);

@@ -384,7 +384,7 @@ body {
 
 .picker-tabs-inner {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 0.35rem;
   padding: 0.3rem;
   border-radius: 1rem;
@@ -478,6 +478,75 @@ body {
 
 .tab-panel {
   min-height: 0;
+}
+
+.library-search-bar {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  margin-bottom: 0.5rem;
+  padding-bottom: 0.35rem;
+  background: linear-gradient(
+    180deg,
+    rgba(30, 15, 45, 0.98) 0%,
+    rgba(30, 15, 45, 0.92) 75%,
+    rgba(30, 15, 45, 0) 100%
+  );
+}
+
+.library-search-label {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+.library-search-input {
+  display: block;
+  width: 100%;
+  min-height: 2.75rem;
+  padding: 0.55rem 0.85rem;
+  font-size: 1.1rem;
+  line-height: 1.35;
+  color: #fafafa;
+  border-radius: 0.85rem;
+  border: 1px solid rgba(192, 132, 252, 0.45);
+  background: rgba(8, 5, 18, 0.85);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.05),
+    0 0 24px rgba(168, 85, 247, 0.12);
+  transition:
+    border-color 0.2s ease,
+    box-shadow 0.2s ease;
+}
+
+.library-search-input::placeholder {
+  color: rgba(161, 161, 170, 0.85);
+}
+
+.library-search-input:hover {
+  border-color: rgba(244, 114, 182, 0.45);
+}
+
+.library-search-input:focus {
+  outline: none;
+  border-color: rgba(251, 191, 36, 0.75);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.06),
+    0 0 0 2px rgba(251, 191, 36, 0.2),
+    0 0 28px rgba(168, 85, 247, 0.25);
+}
+
+.library-search-hint {
+  margin: 0.35rem 0.15rem 0;
+  font-size: 1.1rem;
+  line-height: 1.3;
+  color: rgba(161, 161, 170, 0.9);
 }
 
 /* Plex / Kodi style poster grids (Favorites + Played tabs) */

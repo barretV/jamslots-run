@@ -18,6 +18,9 @@ import { TabBar, type PickerTab } from './TabBar';
 
 const BASE_SPIN_MS = 1200;
 const REEL_STAGGER_MS = [0, 250, 500];
+const INTRO_ROLL_DELAY_MS = 480;
+
+let introRollFired = false;
 
 interface SlotMachineProps {
   pool: JamGame[];
@@ -208,6 +211,14 @@ export function SlotMachine({ pool, jamName, jamSlug }: SlotMachineProps) {
       setTriplet(pickRandom(pool, 3));
     }
   }, [pool, triplet.length]);
+
+  useEffect(() => {
+    if (introRollFired || pool.length < 3) return;
+    introRollFired = true;
+    const delay = reducedMotion ? 0 : INTRO_ROLL_DELAY_MS;
+    const id = window.setTimeout(() => roll(), delay);
+    return () => window.clearTimeout(id);
+  }, [pool.length, reducedMotion, roll]);
 
   const anyReelSpinning = reelSpinning.some(Boolean);
   const interactionLocked = spinning || anyReelSpinning;

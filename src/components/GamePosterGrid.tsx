@@ -66,10 +66,12 @@ export function GamePosterGrid({
                       onClick={() => onOpen(item)}
                     >
                       <GameThumbnail
+                        key={item.gameId}
                         url={item.thumbnailUrl}
                         title={item.title}
                         className="poster-tile-thumb"
                         fit="cover"
+                        loading="eager"
                       />
                     </button>
                   </DescriptionTooltip>

@@ -1,4 +1,4 @@
-import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 
 interface GameThumbnailProps {
   url: string;
@@ -21,35 +21,23 @@ export function GameThumbnail({
   fit = 'contain',
   loading = 'lazy',
 }: GameThumbnailProps) {
-  const [loaded, setLoaded] = useState(false);
   const [failed, setFailed] = useState(false);
   const [retried, setRetried] = useState(false);
-  const imgRef = useRef<HTMLImageElement>(null);
 
   const trimmed = url?.trim() ?? '';
 
   useEffect(() => {
-    setLoaded(false);
     setFailed(false);
     setRetried(false);
   }, [trimmed]);
 
   const src = useMemo(() => (trimmed ? thumbSrc(trimmed, retried) : ''), [trimmed, retried]);
 
-  useLayoutEffect(() => {
-    const img = imgRef.current;
-    if (!img || !src) return;
-    if (img.complete && img.naturalWidth > 0) {
-      setLoaded(true);
-    }
-  }, [src]);
-
   const showErrorPlaceholder = trimmed.length === 0 || failed;
-  const showLoadingShell = !showErrorPlaceholder && !loaded;
 
   return (
     <div
-      className={`game-thumb-root relative flex h-full w-full min-h-0 items-center justify-center overflow-hidden bg-gradient-to-b from-violet-900/40 via-violet-950/80 to-fuchsia-950/60 ${className}`}
+      className={`game-thumb-root relative flex h-full w-full min-h-0 items-center justify-center overflow-hidden bg-zinc-950 ${className}`}
     >
       {showErrorPlaceholder ? (
         <div
@@ -62,30 +50,20 @@ export function GameThumbnail({
           <span className="text-center text-[1.1rem] text-violet-200/60">No thumbnail</span>
         </div>
       ) : (
-        <>
-          {showLoadingShell && (
-            <div
-              className="absolute inset-0 bg-gradient-to-br from-violet-900/85 via-violet-950 to-fuchsia-950/90"
-              aria-hidden
-            />
-          )}
-          <img
-            ref={imgRef}
-            src={src}
-            alt=""
-            className={`absolute inset-0 h-full w-full object-center ${
-              fit === 'cover' ? 'object-cover' : 'object-contain'
-            } ${loaded ? 'opacity-100' : 'opacity-0'}`}
-            loading={loading}
-            decoding="async"
-            referrerPolicy="no-referrer"
-            onLoad={() => setLoaded(true)}
-            onError={() => {
-              if (!retried) setRetried(true);
-              else setFailed(true);
-            }}
-          />
-        </>
+        <img
+          src={src}
+          alt=""
+          className={`absolute inset-0 h-full w-full object-center ${
+            fit === 'cover' ? 'object-cover' : 'object-contain'
+          }`}
+          loading={loading}
+          decoding="async"
+          referrerPolicy="no-referrer"
+          onError={() => {
+            if (!retried) setRetried(true);
+            else setFailed(true);
+          }}
+        />
       )}
     </div>
   );

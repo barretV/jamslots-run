@@ -17,6 +17,8 @@ Refresh the bundled game list from RUN's API:
 npm run sync-games
 ```
 
+The live game list auto-updates via a GitHub Action every 6 hours (and on manual workflow dispatch).
+
 ## Deploy
 
 Production is on [Vercel](https://vercel.com). Pushes to the `main` branch on GitHub auto-deploy.

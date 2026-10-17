@@ -1,15 +1,26 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 
 interface GameThumbnailProps {
   url: string;
   title: string;
   className?: string;
   fit?: 'contain' | 'cover';
+  loading?: 'lazy' | 'eager';
 }
 
 /** RUN jam thumbs are mostly square/portrait; contain inside the card frame. */
-export function GameThumbnail({ url, title, className = '', fit = 'contain' }: GameThumbnailProps) {
+export function GameThumbnail({
+  url,
+  title,
+  className = '',
+  fit = 'contain',
+  loading = 'lazy',
+}: GameThumbnailProps) {
   const [failed, setFailed] = useState(false);
+
+  useEffect(() => {
+    setFailed(false);
+  }, [url]);
   const trimmed = url?.trim() ?? '';
   const showPlaceholder = trimmed.length === 0 || failed;
 
@@ -32,7 +43,7 @@ export function GameThumbnail({ url, title, className = '', fit = 'contain' }: G
           src={trimmed}
           alt=""
           className={`h-full w-full object-center ${fit === 'cover' ? 'object-cover' : 'max-h-full max-w-full object-contain'}`}
-          loading="lazy"
+          loading={loading}
           decoding="async"
           onError={() => setFailed(true)}
         />

@@ -331,7 +331,7 @@ body {
 
 .reel-card .reel-thumb-window {
   flex: 1 1 auto;
-  min-height: 0;
+  min-height: 4.75rem;
   height: 100%;
   width: 100%;
 }
@@ -471,6 +471,7 @@ body {
 .reel-strip-cell {
   width: 100%;
   flex: 0 0 auto;
+  min-height: 4.75rem;
   height: var(--reel-cell-h, 100%);
   box-sizing: border-box;
   overflow: hidden;

@@ -228,7 +228,7 @@ export function ReelCard({
       )}
       <button
         type="button"
-        className="reel-thumb-trigger relative block w-full overflow-hidden text-left"
+        className="reel-thumb-trigger relative w-full overflow-hidden text-left"
         onClick={onPlay}
         aria-label={`Play ${game.title}`}
         aria-busy={reelSpinning}
@@ -252,7 +252,12 @@ export function ReelCard({
           >
             {strip.map((g, i) => (
               <div key={`${g.gameId}-${i}`} className="reel-strip-cell">
-                <GameThumbnail url={g.thumbnailUrl} title={g.title} />
+                <GameThumbnail
+                  url={g.thumbnailUrl}
+                  title={g.title}
+                  loading="eager"
+                  fit="cover"
+                />
               </div>
             ))}
           </div>

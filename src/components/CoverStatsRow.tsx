@@ -23,11 +23,7 @@ export function CoverStatsRow({
   if (!showPlays && !showFavs) return null;
 
   const playsLabel = showPlays ? formatPlays(totalPlays!) : '';
-  const favsLabel = showFavs
-    ? density === 'compact'
-      ? `★${formatPlays(favCount)}`
-      : `★ ${formatPlays(favCount)} favs`
-    : '';
+  const favsLabel = showFavs ? `★ ${formatPlays(favCount)}` : '';
   const playsAria = showPlays ? `${formatPlays(totalPlays)} plays` : '';
   const favsAria = showFavs ? `${formatPlays(favCount)} favorites` : '';
 

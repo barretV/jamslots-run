@@ -1,22 +1,9 @@
-import {
-  cloneElement,
-  useId,
-  useState,
-  type FocusEvent,
-  type MouseEvent,
-  type ReactElement,
-} from 'react';
+import { useId, useState, type ReactNode } from 'react';
 import { descriptionTeaser } from '../lib/descriptionTeaser';
 
 interface DescriptionTooltipProps {
   description: string;
-  children: ReactElement<{
-    onFocus?: (e: FocusEvent<HTMLElement>) => void;
-    onBlur?: (e: FocusEvent<HTMLElement>) => void;
-    onMouseEnter?: (e: MouseEvent<HTMLElement>) => void;
-    onMouseLeave?: (e: MouseEvent<HTMLElement>) => void;
-    'aria-describedby'?: string;
-  }>;
+  children: ReactNode;
   disabled?: boolean;
   placement?: 'above' | 'below';
 }
@@ -49,17 +36,7 @@ export function DescriptionTooltip({
       onMouseEnter={show}
       onMouseLeave={hide}
     >
-      {cloneElement(children, {
-        onFocus: (e: FocusEvent<HTMLElement>) => {
-          children.props.onFocus?.(e);
-          show();
-        },
-        onBlur: (e: FocusEvent<HTMLElement>) => {
-          children.props.onBlur?.(e);
-          hide();
-        },
-        'aria-describedby': open ? tooltipId : undefined,
-      })}
+      {children}
       {open && (
         <span
           id={tooltipId}

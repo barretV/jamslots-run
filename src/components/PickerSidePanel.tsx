@@ -19,12 +19,17 @@ export function PickerSidePanel({ jamSlug }: PickerSidePanelProps) {
         </header>
 
         <div className="picker-side-vote-card">
-          <span className="picker-side-tap-hand" aria-hidden>
-            <span className="picker-side-tap-hand__emoji">👆</span>
-            <span className="picker-side-tap-hand__ring" />
-          </span>
+          <div className="picker-side-tap-demo" aria-hidden>
+            <span className="picker-side-tap-hand">
+              <span className="picker-side-tap-hand__emoji">👉</span>
+            </span>
+            <span className="picker-side-vote-symbol">
+              <span className="picker-side-vote-symbol__ring" />
+              ▲
+            </span>
+          </div>
           <p className="picker-side-tap-label font-display">Tap to vote</p>
-          <p className="picker-side-tap-hint">Use the glowing badge on any game cover</p>
+          <p className="picker-side-tap-hint">Tap the glowing ▲ on any game cover</p>
         </div>
 
         <section className="picker-side-key-block" aria-labelledby="side-key-heading">
@@ -78,7 +83,7 @@ export function PickerSidePanel({ jamSlug }: PickerSidePanelProps) {
             rel="noopener noreferrer"
             className="picker-side-panel__link"
           >
-            All games on RUN
+            All jam games
           </a>
         </p>
       </div>

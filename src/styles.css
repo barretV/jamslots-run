@@ -77,37 +77,40 @@ body {
 
 @media (min-width: 1024px) {
   .app-layout {
-    display: grid;
-    grid-template-columns: min(18.5rem, 28vw) minmax(0, 1fr) min(18.5rem, 28vw);
-    grid-template-rows: minmax(0, 1fr);
-    align-items: stretch;
-  }
-
-  .app-layout__main {
-    grid-column: 2;
-    grid-row: 1;
-    flex: none;
+    position: relative;
+    display: block;
     width: 100%;
   }
 
+  .app-layout__main {
+    display: flex;
+    justify-content: center;
+    width: 100%;
+    min-height: 100dvh;
+    flex: none;
+  }
+
   .app-layout__balance {
-    display: block;
-    grid-column: 3;
-    grid-row: 1;
-    pointer-events: none;
+    display: none;
+  }
+
+  .app-layout__main .app-shell {
+    width: 100%;
+    max-width: 56rem;
+    margin-left: auto;
+    margin-right: auto;
   }
 
   .picker-side-panel {
-    position: sticky;
+    position: fixed;
+    left: 0;
     top: 0;
-    align-self: start;
-    grid-column: 1;
-    grid-row: 1;
+    z-index: 30;
     display: flex;
     flex-direction: column;
     flex-shrink: 0;
-    width: auto;
-    max-width: none;
+    width: min(18.5rem, 28vw);
+    max-width: 18.5rem;
     height: 100dvh;
     max-height: 100dvh;
     overflow: hidden;
@@ -223,45 +226,73 @@ body {
     box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05);
   }
 
-  .picker-side-tap-hand {
-    position: relative;
+  .picker-side-tap-demo {
     display: flex;
     align-items: center;
     justify-content: center;
-    width: 3.25rem;
-    height: 3.25rem;
-    margin-bottom: 0.35rem;
+    gap: 0.05rem;
+    margin-bottom: 0.4rem;
+    min-height: 3.25rem;
+  }
+
+  .picker-side-tap-hand {
+    position: relative;
+    z-index: 2;
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    width: auto;
+    height: auto;
+    margin: 0 -0.55rem 0 0;
   }
 
   .picker-side-tap-hand__emoji {
-    position: relative;
-    z-index: 1;
-    font-size: 2.1rem;
+    display: block;
+    font-size: 2.2rem;
     line-height: 1;
-    transform-origin: 70% 85%;
-    animation: picker-tap-hand 1.35s ease-in-out infinite;
+    transform-origin: 18% 52%;
+    animation: picker-tap-hand-point 1.4s ease-in-out infinite;
     filter: drop-shadow(0 4px 10px rgba(0, 0, 0, 0.45));
   }
 
-  .picker-side-tap-hand__ring {
-    position: absolute;
-    inset: 0.35rem;
-    border-radius: 9999px;
-    border: 2px solid rgba(34, 211, 238, 0.45);
-    animation: picker-tap-ring 1.35s ease-in-out infinite;
+  .picker-side-vote-symbol {
+    position: relative;
+    z-index: 1;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 2.65rem;
+    padding: 0.24rem 0.52rem;
+    border-radius: 0.42rem;
+    border: 1px solid rgba(34, 211, 238, 0.55);
+    background: rgba(5, 5, 8, 0.88);
+    font-size: 1.4rem;
+    font-weight: 700;
+    line-height: 1;
+    color: rgba(103, 232, 249, 0.98);
+    animation: cover-vote-glow-pulse 2.8s ease-in-out infinite;
   }
 
-  @keyframes picker-tap-hand {
+  .picker-side-vote-symbol__ring {
+    pointer-events: none;
+    position: absolute;
+    inset: -0.22rem;
+    border-radius: 0.5rem;
+    border: 2px solid rgba(34, 211, 238, 0.45);
+    animation: picker-tap-ring 1.4s ease-in-out infinite;
+  }
+
+  @keyframes picker-tap-hand-point {
     0%,
-    55%,
+    52%,
     100% {
-      transform: translate(0, 0) scale(1) rotate(-8deg);
+      transform: translate(0, 0) scale(1);
     }
-    70% {
-      transform: translate(-2px, 8px) scale(0.9) rotate(-4deg);
+    68% {
+      transform: translate(0.55rem, 0.08rem) scale(0.9);
     }
-    82% {
-      transform: translate(0, 2px) scale(1.02) rotate(-10deg);
+    80% {
+      transform: translate(0.2rem, 0) scale(1);
     }
   }
 
@@ -602,7 +633,8 @@ body {
   }
 
   .picker-side-tap-hand__emoji,
-  .picker-side-tap-hand__ring {
+  .picker-side-vote-symbol,
+  .picker-side-vote-symbol__ring {
     animation: none !important;
   }
 }

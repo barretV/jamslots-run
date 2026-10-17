@@ -7,6 +7,7 @@ import {
   type CSSProperties,
 } from 'react';
 import type { JamGame } from '../types';
+import { runJamVoteGameUrl } from '../lib/runVoteUrl';
 import { CoverStatsRow } from './CoverStatsRow';
 import { CoverVoteBadge } from './CoverVoteBadge';
 import { GameThumbnail } from './GameThumbnail';
@@ -18,6 +19,7 @@ function panelDescriptionText(description: string): string {
 
 interface ReelCardProps {
   reelIndex: 0 | 1 | 2;
+  jamSlug: string;
   game: JamGame;
   pool: JamGame[];
   reelSpinning: boolean;
@@ -67,6 +69,7 @@ function preloadThumbnail(url: string | undefined): void {
 
 export function ReelCard({
   reelIndex,
+  jamSlug,
   game,
   pool,
   reelSpinning,
@@ -299,16 +302,20 @@ export function ReelCard({
           )}
         </div>
         {!reelSpinning && (
-          <>
-            <CoverVoteBadge votes={game.votes} className="reel-cover-vote-badge" />
-            <CoverStatsRow
-              gameId={game.gameId}
-              totalPlays={game.totalPlays}
-              className="reel-cover-stats-row"
-            />
-          </>
+          <CoverStatsRow
+            gameId={game.gameId}
+            totalPlays={game.totalPlays}
+            className="reel-cover-stats-row"
+          />
         )}
       </button>
+      {!reelSpinning && (
+        <CoverVoteBadge
+          votes={game.votes}
+          voteUrl={runJamVoteGameUrl(jamSlug, game.gameId)}
+          className="reel-cover-vote-badge"
+        />
+      )}
 
       <button
         type="button"

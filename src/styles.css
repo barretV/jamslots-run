@@ -1440,6 +1440,27 @@ body {
   white-space: nowrap;
 }
 
+.cover-vote-badge--link {
+  pointer-events: auto;
+  text-decoration: none;
+  cursor: pointer;
+  transition:
+    background 0.15s ease,
+    border-color 0.15s ease,
+    color 0.15s ease;
+}
+
+.cover-vote-badge--link:hover {
+  border-color: rgba(34, 211, 238, 0.85);
+  background: rgba(8, 47, 73, 0.92);
+  color: #fff;
+}
+
+.cover-vote-badge--link:focus-visible {
+  outline: 2px solid rgba(34, 211, 238, 0.9);
+  outline-offset: 2px;
+}
+
 .reel-cover-vote-badge {
   z-index: 30;
 }

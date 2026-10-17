@@ -9,6 +9,7 @@ interface LibraryListProps {
   isFavorite?: (gameId: string) => boolean;
   onToggleFavorite?: (gameId: string) => void;
   embedded?: boolean;
+  jamSlug?: string;
 }
 
 type LibrarySortMode =
@@ -101,6 +102,7 @@ export function LibraryList({
   isFavorite,
   onToggleFavorite,
   embedded = false,
+  jamSlug,
 }: LibraryListProps) {
   const { getCount } = useFavoriteCounts();
   const [query, setQuery] = useState('');
@@ -197,6 +199,7 @@ export function LibraryList({
             : 'No games in this jam yet.'
         }
         embedded={embedded}
+        jamSlug={jamSlug}
         isFavorite={isFavorite}
         onToggleFavorite={onToggleFavorite}
       />

@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react';
+import { runJamVoteGameUrl } from '../lib/runVoteUrl';
 import { DescriptionTooltip } from './DescriptionTooltip';
 import { CoverStatsRow } from './CoverStatsRow';
 import { CoverVoteBadge } from './CoverVoteBadge';
@@ -20,6 +21,7 @@ interface GamePosterGridProps {
   onOpen: (item: PosterGridItem) => void;
   emptyMessage: ReactNode;
   embedded?: boolean;
+  jamSlug?: string;
   isFavorite?: (gameId: string) => boolean;
   onToggleFavorite?: (gameId: string) => void;
 }
@@ -36,6 +38,7 @@ export function GamePosterGrid({
   onOpen,
   emptyMessage,
   embedded = false,
+  jamSlug = 'octoberjam',
   isFavorite,
   onToggleFavorite,
 }: GamePosterGridProps) {
@@ -77,7 +80,10 @@ export function GamePosterGrid({
                       />
                     </button>
                   </DescriptionTooltip>
-                  <CoverVoteBadge votes={item.votes} />
+                  <CoverVoteBadge
+                    votes={item.votes}
+                    voteUrl={runJamVoteGameUrl(jamSlug, item.gameId)}
+                  />
                   <CoverStatsRow
                     gameId={item.gameId}
                     totalPlays={item.totalPlays}

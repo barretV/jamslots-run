@@ -324,6 +324,7 @@ export function SlotMachine({ pool, jamName, jamSlug }: SlotMachineProps) {
                 <ReelCard
                   key={reelIndex}
                   reelIndex={reelIndex as 0 | 1 | 2}
+                  jamSlug={jamSlug}
                   game={game}
                   pool={stripPool}
                   reelSpinning={reelSpinning[reelIndex]}
@@ -393,6 +394,7 @@ export function SlotMachine({ pool, jamName, jamSlug }: SlotMachineProps) {
               games={favoriteGames}
               onOpen={launchGame}
               onToggleFavorite={toggleFavoriteWithCount}
+              jamSlug={jamSlug}
               embedded
             />
           </div>
@@ -407,6 +409,7 @@ export function SlotMachine({ pool, jamName, jamSlug }: SlotMachineProps) {
           >
             <PlayedList
               entries={stats.history}
+              jamSlug={jamSlug}
               onOpen={openFromHistory}
               descriptionFor={(gameId) => pool.find((g) => g.gameId === gameId)?.description}
               thumbnailFor={(gameId) => pool.find((g) => g.gameId === gameId)?.thumbnailUrl ?? ''}
@@ -432,6 +435,7 @@ export function SlotMachine({ pool, jamName, jamSlug }: SlotMachineProps) {
               onOpen={launchGame}
               isFavorite={isFavorite}
               onToggleFavorite={toggleFavoriteWithCount}
+              jamSlug={jamSlug}
               embedded
             />
           </div>

@@ -12,6 +12,7 @@ interface PlayedListProps {
   isFavorite?: (gameId: string) => boolean;
   onToggleFavorite?: (gameId: string) => void;
   embedded?: boolean;
+  jamSlug?: string;
 }
 
 export function PlayedList({
@@ -25,6 +26,7 @@ export function PlayedList({
   isFavorite,
   onToggleFavorite,
   embedded = false,
+  jamSlug,
 }: PlayedListProps) {
   const shellClass = embedded
     ? 'played-panel flex min-h-0 flex-1 flex-col'
@@ -68,6 +70,7 @@ export function PlayedList({
         }}
         emptyMessage="No plays yet. Tap Play on the slots to start your jam run."
         embedded={embedded}
+        jamSlug={jamSlug}
         isFavorite={isFavorite}
         onToggleFavorite={onToggleFavorite}
       />

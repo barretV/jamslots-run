@@ -7,7 +7,7 @@ import {
   type CSSProperties,
 } from 'react';
 import type { JamGame } from '../types';
-import { DescriptionTooltip } from './DescriptionTooltip';
+import { descriptionPanelTeaser } from '../lib/descriptionTeaser';
 import { GameThumbnail } from './GameThumbnail';
 
 interface ReelCardProps {
@@ -67,6 +67,7 @@ export function ReelCard({
   const [strip, setStrip] = useState<JamGame[]>(() => [game]);
   const [offsetY, setOffsetY] = useState(0);
   const [landing, setLanding] = useState(false);
+  const [coverHover, setCoverHover] = useState(false);
   const rafRef = useRef<number>(0);
   const offsetYRef = useRef(0);
   const cellHeightRef = useRef(0);
@@ -106,6 +107,8 @@ export function ReelCard({
       stopSpinLoop();
       return;
     }
+
+    setCoverHover(false);
 
     const spinStrip = buildSpinStrip(pool, spinTarget);
     spinStripRef.current = spinStrip;
@@ -176,7 +179,8 @@ export function ReelCard({
 
   const infoLocked = disabled || reelSpinning;
   const playInvitePaused = infoLocked;
-  const tooltipDescription = reelSpinning ? '' : game.description;
+  const panelDescription = reelSpinning ? '' : descriptionPanelTeaser(game.description);
+  const showPanelDescription = coverHover && Boolean(panelDescription) && !infoLocked;
 
   const stripStyle = {
     transform: `translate3d(0, ${offsetY}px, 0)`,
@@ -198,37 +202,35 @@ export function ReelCard({
         aria-label={`Play ${game.title}`}
         aria-busy={reelSpinning}
       >
-        <DescriptionTooltip
-          description={tooltipDescription}
-          disabled={infoLocked}
-          placement="above"
+        <div
+          ref={windowRef}
+          className="reel-thumb-window relative aspect-[2/3] w-full max-h-[min(36dvh,17.5rem)] overflow-hidden bg-zinc-900 sm:max-h-[min(42dvh,20rem)] lg:max-h-[min(45dvh,22rem)]"
+          style={
+            cellHeight > 0
+              ? ({ '--reel-cell-h': `${cellHeight}px` } as CSSProperties)
+              : undefined
+          }
+          onMouseEnter={() => {
+            if (!infoLocked) setCoverHover(true);
+          }}
+          onMouseLeave={() => setCoverHover(false)}
         >
           <div
-            ref={windowRef}
-            className="reel-thumb-window relative aspect-[2/3] w-full max-h-[min(36dvh,17.5rem)] overflow-hidden bg-zinc-900 sm:max-h-[min(42dvh,20rem)] lg:max-h-[min(45dvh,22rem)]"
-            style={
-              cellHeight > 0
-                ? ({ '--reel-cell-h': `${cellHeight}px` } as CSSProperties)
-                : undefined
-            }
+            className={`reel-strip ${reelSpinning ? 'reel-strip-spinning' : ''} ${landing ? 'reel-strip-landing' : ''}`}
+            style={stripStyle}
           >
-            <div
-              className={`reel-strip ${reelSpinning ? 'reel-strip-spinning' : ''} ${landing ? 'reel-strip-landing' : ''}`}
-              style={stripStyle}
-            >
-              {strip.map((g, i) => (
-                <div key={`${g.gameId}-${i}`} className="reel-strip-cell">
-                  <GameThumbnail url={g.thumbnailUrl} title={g.title} />
-                </div>
-              ))}
-            </div>
-            <div className="reel-window-shade reel-window-shade-top pointer-events-none" aria-hidden />
-            <div className="reel-window-shade reel-window-shade-bottom pointer-events-none" aria-hidden />
-            {reelSpinning && (
-              <div className="reel-scanlines pointer-events-none absolute inset-0" aria-hidden />
-            )}
+            {strip.map((g, i) => (
+              <div key={`${g.gameId}-${i}`} className="reel-strip-cell">
+                <GameThumbnail url={g.thumbnailUrl} title={g.title} />
+              </div>
+            ))}
           </div>
-        </DescriptionTooltip>
+          <div className="reel-window-shade reel-window-shade-top pointer-events-none" aria-hidden />
+          <div className="reel-window-shade reel-window-shade-bottom pointer-events-none" aria-hidden />
+          {reelSpinning && (
+            <div className="reel-scanlines pointer-events-none absolute inset-0" aria-hidden />
+          )}
+        </div>
       </button>
 
       <button
@@ -243,47 +245,65 @@ export function ReelCard({
         <span className="reel-play-row-inner inline-block">Play</span>
       </button>
 
-      <div className="grid grid-cols-[minmax(0,1fr)_auto] items-start gap-x-1 border-t border-white/10 px-1.5 pt-1 sm:gap-x-2 sm:px-3 sm:pt-2">
-        <button
-          type="button"
-          className={`line-clamp-2 min-w-0 text-left font-display font-bold text-amber-50 ${titleTextClass(game.title)} ${
-            reelSpinning ? 'pointer-events-none opacity-40' : 'hover:text-amber-100'
-          }`}
-          onClick={() => {
-            if (!infoLocked) onShowDescription();
-          }}
-          disabled={infoLocked}
-          aria-label={`About ${game.title}`}
-        >
-          {reelSpinning ? '…' : game.title}
-        </button>
-        <button
-          type="button"
-          className={`row-span-2 shrink-0 rounded-lg px-1.5 py-0.5 text-[1.25rem] leading-none transition sm:px-2 sm:py-1 ${
-            favorited ? 'text-pink-400' : 'text-zinc-400 hover:text-pink-300'
-          } ${reelSpinning ? 'invisible' : ''}`}
-          onClick={(e) => {
-            e.stopPropagation();
-            onToggleFavorite();
-          }}
-          aria-label={favorited ? 'Remove from favorites' : 'Add to favorites'}
-          tabIndex={reelSpinning ? -1 : 0}
-        >
-          {favorited ? '★' : '☆'}
-        </button>
-        <button
-          type="button"
-          className={`col-start-1 min-w-0 truncate pb-1.5 text-left text-[1.05rem] text-violet-200/90 sm:text-[1.1rem] ${
-            reelSpinning ? 'pointer-events-none' : 'hover:text-violet-100'
-          }`}
-          onClick={() => {
-            if (!infoLocked) onShowDescription();
-          }}
-          disabled={infoLocked}
-          aria-label={`About ${game.title}`}
-        >
-          {reelSpinning ? 'Rolling…' : `by ${game.creatorName}`}
-        </button>
+      <div
+        className={`reel-meta-panel border-t border-white/10 px-1.5 sm:px-3 ${
+          showPanelDescription ? 'reel-meta-panel--desc' : ''
+        }`}
+      >
+        <div className="reel-meta-stack">
+          <div className="reel-meta-face reel-meta-face--info">
+            <div className="grid grid-cols-[minmax(0,1fr)_auto] items-start gap-x-1 pt-1 sm:gap-x-2 sm:pt-2">
+              <button
+                type="button"
+                className={`line-clamp-2 min-w-0 text-left font-display font-bold text-amber-50 ${titleTextClass(game.title)} ${
+                  reelSpinning ? 'pointer-events-none opacity-40' : 'hover:text-amber-100'
+                }`}
+                onClick={() => {
+                  if (!infoLocked) onShowDescription();
+                }}
+                disabled={infoLocked}
+                aria-label={`About ${game.title}`}
+              >
+                {reelSpinning ? '…' : game.title}
+              </button>
+              <button
+                type="button"
+                className={`row-span-2 shrink-0 rounded-lg px-1.5 py-0.5 text-[1.25rem] leading-none transition sm:px-2 sm:py-1 ${
+                  favorited ? 'text-pink-400' : 'text-zinc-400 hover:text-pink-300'
+                } ${reelSpinning ? 'invisible' : ''}`}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onToggleFavorite();
+                }}
+                aria-label={favorited ? 'Remove from favorites' : 'Add to favorites'}
+                tabIndex={reelSpinning ? -1 : 0}
+              >
+                {favorited ? '★' : '☆'}
+              </button>
+              <button
+                type="button"
+                className={`col-start-1 min-w-0 truncate pb-1.5 text-left text-[1.05rem] text-violet-200/90 sm:text-[1.1rem] ${
+                  reelSpinning ? 'pointer-events-none' : 'hover:text-violet-100'
+                }`}
+                onClick={() => {
+                  if (!infoLocked) onShowDescription();
+                }}
+                disabled={infoLocked}
+                aria-label={`About ${game.title}`}
+              >
+                {reelSpinning ? 'Rolling…' : `by ${game.creatorName}`}
+              </button>
+            </div>
+          </div>
+          {panelDescription ? (
+            <p
+              className="reel-meta-face reel-meta-face--desc line-clamp-4 pb-1.5 pt-1 text-[1.05rem] leading-snug text-zinc-300 sm:pt-2 sm:text-[1.1rem]"
+              aria-hidden={!showPanelDescription}
+            >
+              {panelDescription}
+            </p>
+          ) : null}
+        </div>
       </div>
     </article>
   );

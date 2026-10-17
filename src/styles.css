@@ -127,6 +127,43 @@ body {
   position: relative;
 }
 
+.reel-meta-panel {
+  flex-shrink: 0;
+  min-width: 0;
+}
+
+.reel-meta-stack {
+  position: relative;
+  display: grid;
+  min-height: 3.75rem;
+}
+
+@media (min-width: 640px) {
+  .reel-meta-stack {
+    min-height: 4rem;
+  }
+}
+
+.reel-meta-face {
+  grid-area: 1 / 1;
+  min-width: 0;
+  transition: opacity 0.22s ease;
+}
+
+.reel-meta-face--desc {
+  opacity: 0;
+  pointer-events: none;
+}
+
+.reel-meta-panel--desc .reel-meta-face--info {
+  opacity: 0;
+  pointer-events: none;
+}
+
+.reel-meta-panel--desc .reel-meta-face--desc {
+  opacity: 1;
+}
+
 .reel-thumb-window .reel-strip-cell img {
   max-height: 100%;
   max-width: 100%;
@@ -581,12 +618,45 @@ body {
   flex-direction: column;
   gap: 0.1rem;
   width: 100%;
+  min-height: 3.25rem;
   padding: 0 0.1rem;
   border: none;
   background: transparent;
   text-align: left;
   cursor: pointer;
   color: inherit;
+}
+
+.poster-meta-stack {
+  position: relative;
+  display: grid;
+  width: 100%;
+  min-height: inherit;
+}
+
+.poster-meta-face {
+  grid-area: 1 / 1;
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+  min-width: 0;
+  transition: opacity 0.22s ease;
+}
+
+.poster-meta-face--desc {
+  opacity: 0;
+  pointer-events: none;
+}
+
+.poster-tile-card--has-desc:has(.poster-tile-open:hover) .poster-meta-face--info,
+.poster-tile-card--has-desc:has(.poster-tile-open:focus-visible) .poster-meta-face--info {
+  opacity: 0;
+  pointer-events: none;
+}
+
+.poster-tile-card--has-desc:has(.poster-tile-open:hover) .poster-meta-face--desc,
+.poster-tile-card--has-desc:has(.poster-tile-open:focus-visible) .poster-meta-face--desc {
+  opacity: 1;
 }
 
 .poster-tile-title {
@@ -629,6 +699,11 @@ body {
   }
 
   .reel-strip {
+    transition: none !important;
+  }
+
+  .reel-meta-face,
+  .poster-meta-face {
     transition: none !important;
   }
 }

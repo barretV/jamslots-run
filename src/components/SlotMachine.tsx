@@ -45,6 +45,12 @@ export function SlotMachine({ pool, jamName, jamSlug }: SlotMachineProps) {
   const [descriptionGame, setDescriptionGame] = useState<JamGame | null>(null);
   const [spinTargets, setSpinTargets] = useState<JamGame[] | null>(null);
   const [activeTab, setActiveTab] = useState<PickerTab>('slots');
+  const [onlyUnplayed, setOnlyUnplayed] = useState(false);
+  const [lockedReels, setLockedReels] = useState<[boolean, boolean, boolean]>([
+    false,
+    false,
+    false,
+  ]);
   const timersRef = useRef<number[]>([]);
 
   const refreshStats = () => setStatsTick((n) => n + 1);
@@ -56,11 +62,80 @@ export function SlotMachine({ pool, jamName, jamSlug }: SlotMachineProps) {
 
   useEffect(() => () => clearTimers(), [clearTimers]);
 
+  const stats = getStats();
+  void statsTick;
+
+  const playedIds = useMemo(
+    () => new Set(stats.history.map((h) => h.gameId)),
+    [stats.history],
+  );
+
+  const unplayedCount = useMemo(
+    () => pool.filter((g) => !playedIds.has(g.gameId)).length,
+    [pool, playedIds],
+  );
+
+  const stripPool = useMemo(() => {
+    if (!onlyUnplayed) return pool;
+    const unplayed = pool.filter((g) => !playedIds.has(g.gameId));
+    return unplayed.length >= 3 ? unplayed : pool;
+  }, [pool, onlyUnplayed, playedIds]);
+
+  const pickExclude = useMemo(() => {
+    return onlyUnplayed ? playedIds : new Set<string>();
+  }, [onlyUnplayed, playedIds]);
+
+  const buildRollResult = useCallback(
+    (current: JamGame[], locks: [boolean, boolean, boolean]): JamGame[] | null => {
+      const unlocked = ([0, 1, 2] as const).filter((i) => !locks[i]);
+      if (unlocked.length === 0) return null;
+
+      const exclude = new Set(pickExclude);
+      for (let i = 0; i < 3; i++) {
+        if (locks[i]) exclude.add(current[i].gameId);
+      }
+
+      const picks = pickRandom(pool, unlocked.length, exclude);
+      const next = [...current] as JamGame[];
+      unlocked.forEach((reelIndex, pickIndex) => {
+        next[reelIndex] = picks[pickIndex];
+      });
+      return next;
+    },
+    [pool, pickExclude],
+  );
+
+  const lockedCount = lockedReels.filter(Boolean).length;
+
+  const toggleReelLock = useCallback(
+    (reelIndex: 0 | 1 | 2) => {
+      if (spinning || reelSpinning.some(Boolean)) return;
+      setLockedReels((prev) => {
+        const next = [...prev] as [boolean, boolean, boolean];
+        if (next[reelIndex]) {
+          next[reelIndex] = false;
+          return next;
+        }
+        if (prev.filter(Boolean).length >= 2) return prev;
+        next[reelIndex] = true;
+        return next;
+      });
+    },
+    [spinning, reelSpinning],
+  );
+
   const roll = useCallback(() => {
     if (spinning || pool.length < 3) return;
     clearTimers();
 
-    const next = pickRandom(pool, 3);
+    const next = buildRollResult(triplet, lockedReels);
+    if (!next) return;
+
+    const spinMask: [boolean, boolean, boolean] = [
+      !lockedReels[0],
+      !lockedReels[1],
+      !lockedReels[2],
+    ];
 
     if (reducedMotion) {
       setSpinTargets(null);
@@ -72,12 +147,16 @@ export function SlotMachine({ pool, jamName, jamSlug }: SlotMachineProps) {
 
     setSpinTargets(next);
     setSpinning(true);
-    setReelSpinning([true, true, true]);
+    setReelSpinning(spinMask);
     setLandedReels([false, false, false]);
     setJackpotFlash(false);
     setFrameShake(false);
 
-    REEL_STAGGER_MS.forEach((stagger, reelIndex) => {
+    const unlockedIndices = ([0, 1, 2] as const).filter((i) => spinMask[i]);
+    const lastToLand = unlockedIndices[unlockedIndices.length - 1];
+
+    unlockedIndices.forEach((reelIndex) => {
+      const stagger = REEL_STAGGER_MS[reelIndex];
       const stopAt = BASE_SPIN_MS + stagger;
       const landId = window.setTimeout(() => {
         setTriplet((prev) => {
@@ -103,7 +182,7 @@ export function SlotMachine({ pool, jamName, jamSlug }: SlotMachineProps) {
           });
         }, 520);
 
-        if (reelIndex === 2) {
+        if (reelIndex === lastToLand) {
           setSpinning(false);
           setJackpotFlash(true);
           setFrameShake(true);
@@ -114,7 +193,15 @@ export function SlotMachine({ pool, jamName, jamSlug }: SlotMachineProps) {
       }, stopAt);
       timersRef.current.push(landId);
     });
-  }, [pool, spinning, reducedMotion, clearTimers]);
+  }, [
+    pool,
+    spinning,
+    reducedMotion,
+    clearTimers,
+    triplet,
+    lockedReels,
+    buildRollResult,
+  ]);
 
   useEffect(() => {
     if (triplet.length === 0 && pool.length > 0) {
@@ -147,9 +234,6 @@ export function SlotMachine({ pool, jamName, jamSlug }: SlotMachineProps) {
     },
     [],
   );
-
-  const stats = getStats();
-  void statsTick;
 
   const favoriteGames = useMemo(
     () =>
@@ -205,11 +289,17 @@ export function SlotMachine({ pool, jamName, jamSlug }: SlotMachineProps) {
                   key={reelIndex}
                   reelIndex={reelIndex as 0 | 1 | 2}
                   game={game}
-                  pool={pool}
+                  pool={stripPool}
                   reelSpinning={reelSpinning[reelIndex]}
                   spinTarget={spinTargets?.[reelIndex] ?? null}
                   justLanded={landedReels[reelIndex]}
-                  highlight={!interactionLocked}
+                  highlight={!interactionLocked && !lockedReels[reelIndex]}
+                  locked={lockedReels[reelIndex]}
+                  lockDisabled={
+                    interactionLocked ||
+                    (!lockedReels[reelIndex] && lockedCount >= 2)
+                  }
+                  onToggleLock={() => toggleReelLock(reelIndex as 0 | 1 | 2)}
                   disabled={interactionLocked}
                   favorited={isFavorite(game.gameId)}
                   onPlay={() => playFromReel(game)}
@@ -222,7 +312,28 @@ export function SlotMachine({ pool, jamName, jamSlug }: SlotMachineProps) {
               ))}
             </div>
 
-            <div className="mt-2 flex shrink-0 justify-center sm:mt-3">
+            <div className="mt-2 flex shrink-0 flex-col items-center gap-2 sm:mt-3">
+              <label
+                className={`flex cursor-pointer items-center gap-2.5 text-[1.1rem] text-violet-100/90 ${
+                  interactionLocked ? 'pointer-events-none opacity-50' : ''
+                }`}
+              >
+                <input
+                  type="checkbox"
+                  className="size-[1.15rem] rounded border-violet-400/60 accent-fuchsia-400"
+                  checked={onlyUnplayed}
+                  onChange={(e) => setOnlyUnplayed(e.target.checked)}
+                  disabled={interactionLocked}
+                />
+                Only unplayed
+              </label>
+              {onlyUnplayed && unplayedCount < 3 && (
+                <p className="max-w-sm px-2 text-center text-[1.1rem] leading-snug text-amber-200/85">
+                  {unplayedCount === 0
+                    ? 'You have played every game. Rolls use the full list.'
+                    : 'Few unplayed games left. Rolls may include games you already played.'}
+                </p>
+              )}
               <button
                 type="button"
                 className="slot-btn w-full max-w-sm rounded-xl px-6 py-3 text-[1.15rem] font-bold uppercase tracking-wide text-black sm:max-w-xs sm:rounded-2xl sm:py-3.5 sm:text-[1.2rem]"

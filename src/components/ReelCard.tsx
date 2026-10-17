@@ -19,6 +19,9 @@ interface ReelCardProps {
   spinTarget: JamGame | null;
   justLanded: boolean;
   highlight: boolean;
+  locked: boolean;
+  lockDisabled: boolean;
+  onToggleLock: () => void;
   onPlay: () => void;
   onShowDescription: () => void;
   onToggleFavorite: () => void;
@@ -56,6 +59,9 @@ export function ReelCard({
   spinTarget,
   justLanded,
   highlight,
+  locked,
+  lockDisabled,
+  onToggleLock,
   onPlay,
   onShowDescription,
   onToggleFavorite,
@@ -190,11 +196,31 @@ export function ReelCard({
   return (
     <article
       className={`reel-card flex h-full min-h-0 flex-col overflow-hidden rounded-xl border-2 bg-zinc-950/80 backdrop-blur sm:rounded-2xl ${
-        highlight ? 'reel-highlight border-amber-300' : 'border-violet-500/40'
+        locked ? 'reel-locked border-cyan-400/70' : highlight ? 'reel-highlight border-amber-300' : 'border-violet-500/40'
       } ${reelSpinning ? 'reel-active' : ''} ${justLanded ? 'reel-landed' : ''} ${
         disabled ? 'pointer-events-none' : ''
-      }`}
+      } relative`}
     >
+      {!reelSpinning && !disabled && (
+        <button
+          type="button"
+          className={`reel-lock-btn pointer-events-auto absolute left-2 top-2 z-20 flex items-center gap-1 rounded-lg border px-2 py-1 text-[1.05rem] font-semibold shadow-md backdrop-blur-sm sm:text-[1.1rem] ${
+            locked
+              ? 'border-cyan-300/60 bg-cyan-950/90 text-cyan-100'
+              : 'border-white/20 bg-black/55 text-zinc-200 hover:bg-black/75'
+          } ${lockDisabled ? 'pointer-events-none opacity-40' : ''}`}
+          onClick={(e) => {
+            e.stopPropagation();
+            if (!lockDisabled) onToggleLock();
+          }}
+          disabled={lockDisabled}
+          aria-label={locked ? `Unlock reel ${reelIndex + 1}` : `Lock reel ${reelIndex + 1}`}
+          aria-pressed={locked}
+        >
+          <span aria-hidden>{locked ? '📌' : '○'}</span>
+          <span className="hidden sm:inline">{locked ? 'Locked' : 'Lock'}</span>
+        </button>
+      )}
       <button
         type="button"
         className="relative block w-full shrink-0 overflow-hidden text-left"

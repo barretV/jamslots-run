@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react';
-import { descriptionPanelTeaser } from '../lib/descriptionTeaser';
+import { DescriptionTooltip } from './DescriptionTooltip';
 import { GameThumbnail } from './GameThumbnail';
 
 export interface PosterGridItem {
@@ -49,27 +49,28 @@ export function GamePosterGrid({
         {items.map((item) => {
           const favorited = isFavorite?.(item.gameId) ?? false;
           const showStar = Boolean(onToggleFavorite);
-          const panelDescription = descriptionPanelTeaser(item.description ?? '');
-          const hasPanelDesc = Boolean(panelDescription);
 
           return (
             <li key={item.key} className="poster-tile min-w-0">
-              <div
-                className={`poster-tile-card group ${hasPanelDesc ? 'poster-tile-card--has-desc' : ''}`}
-              >
+              <div className="poster-tile-card group">
                 <div className="poster-tile-poster">
-                  <button
-                    type="button"
-                    className="poster-tile-open"
-                    onClick={() => onOpen(item)}
+                  <DescriptionTooltip
+                    description={item.description ?? ''}
+                    placement="overlay"
                   >
-                    <GameThumbnail
-                      url={item.thumbnailUrl}
-                      title={item.title}
-                      className="poster-tile-thumb"
-                      fit="cover"
-                    />
-                  </button>
+                    <button
+                      type="button"
+                      className="poster-tile-open"
+                      onClick={() => onOpen(item)}
+                    >
+                      <GameThumbnail
+                        url={item.thumbnailUrl}
+                        title={item.title}
+                        className="poster-tile-thumb"
+                        fit="cover"
+                      />
+                    </button>
+                  </DescriptionTooltip>
                   {showStar && (
                     <button
                       type="button"
@@ -89,23 +90,14 @@ export function GamePosterGrid({
                   className="poster-tile-meta"
                   onClick={() => onOpen(item)}
                 >
-                  <div className="poster-meta-stack">
-                    <div className="poster-meta-face poster-meta-face--info">
-                      <span className={`poster-tile-title line-clamp-2 ${titleTextClass(item.title)}`}>
-                        {item.title}
-                      </span>
-                      {item.creatorName ? (
-                        <span className="poster-tile-creator line-clamp-1 text-[1.1rem] text-zinc-500">
-                          {item.creatorName}
-                        </span>
-                      ) : null}
-                    </div>
-                    {hasPanelDesc ? (
-                      <p className="poster-meta-face poster-meta-face--desc line-clamp-4 text-[1.05rem] leading-snug text-zinc-400">
-                        {panelDescription}
-                      </p>
-                    ) : null}
-                  </div>
+                  <span className={`poster-tile-title line-clamp-2 ${titleTextClass(item.title)}`}>
+                    {item.title}
+                  </span>
+                  {item.creatorName ? (
+                    <span className="poster-tile-creator line-clamp-1 text-[1.1rem] text-zinc-500">
+                      {item.creatorName}
+                    </span>
+                  ) : null}
                 </button>
               </div>
             </li>

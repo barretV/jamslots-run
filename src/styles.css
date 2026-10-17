@@ -482,11 +482,23 @@ body {
 
 /* Plex / Kodi style poster grids (Favorites + Played tabs) */
 .poster-grid-scroll {
+  display: flex;
+  flex-direction: column;
   overflow-y: auto;
   overflow-x: hidden;
   padding: 0.15rem 0.25rem 0.35rem;
   scrollbar-width: thin;
   scrollbar-color: rgba(255, 255, 255, 0.22) rgba(0, 0, 0, 0.35);
+}
+
+.poster-grid-scroll > .poster-grid {
+  flex: 0 0 auto;
+  align-self: flex-start;
+  width: 100%;
+}
+
+.poster-tile {
+  align-self: start;
 }
 
 .poster-grid-scroll::-webkit-scrollbar {
@@ -636,37 +648,6 @@ body {
   color: inherit;
 }
 
-.poster-meta-stack {
-  position: relative;
-  display: grid;
-  width: 100%;
-}
-
-.poster-meta-face {
-  grid-area: 1 / 1;
-  display: flex;
-  flex-direction: column;
-  gap: 0.1rem;
-  min-width: 0;
-  transition: opacity 0.22s ease;
-}
-
-.poster-meta-face--desc {
-  opacity: 0;
-  pointer-events: none;
-}
-
-.poster-tile-card--has-desc:has(.poster-tile-open:hover) .poster-meta-face--info,
-.poster-tile-card--has-desc:has(.poster-tile-open:focus-visible) .poster-meta-face--info {
-  opacity: 0;
-  pointer-events: none;
-}
-
-.poster-tile-card--has-desc:has(.poster-tile-open:hover) .poster-meta-face--desc,
-.poster-tile-card--has-desc:has(.poster-tile-open:focus-visible) .poster-meta-face--desc {
-  opacity: 1;
-}
-
 .poster-tile-title {
   font-weight: 600;
   color: #f4f4f5;
@@ -706,8 +687,7 @@ body {
     transition: none !important;
   }
 
-  .reel-meta-face,
-  .poster-meta-face {
+  .reel-meta-face {
     transition: none !important;
   }
 }

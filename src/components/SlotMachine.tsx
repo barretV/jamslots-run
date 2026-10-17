@@ -6,7 +6,6 @@ import {
   isFavorite,
   recordPlay,
   toggleFavorite,
-  totalPlays,
 } from '../state/persistence';
 import type { HistoryEntry, JamGame } from '../types';
 import { FavoritesList } from './FavoritesList';
@@ -147,7 +146,6 @@ export function SlotMachine({ pool, jamName }: SlotMachineProps) {
   );
 
   const stats = getStats();
-  const plays = totalPlays();
   void statsTick;
 
   const favoriteGames = useMemo(
@@ -168,7 +166,7 @@ export function SlotMachine({ pool, jamName }: SlotMachineProps) {
           {jamName}
           <span className="text-zinc-500">
             {' '}
-            · {pool.length} games · {plays} opens
+            · {pool.length} games
           </span>
         </p>
       </header>

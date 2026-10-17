@@ -85,6 +85,16 @@ export function SlotMachine({ pool, jamName, jamSlug }: SlotMachineProps) {
     [stats.history],
   );
 
+  const uniquePlayedInJam = useMemo(() => {
+    if (pool.length === 0) return 0;
+    const poolIds = new Set(pool.map((g) => g.gameId));
+    let n = 0;
+    for (const id of playedIds) {
+      if (poolIds.has(id)) n += 1;
+    }
+    return n;
+  }, [pool, playedIds]);
+
   const unplayedCount = useMemo(
     () => pool.filter((g) => !playedIds.has(g.gameId)).length,
     [pool, playedIds],
@@ -289,7 +299,7 @@ export function SlotMachine({ pool, jamName, jamSlug }: SlotMachineProps) {
           active={activeTab}
           onChange={setActiveTab}
           favoriteCount={favoriteGames.length}
-          playedCount={stats.history.length}
+          playedCount={uniquePlayedInJam}
         />
       </div>
 
@@ -396,6 +406,8 @@ export function SlotMachine({ pool, jamName, jamSlug }: SlotMachineProps) {
           >
             <PlayedList
               entries={stats.history}
+              uniquePlayed={uniquePlayedInJam}
+              totalJamGames={pool.length}
               onOpen={openFromHistory}
               descriptionFor={(gameId) => pool.find((g) => g.gameId === gameId)?.description}
               thumbnailFor={(gameId) => pool.find((g) => g.gameId === gameId)?.thumbnailUrl ?? ''}

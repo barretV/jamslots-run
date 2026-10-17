@@ -1,8 +1,11 @@
 import type { HistoryEntry } from '../types';
 import { GamePosterGrid } from './GamePosterGrid';
+import { JamPlayProgress } from './JamPlayProgress';
 
 interface PlayedListProps {
   entries: HistoryEntry[];
+  uniquePlayed?: number;
+  totalJamGames?: number;
   onOpen: (entry: HistoryEntry) => void;
   descriptionFor?: (gameId: string) => string | undefined;
   thumbnailFor?: (gameId: string) => string | undefined;
@@ -16,6 +19,8 @@ interface PlayedListProps {
 
 export function PlayedList({
   entries,
+  uniquePlayed = 0,
+  totalJamGames = 0,
   onOpen,
   descriptionFor,
   thumbnailFor,
@@ -27,8 +32,10 @@ export function PlayedList({
   embedded = false,
 }: PlayedListProps) {
   const shellClass = embedded
-    ? 'flex min-h-0 flex-1 flex-col'
+    ? 'played-panel flex min-h-0 flex-1 flex-col'
     : 'rounded-2xl border border-cyan-500/20 bg-cyan-950/20 p-4';
+
+  const showProgress = totalJamGames > 0;
 
   const items = entries.map((entry) => ({
     key: `${entry.gameId}-${entry.playedAt}`,
@@ -57,6 +64,16 @@ export function PlayedList({
           </h2>
           <p className="mb-3 text-[1.1rem] text-zinc-400">Tap a poster to play again.</p>
         </>
+      )}
+      {showProgress && (
+        <JamPlayProgress
+          uniquePlayed={uniquePlayed}
+          totalGames={totalJamGames}
+          className="jam-play-progress--panel shrink-0"
+        />
+      )}
+      {embedded && entries.length > 0 && (
+        <p className="played-recent-label mb-1 shrink-0 text-[1.1rem] text-zinc-400">Recent plays</p>
       )}
       <GamePosterGrid
         items={items}

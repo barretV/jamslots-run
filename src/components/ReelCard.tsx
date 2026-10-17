@@ -235,14 +235,24 @@ export function ReelCard({
 
       <button
         type="button"
-        className={`reel-play-row reel-play-row--${reelIndex} mx-1.5 mt-1.5 w-[calc(100%-0.75rem)] shrink-0 rounded-xl bg-amber-400/95 py-2 text-center text-[1.1rem] font-bold text-black shadow-md sm:mx-3 sm:mt-2 sm:py-2.5 sm:text-[1.15rem] ${
+        className={`reel-play-row reel-play-row--${reelIndex} mx-1.5 mt-1.5 w-[calc(100%-0.75rem)] shrink-0 rounded-xl bg-amber-400/95 py-2 text-center text-[1.1rem] font-bold text-black sm:mx-3 sm:mt-2 sm:py-2.5 sm:text-[1.15rem] ${
           playInvitePaused ? 'reel-play-row--paused pointer-events-none opacity-0' : ''
         }`}
         onClick={onPlay}
         aria-label={`Play ${game.title}`}
         tabIndex={playInvitePaused ? -1 : 0}
       >
-        <span className="reel-play-row-inner inline-block">Play</span>
+        <span className="reel-play-row-inner inline-flex">
+          {'Play'.split('').map((letter, i) => (
+            <span
+              key={i}
+              className="reel-play-letter"
+              style={{ animationDelay: `${reelIndex * 0.28 + i * 0.12}s` }}
+            >
+              {letter}
+            </span>
+          ))}
+        </span>
       </button>
 
       <div

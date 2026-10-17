@@ -7,6 +7,7 @@ export interface JamGame {
   slug: string;
   shareUrl: string;
   votes: number;
+  totalPlays: number;
   rank?: number;
 }
 

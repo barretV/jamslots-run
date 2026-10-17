@@ -27,6 +27,7 @@ for (const e of d.entries ?? []) {
     slug: e.slug,
     shareUrl: e.shareUrl,
     votes: e.votes ?? 0,
+    totalPlays: e.totalPlays ?? 0,
     rank: e.rank,
   });
 }

@@ -25,6 +25,7 @@ export function FavoritesList({
     thumbnailUrl: game.thumbnailUrl,
     creatorName: game.creatorName,
     description: game.description,
+    totalPlays: game.totalPlays,
   }));
 
   return (

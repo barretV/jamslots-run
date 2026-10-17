@@ -383,6 +383,7 @@ export function SlotMachine({ pool, jamName, jamSlug }: SlotMachineProps) {
               descriptionFor={(gameId) => pool.find((g) => g.gameId === gameId)?.description}
               thumbnailFor={(gameId) => pool.find((g) => g.gameId === gameId)?.thumbnailUrl ?? ''}
               creatorFor={(gameId) => pool.find((g) => g.gameId === gameId)?.creatorName}
+              totalPlaysFor={(gameId) => pool.find((g) => g.gameId === gameId)?.totalPlays}
               isFavorite={isFavorite}
               onToggleFavorite={(gameId) => {
                 toggleFavorite(gameId);

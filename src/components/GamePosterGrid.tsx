@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react';
 import { DescriptionTooltip } from './DescriptionTooltip';
 import { GameThumbnail } from './GameThumbnail';
+import { TotalPlaysChip } from './TotalPlaysChip';
 
 export interface PosterGridItem {
   key: string;
@@ -9,6 +10,7 @@ export interface PosterGridItem {
   thumbnailUrl: string;
   creatorName?: string;
   description?: string;
+  totalPlays?: number;
 }
 
 interface GamePosterGridProps {
@@ -71,6 +73,9 @@ export function GamePosterGrid({
                       />
                     </button>
                   </DescriptionTooltip>
+                  {item.totalPlays != null && item.totalPlays > 0 ? (
+                    <TotalPlaysChip totalPlays={item.totalPlays} />
+                  ) : null}
                   {showStar && (
                     <button
                       type="button"

@@ -7,6 +7,7 @@ interface PlayedListProps {
   descriptionFor?: (gameId: string) => string | undefined;
   thumbnailFor?: (gameId: string) => string | undefined;
   creatorFor?: (gameId: string) => string | undefined;
+  totalPlaysFor?: (gameId: string) => number | undefined;
   isFavorite?: (gameId: string) => boolean;
   onToggleFavorite?: (gameId: string) => void;
   embedded?: boolean;
@@ -18,6 +19,7 @@ export function PlayedList({
   descriptionFor,
   thumbnailFor,
   creatorFor,
+  totalPlaysFor,
   isFavorite,
   onToggleFavorite,
   embedded = false,
@@ -33,6 +35,7 @@ export function PlayedList({
     thumbnailUrl: thumbnailFor?.(entry.gameId) ?? '',
     creatorName: creatorFor?.(entry.gameId),
     description: descriptionFor?.(entry.gameId) ?? '',
+    totalPlays: totalPlaysFor?.(entry.gameId),
   }));
 
   return (

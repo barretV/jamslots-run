@@ -54,6 +54,7 @@ export function LibraryList({
     thumbnailUrl: game.thumbnailUrl,
     creatorName: game.creatorName,
     description: game.description,
+    totalPlays: game.totalPlays,
   }));
 
   const hint =

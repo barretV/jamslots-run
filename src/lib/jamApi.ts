@@ -17,6 +17,7 @@ export function bundleFromJamApi(d: {
       slug: String(e.slug ?? ''),
       shareUrl: String(e.shareUrl ?? ''),
       votes: Number(e.votes ?? 0),
+      totalPlays: Number(e.totalPlays ?? 0),
       rank: e.rank != null ? Number(e.rank) : undefined,
     });
   }

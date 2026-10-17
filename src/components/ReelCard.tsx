@@ -9,6 +9,7 @@ import {
 import type { JamGame } from '../types';
 import { GameThumbnail } from './GameThumbnail';
 import { OverflowCrawlText } from './OverflowCrawlText';
+import { TotalPlaysChip } from './TotalPlaysChip';
 
 function panelDescriptionText(description: string): string {
   return description.trim().replace(/\s+/g, ' ');
@@ -260,6 +261,7 @@ export function ReelCard({
           {reelSpinning && (
             <div className="reel-scanlines pointer-events-none absolute inset-0" aria-hidden />
           )}
+          {!reelSpinning && <TotalPlaysChip totalPlays={game.totalPlays} />}
         </div>
       </button>
 

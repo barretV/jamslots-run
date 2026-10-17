@@ -277,7 +277,7 @@ export function SlotMachine({ pool, jamName, jamSlug }: SlotMachineProps) {
   );
 
   return (
-    <div className="app-shell mx-auto w-full max-w-4xl lg:max-w-6xl xl:max-w-[82rem]">
+    <div className="app-shell mx-auto w-full max-w-4xl">
       <header className="app-header shrink-0">
         <div className="app-header-top">
           <h1 className="app-title font-display font-black uppercase tracking-tight text-transparent bg-gradient-to-r from-amber-300 via-fuchsia-400 to-cyan-300 bg-clip-text">

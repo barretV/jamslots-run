@@ -228,7 +228,6 @@ body {
 @media (min-width: 640px) {
   .reel-grid {
     gap: 0.75rem;
-    align-items: stretch;
   }
 }
 
@@ -274,12 +273,12 @@ body {
 .reel-meta-stack {
   position: relative;
   display: grid;
-  min-height: 3.75rem;
+  min-height: 4.75rem;
 }
 
 @media (min-width: 640px) {
   .reel-meta-stack {
-    min-height: 4rem;
+    min-height: 5.25rem;
   }
 }
 

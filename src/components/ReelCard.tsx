@@ -195,7 +195,7 @@ export function ReelCard({
 
   return (
     <article
-      className={`reel-card flex h-full min-h-0 flex-col overflow-hidden rounded-xl border-2 bg-zinc-950/80 backdrop-blur sm:rounded-2xl ${
+      className={`reel-card flex h-auto min-h-0 flex-col overflow-hidden rounded-xl border-2 bg-zinc-950/80 backdrop-blur sm:rounded-2xl ${
         locked ? 'reel-locked border-cyan-400/70' : highlight ? 'reel-highlight border-amber-300' : 'border-violet-500/40'
       } ${reelSpinning ? 'reel-active' : ''} ${justLanded ? 'reel-landed' : ''} ${
         disabled ? 'pointer-events-none' : ''
@@ -230,7 +230,7 @@ export function ReelCard({
       >
         <div
           ref={windowRef}
-          className="reel-thumb-window relative aspect-[2/3] w-full max-h-[min(36dvh,17.5rem)] overflow-hidden bg-zinc-900 sm:max-h-[min(42dvh,20rem)] lg:max-h-[min(45dvh,22rem)]"
+          className="reel-thumb-window relative aspect-[2/3] w-full max-h-[min(28dvh,16rem)] overflow-hidden bg-zinc-900 sm:max-h-[min(32dvh,18rem)] lg:max-h-[min(36dvh,19.5rem)]"
           style={
             cellHeight > 0
               ? ({ '--reel-cell-h': `${cellHeight}px` } as CSSProperties)
@@ -318,7 +318,7 @@ export function ReelCard({
               </button>
               <button
                 type="button"
-                className={`col-start-1 min-w-0 truncate pb-1.5 text-left text-[1.05rem] text-violet-200/90 sm:text-[1.1rem] ${
+                className={`col-start-1 min-w-0 truncate pb-2 text-left text-[1.05rem] text-violet-200/90 sm:pb-2.5 sm:text-[1.1rem] ${
                   reelSpinning ? 'pointer-events-none' : 'hover:text-violet-100'
                 }`}
                 onClick={() => {

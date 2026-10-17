@@ -69,11 +69,13 @@ export function PlayedList({
         <JamPlayProgress
           uniquePlayed={uniquePlayed}
           totalGames={totalJamGames}
-          className="jam-play-progress--panel shrink-0"
+          className="jam-play-progress--panel jam-play-progress--featured shrink-0"
         />
       )}
       {embedded && entries.length > 0 && (
-        <p className="played-recent-label mb-1 shrink-0 text-[1.1rem] text-zinc-400">Recent plays</p>
+        <p className="played-recent-label mb-1.5 mt-0.5 shrink-0 text-[1.1rem] font-semibold text-cyan-200/90">
+          Recent plays
+        </p>
       )}
       <GamePosterGrid
         items={items}
@@ -83,7 +85,7 @@ export function PlayedList({
           );
           if (entry) onOpen(entry);
         }}
-        emptyMessage="No plays yet. Tap a game image on the slots to play."
+        emptyMessage="No plays logged yet. Hit Play on a slot reel to start filling the bar."
         embedded={embedded}
         isFavorite={isFavorite}
         onToggleFavorite={onToggleFavorite}

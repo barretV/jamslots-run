@@ -793,15 +793,90 @@ body {
   width: var(--jam-progress, 0%);
   min-width: 0;
   border-radius: inherit;
+  overflow: hidden;
+  background: linear-gradient(
+    105deg,
+    rgba(34, 211, 238, 0.65) 0%,
+    rgba(103, 232, 249, 0.55) 18%,
+    rgba(192, 132, 252, 0.7) 42%,
+    rgba(244, 114, 182, 0.55) 62%,
+    rgba(251, 191, 36, 0.65) 82%,
+    rgba(34, 211, 238, 0.6) 100%
+  );
+  background-size: 240% 100%;
+  animation: picker-tab-energy-flow 5s ease-in-out infinite;
+  box-shadow:
+    inset 0 -1px 0 rgba(255, 255, 255, 0.14),
+    0 0 14px rgba(34, 211, 238, 0.25);
+  transition: width 0.65s cubic-bezier(0.22, 1, 0.36, 1);
+  z-index: 0;
+}
+
+.picker-tab-progress-fill::before {
+  content: '';
+  position: absolute;
+  inset: -50% -30%;
+  background: radial-gradient(
+    ellipse 45% 80% at 35% 50%,
+    rgba(255, 255, 255, 0.28),
+    transparent 62%
+  );
+  animation: picker-tab-energy-surge 3.5s ease-in-out infinite;
+  pointer-events: none;
+}
+
+.picker-tab-progress-fill::after {
+  content: '';
+  position: absolute;
+  top: -20%;
+  right: -2px;
+  bottom: -20%;
+  width: 1.1rem;
   background: linear-gradient(
     90deg,
-    rgba(34, 211, 238, 0.55) 0%,
-    rgba(192, 132, 252, 0.6) 48%,
-    rgba(251, 191, 36, 0.55) 100%
+    transparent,
+    rgba(255, 255, 255, 0.55) 45%,
+    rgba(254, 240, 138, 0.35) 70%,
+    transparent
   );
-  box-shadow: inset 0 -1px 0 rgba(255, 255, 255, 0.12);
-  transition: width 0.55s cubic-bezier(0.22, 1, 0.36, 1);
-  z-index: 0;
+  filter: blur(3px);
+  opacity: 0.85;
+  animation: picker-tab-energy-edge 2.4s ease-in-out infinite;
+  pointer-events: none;
+}
+
+@keyframes picker-tab-energy-flow {
+  0%,
+  100% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+}
+
+@keyframes picker-tab-energy-surge {
+  0%,
+  100% {
+    transform: translateX(-8%) scale(1);
+    opacity: 0.65;
+  }
+  50% {
+    transform: translateX(12%) scale(1.08);
+    opacity: 1;
+  }
+}
+
+@keyframes picker-tab-energy-edge {
+  0%,
+  100% {
+    opacity: 0.45;
+    transform: translateX(0);
+  }
+  50% {
+    opacity: 1;
+    transform: translateX(-3px);
+  }
 }
 
 .picker-tab--played .picker-tab-label,
@@ -835,10 +910,20 @@ body {
 }
 
 .picker-tab--played.picker-tab-active .picker-tab-progress-fill {
-  background: linear-gradient(90deg, #22d3ee 0%, #c084fc 50%, #fbbf24 100%);
+  background: linear-gradient(
+    105deg,
+    #22d3ee 0%,
+    #67e8f9 15%,
+    #c084fc 40%,
+    #f472b6 58%,
+    #fbbf24 78%,
+    #22d3ee 100%
+  );
+  background-size: 240% 100%;
   box-shadow:
-    0 0 18px rgba(34, 211, 238, 0.4),
-    inset 0 1px 0 rgba(255, 255, 255, 0.2);
+    0 0 22px rgba(34, 211, 238, 0.45),
+    0 0 32px rgba(192, 132, 252, 0.25),
+    inset 0 1px 0 rgba(255, 255, 255, 0.25);
 }
 
 .picker-tab--played.picker-tab-active .picker-tab-played-meta {
@@ -1387,6 +1472,12 @@ body {
 
   .picker-tab-active {
     transform: none;
+  }
+
+  .picker-tab-progress-fill,
+  .picker-tab-progress-fill::before,
+  .picker-tab-progress-fill::after {
+    animation: none !important;
   }
 
   .reel-highlight {

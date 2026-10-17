@@ -9,7 +9,6 @@ export function PickerSidePanel({ jamSlug }: PickerSidePanelProps) {
 
   return (
     <aside className="picker-side-panel" aria-label="JamSlots guide">
-      <div className="picker-side-panel__glow" aria-hidden />
       <div className="picker-side-panel__inner">
         <header className="picker-side-hero">
           <p className="picker-side-hero__eyebrow font-display">JamSlots</p>

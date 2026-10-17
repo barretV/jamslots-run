@@ -98,7 +98,9 @@ body {
   }
 
   .picker-side-panel {
-    position: relative;
+    position: sticky;
+    top: 0;
+    align-self: start;
     grid-column: 1;
     grid-row: 1;
     display: flex;
@@ -106,7 +108,7 @@ body {
     flex-shrink: 0;
     width: auto;
     max-width: none;
-    height: 100%;
+    height: 100dvh;
     max-height: 100dvh;
     overflow: hidden;
     background: transparent;
@@ -114,37 +116,45 @@ body {
     box-shadow: none;
   }
 
+  /* Soft edge only: no panel fill, same canvas as body */
+  .picker-side-panel::before {
+    content: '';
+    pointer-events: none;
+    position: absolute;
+    inset: 0;
+    z-index: 0;
+    background:
+      radial-gradient(ellipse 140% 90% at 0% -15%, rgba(168, 85, 247, 0.28), transparent 55%),
+      radial-gradient(ellipse 90% 60% at 100% 55%, rgba(251, 191, 36, 0.08), transparent 50%);
+    opacity: 0.65;
+  }
+
   .picker-side-panel::after {
     content: '';
     pointer-events: none;
     position: absolute;
-    top: 6%;
+    z-index: 2;
+    top: 4%;
     right: 0;
-    bottom: 6%;
+    bottom: 4%;
     width: 1px;
     background: linear-gradient(
       180deg,
       transparent 0%,
-      rgba(168, 85, 247, 0.22) 18%,
-      rgba(34, 211, 238, 0.38) 50%,
-      rgba(232, 121, 249, 0.22) 82%,
+      rgba(168, 85, 247, 0.35) 16%,
+      rgba(34, 211, 238, 0.55) 50%,
+      rgba(232, 121, 249, 0.35) 84%,
       transparent 100%
     );
-    opacity: 0.9;
-  }
-
-  .picker-side-panel__glow {
-    pointer-events: none;
-    position: absolute;
-    inset: 0;
-    background:
-      radial-gradient(ellipse 120% 70% at -20% 0%, rgba(168, 85, 247, 0.18), transparent 52%),
-      radial-gradient(ellipse 80% 50% at 0% 100%, rgba(34, 211, 238, 0.08), transparent 48%);
+    box-shadow:
+      1px 0 14px rgba(34, 211, 238, 0.12),
+      1px 0 6px rgba(168, 85, 247, 0.1);
   }
 
   .picker-side-panel__inner {
     position: relative;
     z-index: 1;
+    height: 100%;
     display: flex;
     flex-direction: column;
     height: 100%;

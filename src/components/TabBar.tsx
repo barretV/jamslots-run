@@ -64,13 +64,23 @@ export function TabBar({
               }
             >
               {isPlayed && <span className="picker-tab-progress-fill" aria-hidden />}
-              <span className="picker-tab-label">
-                <span className="sm:hidden">{tab.shortLabel}</span>
-                <span className="hidden sm:inline">{tab.label}</span>
-              </span>
               {isPlayed ? (
-                <span className="picker-tab-played-meta" aria-hidden>{playedLabel}</span>
-              ) : null}
+                <>
+                  <span className="picker-tab-played-copy">
+                    <span className="picker-tab-label">
+                      <span className="sm:hidden">{tab.shortLabel}</span>
+                      <span className="hidden sm:inline">{tab.label}</span>
+                    </span>
+                    <span className="picker-tab-played-meta" aria-hidden>{playedLabel}</span>
+                  </span>
+                  <span className="picker-tab-played-pct" aria-hidden>{playedPct}%</span>
+                </>
+              ) : (
+                <span className="picker-tab-label">
+                  <span className="sm:hidden">{tab.shortLabel}</span>
+                  <span className="hidden sm:inline">{tab.label}</span>
+                </span>
+              )}
               {favBadge != null && (
                 <span className="picker-tab-badge" aria-hidden>{favBadge}</span>
               )}

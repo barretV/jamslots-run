@@ -334,6 +334,7 @@ body {
   min-height: 4.75rem;
   height: 100%;
   width: 100%;
+  aspect-ratio: 2 / 3;
 }
 
 .reel-locked {
@@ -453,9 +454,8 @@ body {
   }
 }
 
-.reel-thumb-window .reel-strip-cell img {
-  max-height: 100%;
-  max-width: 100%;
+.game-thumb-root {
+  min-height: 100%;
 }
 
 .reel-strip {
@@ -469,10 +469,12 @@ body {
 }
 
 .reel-strip-cell {
+  position: relative;
   width: 100%;
   flex: 0 0 auto;
   min-height: 4.75rem;
-  height: var(--reel-cell-h, 100%);
+  height: var(--reel-cell-h, auto);
+  aspect-ratio: 2 / 3;
   box-sizing: border-box;
   overflow: hidden;
 }

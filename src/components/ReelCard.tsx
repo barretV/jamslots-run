@@ -183,9 +183,20 @@ export function ReelCard({
   }, [reelSpinning, game, pool, cellHeight, stopSpinLoop, setOffset]);
 
   useEffect(() => {
+    const u = game.thumbnailUrl?.trim();
+    if (!u) return;
+    const img = new Image();
+    img.referrerPolicy = 'no-referrer';
+    img.src = u;
+  }, [game.gameId, game.thumbnailUrl]);
+
+  useEffect(() => {
     if (reelSpinning || landing) return;
-    setStrip([game]);
-    setOffset(0);
+    setStrip((prev) => {
+      if (prev.length === 1 && prev[0]?.gameId === game.gameId) return prev;
+      setOffset(0);
+      return [game];
+    });
   }, [game, reelSpinning, landing, setOffset]);
 
   const infoLocked = disabled || reelSpinning;

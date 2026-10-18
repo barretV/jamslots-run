@@ -1,5 +1,6 @@
-import type { ReactNode } from 'react';
+import { useMemo, type ReactNode } from 'react';
 import { runJamVoteGameUrl } from '../lib/runVoteUrl';
+import { usePosterGridScrollMotion } from '../lib/usePosterGridScrollMotion';
 import { DescriptionTooltip } from './DescriptionTooltip';
 import { CoverStatsRow } from './CoverStatsRow';
 import { CoverVoteBadge } from './CoverVoteBadge';
@@ -42,6 +43,9 @@ export function GamePosterGrid({
   isFavorite,
   onToggleFavorite,
 }: GamePosterGridProps) {
+  const itemKeys = useMemo(() => items.map((i) => i.key), [items]);
+  const scrollRef = usePosterGridScrollMotion(itemKeys);
+
   const scrollWrapClass = embedded
     ? 'poster-grid-scroll min-h-0 flex-1'
     : 'poster-grid-scroll max-h-[min(70vh,28rem)]';
@@ -51,14 +55,14 @@ export function GamePosterGrid({
   }
 
   return (
-    <div className={`${scrollWrapClass} touch-pan-y`}>
+    <div ref={scrollRef} className={`${scrollWrapClass} touch-pan-y`}>
       <ul className="poster-grid">
         {items.map((item) => {
           const favorited = isFavorite?.(item.gameId) ?? false;
           const showStar = Boolean(onToggleFavorite);
 
           return (
-            <li key={item.key} className="poster-tile min-w-0">
+            <li key={item.key} data-poster-tile className="poster-tile min-w-0">
               <div className="poster-tile-card group">
                 <div className="poster-tile-poster">
                   <DescriptionTooltip
@@ -76,7 +80,7 @@ export function GamePosterGrid({
                         title={item.title}
                         className="poster-tile-thumb"
                         fit="cover"
-                        loading="eager"
+                        loading="lazy"
                       />
                     </button>
                   </DescriptionTooltip>

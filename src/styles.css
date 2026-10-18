@@ -1681,6 +1681,20 @@ body {
   background: rgba(255, 255, 255, 0.32);
 }
 
+/* Library / favorites / played grids: lighter motion while scrolling */
+.poster-grid-scroll--scrolling .cover-vote-badge--link {
+  animation-play-state: paused !important;
+}
+
+.poster-tile:not(.poster-tile--in-view) .cover-vote-badge--link {
+  animation: none !important;
+}
+
+.poster-tile {
+  content-visibility: auto;
+  contain-intrinsic-size: auto 11rem;
+}
+
 .poster-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(118px, 1fr));

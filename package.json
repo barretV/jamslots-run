@@ -7,7 +7,8 @@
     "dev": "vite --port 5290 --strictPort",
     "build": "tsc --noEmit && vite build",
     "preview": "vite preview --port 5290 --strictPort",
-    "sync-games": "node scripts/sync-games.mjs"
+    "sync-games": "node scripts/sync-games.mjs",
+    "backfill-votes-baseline": "node scripts/backfill-votes-baseline-from-git.mjs"
   },
   "dependencies": {
     "@vercel/kv": "^3.0.0",

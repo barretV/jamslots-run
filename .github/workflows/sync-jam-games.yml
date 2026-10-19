@@ -2,8 +2,8 @@ name: Sync jam games
 
 on:
   schedule:
-    # Every 10 minutes (fresher creator slugs / new entries during the jam).
-    - cron: '*/10 * * * *'
+    # Every 5 minutes (vote deltas, slugs, new entries during the jam).
+    - cron: '*/5 * * * *'
   workflow_dispatch:
 
 permissions:

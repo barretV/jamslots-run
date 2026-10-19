@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { pickRandom } from '../lib/games';
+import { parseShareFavoritesFromLocation } from '../lib/shareFavoritesUrl';
 import { useReducedMotion } from '../lib/useReducedMotion';
 import {
   getStats,
@@ -15,6 +16,8 @@ import { GameDescriptionModal } from './GameDescriptionModal';
 import { PlayedList } from './PlayedList';
 import { ReelCard } from './ReelCard';
 import { PickerSidePanel } from './PickerSidePanel';
+import { ShareFavoritesButton } from './ShareFavoritesButton';
+import { SharedFavoritesBanner } from './SharedFavoritesBanner';
 import { TabBar, type PickerTab } from './TabBar';
 
 const BASE_SPIN_MS = 1200;
@@ -49,7 +52,12 @@ export function SlotMachine({ pool, jamName, jamSlug }: SlotMachineProps) {
   const [statsTick, setStatsTick] = useState(0);
   const [descriptionGame, setDescriptionGame] = useState<JamGame | null>(null);
   const [spinTargets, setSpinTargets] = useState<JamGame[] | null>(null);
-  const [activeTab, setActiveTab] = useState<PickerTab>('slots');
+  const [sharedFavoriteIds, setSharedFavoriteIds] = useState<string[] | null>(() =>
+    parseShareFavoritesFromLocation(),
+  );
+  const [activeTab, setActiveTab] = useState<PickerTab>(() =>
+    parseShareFavoritesFromLocation()?.length ? 'favorites' : 'slots',
+  );
   const [onlyUnplayed, setOnlyUnplayed] = useState(false);
   const [lockedReels, setLockedReels] = useState<[boolean, boolean, boolean]>([
     false,
@@ -276,6 +284,16 @@ export function SlotMachine({ pool, jamName, jamSlug }: SlotMachineProps) {
     [stats.favorites, pool],
   );
 
+  const sharedFavoriteGames = useMemo(() => {
+    if (!sharedFavoriteIds?.length) return [];
+    const byId = new Map(pool.map((g) => [g.gameId, g]));
+    return sharedFavoriteIds
+      .map((id) => byId.get(id))
+      .filter((g): g is JamGame => g != null);
+  }, [pool, sharedFavoriteIds]);
+
+  const viewingSharedFavorites = sharedFavoriteIds != null && sharedFavoriteIds.length > 0;
+
   return (
     <div className="app-layout">
       <PickerSidePanel jamSlug={jamSlug} />
@@ -392,12 +410,28 @@ export function SlotMachine({ pool, jamName, jamSlug }: SlotMachineProps) {
             aria-labelledby="tab-favorites"
             className="tab-panel flex min-h-0 flex-1 flex-col overflow-hidden rounded-2xl border border-pink-500/30 bg-gradient-to-b from-pink-950/40 to-black/80 p-2 sm:rounded-3xl sm:p-4 md:p-5"
           >
+            {viewingSharedFavorites ? (
+              <SharedFavoritesBanner
+                matchCount={sharedFavoriteGames.length}
+                requestedCount={sharedFavoriteIds!.length}
+                onDismiss={() => setSharedFavoriteIds(null)}
+              />
+            ) : (
+              <div className="favorites-tab-actions shrink-0">
+                <ShareFavoritesButton gameIds={stats.favorites} />
+              </div>
+            )}
             <FavoritesList
-              games={favoriteGames}
+              games={viewingSharedFavorites ? sharedFavoriteGames : favoriteGames}
               onOpen={launchGame}
-              onToggleFavorite={toggleFavoriteWithCount}
+              onToggleFavorite={viewingSharedFavorites ? undefined : toggleFavoriteWithCount}
               jamSlug={jamSlug}
               embedded
+              emptyMessage={
+                viewingSharedFavorites
+                  ? 'None of these games are in the current jam list.'
+                  : undefined
+              }
             />
           </div>
         )}

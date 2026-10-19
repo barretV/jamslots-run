@@ -7,6 +7,7 @@ interface FavoritesListProps {
   onToggleFavorite?: (gameId: string) => void;
   embedded?: boolean;
   jamSlug?: string;
+  emptyMessage?: string;
 }
 
 export function FavoritesList({
@@ -15,6 +16,7 @@ export function FavoritesList({
   onToggleFavorite,
   embedded = false,
   jamSlug,
+  emptyMessage,
 }: FavoritesListProps) {
   const shellClass = embedded
     ? 'flex min-h-0 flex-1 flex-col'
@@ -54,7 +56,9 @@ export function FavoritesList({
           const game = games.find((g) => g.gameId === item.gameId);
           if (game) onOpen(game);
         }}
-        emptyMessage="No favorites yet. Tap the star on a reel or in Played."
+        emptyMessage={
+          emptyMessage ?? 'No favorites yet. Tap the star on a reel or in Played.'
+        }
         embedded={embedded}
         jamSlug={jamSlug}
         isFavorite={() => true}

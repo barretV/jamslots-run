@@ -1515,6 +1515,73 @@ body {
   }
 }
 
+.favorites-tab-actions {
+  display: flex;
+  justify-content: flex-end;
+  padding: 0 0.15rem 0.35rem;
+}
+
+.share-favorites-btn {
+  border-radius: 9999px;
+  border: 1px solid rgba(244, 114, 182, 0.45);
+  background: linear-gradient(135deg, rgba(251, 191, 36, 0.22), rgba(232, 121, 249, 0.2));
+  padding: 0.45rem 0.9rem;
+  font-size: 1.1rem;
+  font-weight: 700;
+  line-height: 1.2;
+  color: #fce7f3;
+  cursor: pointer;
+  transition:
+    background 0.15s ease,
+    border-color 0.15s ease,
+    transform 0.15s ease;
+}
+
+.share-favorites-btn:hover:not(:disabled) {
+  border-color: rgba(251, 191, 36, 0.55);
+  background: linear-gradient(135deg, rgba(251, 191, 36, 0.32), rgba(232, 121, 249, 0.28));
+}
+
+.share-favorites-btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.shared-favorites-banner {
+  flex-shrink: 0;
+  margin-bottom: 0.5rem;
+  padding: 0.65rem 0.75rem;
+  border-radius: 0.75rem;
+  border: 1px solid rgba(34, 211, 238, 0.35);
+  background: linear-gradient(135deg, rgba(8, 47, 73, 0.45), rgba(5, 5, 8, 0.65));
+}
+
+.shared-favorites-banner__title {
+  margin: 0;
+  font-size: 1.15rem;
+  font-weight: 800;
+  color: #a5f3fc;
+}
+
+.shared-favorites-banner__meta {
+  margin: 0.25rem 0 0.5rem;
+  font-size: 1.1rem;
+  line-height: 1.35;
+  color: rgba(228, 228, 231, 0.88);
+}
+
+.shared-favorites-banner__dismiss {
+  border: none;
+  background: transparent;
+  padding: 0;
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: rgba(253, 224, 71, 0.95);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  cursor: pointer;
+}
+
 .played-panel .poster-grid-scroll {
   flex: 1;
   min-height: 0;

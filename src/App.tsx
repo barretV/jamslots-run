@@ -26,7 +26,13 @@ export function App() {
 
   return (
     <FavoriteCountsProvider>
-      <SlotMachine pool={bundle.games} jamName={bundle.jamName} jamSlug={bundle.jamSlug} />
+      <SlotMachine
+        pool={bundle.games}
+        jamName={bundle.jamName}
+        jamSlug={bundle.jamSlug}
+        syncedAt={bundle.syncedAt}
+        votingCloseAt={bundle.votingCloseAt}
+      />
     </FavoriteCountsProvider>
   );
 }

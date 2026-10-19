@@ -19,6 +19,8 @@ function normalizeBundle(raw: GamesBundle): GamesBundle {
     ...raw,
     count: games.length,
     games,
+    votingCloseAt: raw.votingCloseAt ? Number(raw.votingCloseAt) : undefined,
+    submissionsCloseAt: raw.submissionsCloseAt ? Number(raw.submissionsCloseAt) : undefined,
   };
 }
 

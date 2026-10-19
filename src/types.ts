@@ -19,6 +19,8 @@ export interface GamesBundle {
   jamSlug: string;
   count: number;
   games: JamGame[];
+  votingCloseAt?: number;
+  submissionsCloseAt?: number;
 }
 
 export interface HistoryEntry {

@@ -1,5 +1,6 @@
 import { useMemo, type ReactNode } from 'react';
 import { runJamVoteGameUrl } from '../lib/runVoteUrl';
+import { usePosterGridKeyboard } from '../lib/usePosterGridKeyboard';
 import { usePosterGridScrollMotion } from '../lib/usePosterGridScrollMotion';
 import { DescriptionTooltip } from './DescriptionTooltip';
 import { CoverStatsRow } from './CoverStatsRow';
@@ -45,6 +46,7 @@ export function GamePosterGrid({
 }: GamePosterGridProps) {
   const itemKeys = useMemo(() => items.map((i) => i.key), [items]);
   const scrollRef = usePosterGridScrollMotion(itemKeys);
+  const onGridKeyDown = usePosterGridKeyboard(scrollRef, items.length, items.length > 0);
 
   const scrollWrapClass = embedded
     ? 'poster-grid-scroll min-h-0 flex-1'
@@ -55,7 +57,11 @@ export function GamePosterGrid({
   }
 
   return (
-    <div ref={scrollRef} className={`${scrollWrapClass} touch-pan-y`}>
+    <div
+      ref={scrollRef}
+      className={`${scrollWrapClass} touch-pan-y poster-grid-keyboard`}
+      onKeyDown={onGridKeyDown}
+    >
       <ul className="poster-grid">
         {items.map((item) => {
           const favorited = isFavorite?.(item.gameId) ?? false;

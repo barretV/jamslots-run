@@ -71,6 +71,81 @@ body {
   }
 }
 
+.jam-meta-bar {
+  margin: 0.15rem 0 0.35rem;
+}
+
+.jam-meta-bar--compact {
+  margin-top: 0.1rem;
+}
+
+@media (min-width: 1024px) {
+  .app-header .jam-meta-bar--compact {
+    display: none;
+  }
+}
+
+.jam-meta-bar__counts {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.45rem 0.55rem;
+  margin: 0;
+}
+
+.jam-meta-bar__game-count {
+  font-size: 1.1rem;
+  font-weight: 800;
+  color: #fde68a;
+  letter-spacing: -0.02em;
+}
+
+.jam-meta-bar__new-badge {
+  display: inline-block;
+  padding: 0.12rem 0.5rem;
+  border-radius: 9999px;
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: #052e16;
+  background: linear-gradient(135deg, #4ade80, #86efac);
+  animation: jam-meta-new-in 3.2s ease-out forwards;
+}
+
+@keyframes jam-meta-new-in {
+  0% {
+    opacity: 0;
+    transform: translateY(4px) scale(0.92);
+  }
+  12% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+  70% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+    transform: translateY(-2px);
+  }
+}
+
+.jam-meta-bar__meta {
+  margin: 0.2rem 0 0;
+  font-size: 1.05rem;
+  line-height: 1.35;
+  color: rgba(161, 161, 170, 0.95);
+}
+
+.jam-meta-bar__dot {
+  margin: 0 0.35rem;
+}
+
+.poster-grid-keyboard .poster-tile-open:focus-visible,
+.poster-grid-keyboard .poster-tile-meta:focus-visible {
+  outline: 2px solid rgba(251, 191, 36, 0.85);
+  outline-offset: 2px;
+}
+
 .picker-side-panel {
   display: none;
 }

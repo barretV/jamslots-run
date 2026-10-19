@@ -40,6 +40,8 @@ const payload = {
   jamSlug: d.jam?.slug ?? JAM_SLUG,
   count: games.length,
   games,
+  votingCloseAt: Number(d.jam?.votingCloseAt ?? d.jam?.judgingEndsAt ?? 0) || undefined,
+  submissionsCloseAt: Number(d.jam?.submissionsCloseAt ?? 0) || undefined,
 };
 
 const json = JSON.stringify(payload);

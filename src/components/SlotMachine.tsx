@@ -20,6 +20,7 @@ import { LibraryList } from './LibraryList';
 import { GameDescriptionModal } from './GameDescriptionModal';
 import { PlayedList } from './PlayedList';
 import { ReelCard } from './ReelCard';
+import { JamMetaBar } from './JamMetaBar';
 import { PickerSidePanel } from './PickerSidePanel';
 import { ShareFavoritesButton } from './ShareFavoritesButton';
 import { SharedFavoritesBanner } from './SharedFavoritesBanner';
@@ -35,9 +36,11 @@ interface SlotMachineProps {
   pool: JamGame[];
   jamName: string;
   jamSlug: string;
+  syncedAt: number;
+  votingCloseAt?: number;
 }
 
-export function SlotMachine({ pool, jamName, jamSlug }: SlotMachineProps) {
+export function SlotMachine({ pool, jamName, jamSlug, syncedAt, votingCloseAt }: SlotMachineProps) {
   const { applyDelta } = useFavoriteCounts();
   const reducedMotion = useReducedMotion();
   const [triplet, setTriplet] = useState<JamGame[]>(() => pickRandom(pool, 3));
@@ -338,7 +341,12 @@ export function SlotMachine({ pool, jamName, jamSlug }: SlotMachineProps) {
 
   return (
     <div className="app-layout">
-      <PickerSidePanel jamSlug={jamSlug} />
+      <PickerSidePanel
+        jamSlug={jamSlug}
+        gameCount={pool.length}
+        syncedAt={syncedAt}
+        votingCloseAt={votingCloseAt}
+      />
       <div className="app-layout__main">
         <div className="app-shell mx-auto w-full max-w-4xl">
       <header className="app-header shrink-0">
@@ -347,13 +355,13 @@ export function SlotMachine({ pool, jamName, jamSlug }: SlotMachineProps) {
             JamSlots
           </h1>
         </div>
-        <p className="app-subtitle text-violet-100/85" title={jamName}>
-          {jamName}
-          <span className="text-zinc-500">
-            {' '}
-            · {pool.length} games
-          </span>
-        </p>
+        <p className="app-subtitle text-violet-100/85" title={jamName}>{jamName}</p>
+        <JamMetaBar
+          gameCount={pool.length}
+          syncedAt={syncedAt}
+          votingCloseAt={votingCloseAt}
+          compact
+        />
       </header>
 
       <div className="app-tab-rail shrink-0">

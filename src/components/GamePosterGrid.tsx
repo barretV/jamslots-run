@@ -1,11 +1,8 @@
-import { useMemo, type ReactNode } from 'react';
-import { runJamVoteGameUrl } from '../lib/runVoteUrl';
+import { useVirtualizer } from '@tanstack/react-virtual';
+import { useLayoutEffect, useMemo, useState, type ReactNode } from 'react';
 import { usePosterGridKeyboard } from '../lib/usePosterGridKeyboard';
 import { usePosterGridScrollMotion } from '../lib/usePosterGridScrollMotion';
-import { DescriptionTooltip } from './DescriptionTooltip';
-import { CoverStatsRow } from './CoverStatsRow';
-import { CoverVoteBadge } from './CoverVoteBadge';
-import { GameThumbnail } from './GameThumbnail';
+import { PosterGridTile } from './PosterGridTile';
 
 export interface PosterGridItem {
   key: string;
@@ -29,11 +26,36 @@ interface GamePosterGridProps {
   onToggleFavorite?: (gameId: string) => void;
 }
 
-function titleTextClass(title: string): string {
-  const len = title.length;
-  if (len > 36) return 'text-[0.95rem] leading-tight';
-  if (len > 24) return 'text-[1.05rem] leading-snug';
-  return 'text-[1.1rem] leading-snug';
+function minColumnWidth(viewportWidth: number): number {
+  if (viewportWidth >= 1024) return 128;
+  if (viewportWidth >= 640) return 112;
+  return 118;
+}
+
+function columnGapPx(viewportWidth: number): number {
+  if (viewportWidth >= 1024) return 8.8;
+  if (viewportWidth >= 640) return 8;
+  return 7.2;
+}
+
+function rowGapPx(viewportWidth: number): number {
+  if (viewportWidth >= 1024) return 10.4;
+  if (viewportWidth >= 640) return 8.8;
+  return 8;
+}
+
+function columnCount(viewportWidth: number): number {
+  const minCol = minColumnWidth(viewportWidth);
+  const gap = columnGapPx(viewportWidth);
+  return Math.max(1, Math.floor((viewportWidth + gap) / (minCol + gap)));
+}
+
+function estimateRowHeight(viewportWidth: number, cols: number): number {
+  const gap = columnGapPx(viewportWidth);
+  const cellW = (viewportWidth - gap * (cols - 1)) / cols;
+  const posterH = cellW * 1.5;
+  const metaH = 52;
+  return posterH + metaH + rowGapPx(viewportWidth);
 }
 
 export function GamePosterGrid({
@@ -45,17 +67,49 @@ export function GamePosterGrid({
   isFavorite,
   onToggleFavorite,
 }: GamePosterGridProps) {
-  const itemKeys = useMemo(() => items.map((i) => i.key), [items]);
-  const scrollRef = usePosterGridScrollMotion(itemKeys);
+  const [viewportWidth, setViewportWidth] = useState(360);
+  const colCount = columnCount(viewportWidth);
+  const rowCount = Math.ceil(items.length / colCount) || 0;
+  const rowHeightEstimate = estimateRowHeight(viewportWidth, colCount);
+
+  const scrollMotionKey = useMemo(
+    () => `${items.length}:${colCount}`,
+    [items.length, colCount],
+  );
+  const scrollRef = usePosterGridScrollMotion(scrollMotionKey);
   const onGridKeyDown = usePosterGridKeyboard(scrollRef, items.length, items.length > 0);
+
+  useLayoutEffect(() => {
+    const root = scrollRef.current;
+    if (!root) return;
+
+    const measure = () => {
+      setViewportWidth(root.clientWidth || 360);
+    };
+    measure();
+    const ro = new ResizeObserver(measure);
+    ro.observe(root);
+    return () => ro.disconnect();
+  }, [scrollRef]);
+
+  const virtualizer = useVirtualizer({
+    count: rowCount,
+    getScrollElement: () => scrollRef.current,
+    estimateSize: () => rowHeightEstimate,
+    overscan: 3,
+  });
 
   const scrollWrapClass = embedded
     ? 'poster-grid-scroll min-h-0 flex-1'
     : 'poster-grid-scroll max-h-[min(70vh,28rem)]';
 
+  const showStar = Boolean(onToggleFavorite);
+
   if (items.length === 0) {
     return <p className="text-[1.1rem] text-zinc-500">{emptyMessage}</p>;
   }
+
+  const virtualRows = virtualizer.getVirtualItems();
 
   return (
     <div
@@ -63,77 +117,46 @@ export function GamePosterGrid({
       className={`${scrollWrapClass} touch-pan-y poster-grid-keyboard`}
       onKeyDown={onGridKeyDown}
     >
-      <ul className="poster-grid">
-        {items.map((item) => {
-          const favorited = isFavorite?.(item.gameId) ?? false;
-          const showStar = Boolean(onToggleFavorite);
-
+      <div
+        className="poster-grid-virtual-spacer"
+        style={{ height: virtualizer.getTotalSize(), position: 'relative', width: '100%' }}
+      >
+        {virtualRows.map((virtualRow) => {
+          const rowIndex = virtualRow.index;
+          const rowStart = rowIndex * colCount;
           return (
-            <li key={item.key} data-poster-tile className="poster-tile min-w-0">
-              <div className="poster-tile-card group">
-                <div className="poster-tile-poster">
-                  <DescriptionTooltip
-                    description={item.description ?? ''}
-                    placement="overlay"
-                  >
-                    <button
-                      type="button"
-                      className="poster-tile-open"
-                      onClick={() => onOpen(item)}
-                    >
-                      <GameThumbnail
-                        key={item.gameId}
-                        url={item.thumbnailUrl}
-                        title={item.title}
-                        className="poster-tile-thumb"
-                        fit="cover"
-                        loading="lazy"
-                      />
-                    </button>
-                  </DescriptionTooltip>
-                  <CoverVoteBadge
-                    votes={item.votes}
-                    votesToday={item.votesToday}
-                    voteUrl={runJamVoteGameUrl(jamSlug, item.gameId)}
+            <ul
+              key={virtualRow.key}
+              className="poster-grid poster-grid-virtual-row"
+              style={{
+                position: 'absolute',
+                top: 0,
+                left: 0,
+                width: '100%',
+                transform: `translateY(${virtualRow.start}px)`,
+                gridTemplateColumns: `repeat(${colCount}, minmax(0, 1fr))`,
+              }}
+            >
+              {Array.from({ length: colCount }, (_, col) => {
+                const itemIndex = rowStart + col;
+                if (itemIndex >= items.length) return null;
+                const item = items[itemIndex];
+                return (
+                  <PosterGridTile
+                    key={item.key}
+                    item={item}
+                    jamSlug={jamSlug}
+                    favorited={isFavorite?.(item.gameId) ?? false}
+                    showStar={showStar}
+                    onOpen={onOpen}
+                    onToggleFavorite={onToggleFavorite}
                   />
-                  <CoverStatsRow
-                    gameId={item.gameId}
-                    totalPlays={item.totalPlays}
-                    density="compact"
-                  />
-                  {showStar && (
-                    <button
-                      type="button"
-                      className={`poster-tile-star ${favorited ? 'poster-tile-star--on' : ''}`}
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        onToggleFavorite?.(item.gameId);
-                      }}
-                      aria-label={favorited ? 'Remove from favorites' : 'Add to favorites'}
-                    >
-                      {favorited ? '★' : '☆'}
-                    </button>
-                  )}
-                </div>
-                <button
-                  type="button"
-                  className="poster-tile-meta"
-                  onClick={() => onOpen(item)}
-                >
-                  <span className={`poster-tile-title line-clamp-2 ${titleTextClass(item.title)}`}>
-                    {item.title}
-                  </span>
-                  {item.creatorName ? (
-                    <span className="poster-tile-creator line-clamp-1 text-[1.1rem] text-zinc-500">
-                      {item.creatorName}
-                    </span>
-                  ) : null}
-                </button>
-              </div>
-            </li>
+                );
+              })}
+            </ul>
           );
         })}
-      </ul>
+      </div>
     </div>
   );
 }

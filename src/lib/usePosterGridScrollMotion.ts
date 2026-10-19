@@ -3,7 +3,8 @@ import { useEffect, useRef } from 'react';
 const SCROLL_IDLE_MS = 140;
 
 /** Pauses badge motion while scrolling; only tiles in view animate. */
-export function usePosterGridScrollMotion(itemKeys: string[]) {
+export function usePosterGridScrollMotion(resyncKey: string | string[]) {
+  const depKey = Array.isArray(resyncKey) ? resyncKey.join('|') : resyncKey;
   const scrollRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -47,7 +48,7 @@ export function usePosterGridScrollMotion(itemKeys: string[]) {
     });
 
     return () => io.disconnect();
-  }, [itemKeys]);
+  }, [depKey]);
 
   return scrollRef;
 }

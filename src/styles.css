@@ -1840,6 +1840,20 @@ body {
   animation-play-state: paused !important;
 }
 
+.poster-grid-scroll--scrolling .cover-vote-today--hot {
+  animation-play-state: paused !important;
+}
+
+.poster-grid-scroll--scrolling .poster-tile-poster {
+  transform: none !important;
+  transition: none !important;
+}
+
+.poster-grid-scroll--scrolling .cover-vote-badge,
+.poster-grid-scroll--scrolling .poster-tile-star {
+  backdrop-filter: none;
+}
+
 .poster-tile:not(.poster-tile--in-view) .cover-vote-badge--link {
   animation: none !important;
 }
@@ -1847,6 +1861,12 @@ body {
 .poster-tile {
   content-visibility: auto;
   contain-intrinsic-size: auto 11rem;
+}
+
+.poster-grid-virtual-row {
+  margin: 0;
+  padding: 0;
+  list-style: none;
 }
 
 .poster-grid {

@@ -2021,6 +2021,14 @@ body {
   pointer-events: auto;
 }
 
+/* Poster grids: votes top-right so favorite star can sit top-left (reels unchanged). */
+.poster-tile-poster .cover-vote-stack {
+  left: auto;
+  right: 0.25rem;
+  top: 0.25rem;
+  align-items: flex-end;
+}
+
 .cover-vote-today {
   padding: 0.08rem 0.32rem;
   border-radius: 0.3rem;
@@ -2141,8 +2149,14 @@ body {
     top: 0.35rem;
   }
 
-  .poster-tile-poster:has(.cover-vote-badge) .poster-tile-star {
-    top: 2.2rem;
+  .poster-tile-poster .cover-vote-stack {
+    right: 0.35rem;
+    top: 0.35rem;
+  }
+
+  .poster-tile-star {
+    top: 0.35rem;
+    left: 0.35rem;
   }
 
   .poster-grid {
@@ -2154,8 +2168,10 @@ body {
 .poster-tile-star {
   position: absolute;
   top: 0.25rem;
-  right: 0.25rem;
-  z-index: 28;
+  left: 0.25rem;
+  right: auto;
+  bottom: auto;
+  z-index: 29;
   display: flex;
   align-items: center;
   justify-content: center;

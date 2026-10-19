@@ -16,6 +16,12 @@ No extra env vars are required when KV is linked.
 - **GET `/api/favorites`** → `{ counts: { [gameId]: number } }`
 - **POST `/api/favorites`** → body `{ gameId, delta: 1 | -1 }` (star adds 1, unstar subtracts 1)
 
+## Share links (short URLs)
+
+- **POST `/api/share-favorites`** → body `{ gameIds: string[] }` → `{ code, gameIds }` (stored in the same KV, ~1 year TTL)
+- **GET `/api/share-favorites?code=…`** → `{ code, gameIds }`
+- Copied links use `?f=<code>` (8 characters). Long `?favs=id1,id2` still works as a fallback when KV is unavailable.
+
 Counts live in Redis hash `jamslots:favorites` (`HINCRBY` / `HGETALL`).
 
 ## UI

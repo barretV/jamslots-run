@@ -1,6 +1,10 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { pickRandom } from '../lib/games';
-import { parseShareFavoritesFromLocation } from '../lib/shareFavoritesUrl';
+import {
+  parseLegacyFavoritesFromLocation,
+  parseShortShareCodeFromLocation,
+  resolveShortShareCode,
+} from '../lib/shareFavoritesUrl';
 import { useReducedMotion } from '../lib/useReducedMotion';
 import {
   getStats,
@@ -52,11 +56,19 @@ export function SlotMachine({ pool, jamName, jamSlug }: SlotMachineProps) {
   const [statsTick, setStatsTick] = useState(0);
   const [descriptionGame, setDescriptionGame] = useState<JamGame | null>(null);
   const [spinTargets, setSpinTargets] = useState<JamGame[] | null>(null);
+  const initialShortCode = parseShortShareCodeFromLocation();
+  const initialLegacyFavs = parseLegacyFavoritesFromLocation();
   const [sharedFavoriteIds, setSharedFavoriteIds] = useState<string[] | null>(() =>
-    parseShareFavoritesFromLocation(),
+    initialLegacyFavs,
+  );
+  const [sharedLinkState, setSharedLinkState] = useState<'idle' | 'loading' | 'error'>(() =>
+    initialShortCode ? 'loading' : 'idle',
+  );
+  const [sharedViewActive, setSharedViewActive] = useState(
+    () => Boolean(initialShortCode || initialLegacyFavs?.length),
   );
   const [activeTab, setActiveTab] = useState<PickerTab>(() =>
-    parseShareFavoritesFromLocation()?.length ? 'favorites' : 'slots',
+    initialShortCode || initialLegacyFavs?.length ? 'favorites' : 'slots',
   );
   const [onlyUnplayed, setOnlyUnplayed] = useState(false);
   const [lockedReels, setLockedReels] = useState<[boolean, boolean, boolean]>([
@@ -84,6 +96,28 @@ export function SlotMachine({ pool, jamName, jamSlug }: SlotMachineProps) {
   }, []);
 
   useEffect(() => () => clearTimers(), [clearTimers]);
+
+  useEffect(() => {
+    const code = parseShortShareCodeFromLocation();
+    if (!code) return;
+    let cancelled = false;
+    setSharedViewActive(true);
+    setSharedLinkState('loading');
+    setActiveTab('favorites');
+    void resolveShortShareCode(code).then((ids) => {
+      if (cancelled) return;
+      if (ids?.length) {
+        setSharedFavoriteIds(ids);
+        setSharedLinkState('idle');
+      } else {
+        setSharedFavoriteIds(null);
+        setSharedLinkState('error');
+      }
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   const stats = getStats();
   void statsTick;
@@ -292,7 +326,11 @@ export function SlotMachine({ pool, jamName, jamSlug }: SlotMachineProps) {
       .filter((g): g is JamGame => g != null);
   }, [pool, sharedFavoriteIds]);
 
-  const viewingSharedFavorites = sharedFavoriteIds != null && sharedFavoriteIds.length > 0;
+  const dismissSharedView = useCallback(() => {
+    setSharedFavoriteIds(null);
+    setSharedViewActive(false);
+    setSharedLinkState('idle');
+  }, []);
 
   return (
     <div className="app-layout">
@@ -410,27 +448,34 @@ export function SlotMachine({ pool, jamName, jamSlug }: SlotMachineProps) {
             aria-labelledby="tab-favorites"
             className="tab-panel flex min-h-0 flex-1 flex-col overflow-hidden rounded-2xl border border-pink-500/30 bg-gradient-to-b from-pink-950/40 to-black/80 p-2 sm:rounded-3xl sm:p-4 md:p-5"
           >
-            {viewingSharedFavorites ? (
+            {sharedViewActive && sharedLinkState !== 'loading' ? (
               <SharedFavoritesBanner
                 matchCount={sharedFavoriteGames.length}
-                requestedCount={sharedFavoriteIds!.length}
-                onDismiss={() => setSharedFavoriteIds(null)}
+                requestedCount={sharedFavoriteIds?.length ?? 0}
+                linkError={sharedLinkState === 'error'}
+                onDismiss={dismissSharedView}
               />
+            ) : sharedLinkState === 'loading' ? (
+              <p className="shared-favorites-loading shrink-0 text-[1.1rem] text-zinc-300">
+                Loading shared favorites…
+              </p>
             ) : (
               <div className="favorites-tab-actions shrink-0">
                 <ShareFavoritesButton gameIds={stats.favorites} />
               </div>
             )}
             <FavoritesList
-              games={viewingSharedFavorites ? sharedFavoriteGames : favoriteGames}
+              games={sharedViewActive ? sharedFavoriteGames : favoriteGames}
               onOpen={launchGame}
-              onToggleFavorite={viewingSharedFavorites ? undefined : toggleFavoriteWithCount}
+              onToggleFavorite={sharedViewActive ? undefined : toggleFavoriteWithCount}
               jamSlug={jamSlug}
               embedded
               emptyMessage={
-                viewingSharedFavorites
-                  ? 'None of these games are in the current jam list.'
-                  : undefined
+                sharedLinkState === 'error'
+                  ? 'This share link is missing or expired.'
+                  : sharedViewActive
+                    ? 'None of these games are in the current jam list.'
+                    : undefined
               }
             />
           </div>

@@ -341,12 +341,7 @@ export function SlotMachine({ pool, jamName, jamSlug, syncedAt, votingCloseAt }:
 
   return (
     <div className="app-layout">
-      <PickerSidePanel
-        jamSlug={jamSlug}
-        gameCount={pool.length}
-        syncedAt={syncedAt}
-        votingCloseAt={votingCloseAt}
-      />
+      <PickerSidePanel jamSlug={jamSlug} />
       <div className="app-layout__main">
         <div className="app-shell mx-auto w-full max-w-4xl">
       <header className="app-header shrink-0">
@@ -355,12 +350,11 @@ export function SlotMachine({ pool, jamName, jamSlug, syncedAt, votingCloseAt }:
             JamSlots
           </h1>
         </div>
-        <p className="app-subtitle text-violet-100/85" title={jamName}>{jamName}</p>
         <JamMetaBar
+          jamName={jamName}
           gameCount={pool.length}
           syncedAt={syncedAt}
           votingCloseAt={votingCloseAt}
-          compact
         />
       </header>
 

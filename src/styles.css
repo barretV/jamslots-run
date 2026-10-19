@@ -71,33 +71,36 @@ body {
   }
 }
 
-.jam-meta-bar {
-  margin: 0.15rem 0 0.35rem;
-}
-
-.jam-meta-bar--compact {
-  margin-top: 0.1rem;
-}
-
-@media (min-width: 1024px) {
-  .app-header .jam-meta-bar--compact {
-    display: none;
-  }
-}
-
-.jam-meta-bar__counts {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 0.45rem 0.55rem;
+.jam-meta-bar--header {
+  width: 100%;
   margin: 0;
 }
 
+.jam-meta-bar--header .app-subtitle {
+  margin: 0;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 0.15rem 0.35rem;
+}
+
+.jam-meta-bar__inline-count {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.35rem 0.45rem;
+  color: #71717a;
+}
+
+.jam-meta-bar__sep {
+  color: #71717a;
+}
+
 .jam-meta-bar__game-count {
-  font-size: 1.1rem;
-  font-weight: 800;
-  color: #fde68a;
-  letter-spacing: -0.02em;
+  font-size: inherit;
+  font-weight: inherit;
+  color: #71717a;
 }
 
 .jam-meta-bar__new-badge {
@@ -130,7 +133,9 @@ body {
 }
 
 .jam-meta-bar__meta {
-  margin: 0.2rem 0 0;
+  margin: 0.15rem 0 0;
+  width: 100%;
+  text-align: center;
   font-size: 1.05rem;
   line-height: 1.35;
   color: rgba(161, 161, 170, 0.95);

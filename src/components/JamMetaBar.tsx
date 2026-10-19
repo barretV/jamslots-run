@@ -7,19 +7,15 @@ interface JamMetaBarProps {
   gameCount: number;
   syncedAt: number;
   votingCloseAt?: number;
-  compact?: boolean;
+  /** Jam title shown on the same line as the game count (top header). */
+  jamName?: string;
 }
 
 function easeOutCubic(t: number): number {
   return 1 - (1 - t) ** 3;
 }
 
-export function JamMetaBar({
-  gameCount,
-  syncedAt,
-  votingCloseAt,
-  compact = false,
-}: JamMetaBarProps) {
+export function JamMetaBar({ gameCount, syncedAt, votingCloseAt, jamName }: JamMetaBarProps) {
   const reducedMotion = useReducedMotion();
   const [displayCount, setDisplayCount] = useState(gameCount);
   const [newGamesDelta, setNewGamesDelta] = useState(0);
@@ -79,16 +75,18 @@ export function JamMetaBar({
   const votingLabel = votingCloseAt ? formatVotingCloses(votingCloseAt) : null;
 
   return (
-    <div className={`jam-meta-bar ${compact ? 'jam-meta-bar--compact' : ''}`} role="status">
-      <p className="jam-meta-bar__counts">
-        <span className="jam-meta-bar__game-count font-display">
-          {displayCount.toLocaleString()} games
+    <div className="jam-meta-bar jam-meta-bar--header" role="status">
+      <p className="app-subtitle text-violet-100/85" title={jamName}>
+        {jamName != null && <span>{jamName}</span>}
+        <span className="jam-meta-bar__inline-count">
+          {jamName != null && <span className="jam-meta-bar__sep"> · </span>}
+          <span className="jam-meta-bar__game-count">{displayCount.toLocaleString()} games</span>
+          {showNewBadge && newGamesDelta > 0 && (
+            <span className="jam-meta-bar__new-badge" aria-live="polite">
+              +{newGamesDelta} new
+            </span>
+          )}
         </span>
-        {showNewBadge && newGamesDelta > 0 && (
-          <span className="jam-meta-bar__new-badge" aria-live="polite">
-            +{newGamesDelta} new
-          </span>
-        )}
       </p>
       <p className="jam-meta-bar__meta">
         <span>{updatedLabel}</span>

@@ -1,19 +1,10 @@
-import { JamMetaBar } from './JamMetaBar';
 import { runJamVotesPageUrl } from '../lib/runVoteUrl';
 
 interface PickerSidePanelProps {
   jamSlug: string;
-  gameCount: number;
-  syncedAt: number;
-  votingCloseAt?: number;
 }
 
-export function PickerSidePanel({
-  jamSlug,
-  gameCount,
-  syncedAt,
-  votingCloseAt,
-}: PickerSidePanelProps) {
+export function PickerSidePanel({ jamSlug }: PickerSidePanelProps) {
   const jamVotesUrl = runJamVotesPageUrl(jamSlug);
 
   return (
@@ -26,12 +17,6 @@ export function PickerSidePanel({
             <span className="picker-side-hero__line">Guide</span>
           </h2>
         </header>
-
-        <JamMetaBar
-          gameCount={gameCount}
-          syncedAt={syncedAt}
-          votingCloseAt={votingCloseAt}
-        />
 
         <div className="picker-side-vote-card">
           <div className="picker-side-tap-demo" aria-hidden>

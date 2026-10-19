@@ -21,7 +21,12 @@ type LibrarySortMode =
   | 'favorites-desc'
   | 'favorites-asc'
   | 'votes-desc'
-  | 'votes-asc';
+  | 'votes-asc'
+  | 'votes-over-plays-desc';
+
+function votePlayGap(game: JamGame): number {
+  return game.votes - game.totalPlays;
+}
 
 function matchesQuery(game: JamGame, query: string): boolean {
   const q = query.toLowerCase();
@@ -40,7 +45,18 @@ function sortGames(
   mode: LibrarySortMode,
   favoriteCount: (gameId: string) => number,
 ): JamGame[] {
-  const list = [...games];
+  let list = [...games];
+  if (mode === 'votes-over-plays-desc') {
+    list = list.filter((g) => votePlayGap(g) > 0);
+    list.sort((a, b) => {
+      const gapDiff = votePlayGap(b) - votePlayGap(a);
+      if (gapDiff !== 0) return gapDiff;
+      const voteDiff = b.votes - a.votes;
+      if (voteDiff !== 0) return voteDiff;
+      return compareByTitle(a, b);
+    });
+    return list;
+  }
   if (mode === 'title-asc') {
     list.sort(compareByTitle);
     return list;
@@ -93,6 +109,8 @@ function sortLabel(mode: LibrarySortMode): string {
       return 'most votes';
     case 'votes-asc':
       return 'least votes';
+    case 'votes-over-plays-desc':
+      return 'votes over plays (biggest gap first)';
   }
 }
 
@@ -140,9 +158,17 @@ export function LibraryList({
   }));
 
   const sortPhrase = sortLabel(sortMode);
+  const votesOverPlaysCount = useMemo(
+    () => games.filter((g) => votePlayGap(g) > 0).length,
+    [games],
+  );
   const hint =
     debouncedQuery.length === 0
-      ? `All ${games.length} games, sorted ${sortPhrase}`
+      ? sortMode === 'votes-over-plays-desc'
+        ? votesOverPlaysCount === 0
+          ? 'No games have more votes than plays in the current jam list'
+          : `${votesOverPlaysCount} game${votesOverPlaysCount === 1 ? '' : 's'} with more votes than plays (RUN totals), sorted ${sortPhrase}`
+        : `All ${games.length} games, sorted ${sortPhrase}`
       : visibleGames.length === 0
         ? 'No matches'
         : `${visibleGames.length} match${visibleGames.length === 1 ? '' : 'es'}, sorted ${sortPhrase}`;
@@ -183,6 +209,7 @@ export function LibraryList({
             <option value="favorites-asc">Least favorited</option>
             <option value="votes-desc">Most votes</option>
             <option value="votes-asc">Least votes</option>
+            <option value="votes-over-plays-desc">More votes than plays</option>
           </select>
         </div>
         <p className="library-search-hint" aria-live="polite">{hint}</p>
@@ -196,7 +223,9 @@ export function LibraryList({
         emptyMessage={
           debouncedQuery
             ? 'No games match your search. Try another title or creator.'
-            : 'No games in this jam yet.'
+            : sortMode === 'votes-over-plays-desc'
+              ? 'No games in this list have more votes than plays.'
+              : 'No games in this jam yet.'
         }
         embedded={embedded}
         jamSlug={jamSlug}

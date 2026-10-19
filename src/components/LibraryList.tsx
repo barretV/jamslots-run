@@ -22,10 +22,15 @@ type LibrarySortMode =
   | 'favorites-asc'
   | 'votes-desc'
   | 'votes-asc'
-  | 'votes-over-plays-desc';
+  | 'votes-over-plays-desc'
+  | 'plays-over-votes-desc';
 
 function votePlayGap(game: JamGame): number {
   return game.votes - game.totalPlays;
+}
+
+function playVoteGap(game: JamGame): number {
+  return game.totalPlays - game.votes;
 }
 
 function matchesQuery(game: JamGame, query: string): boolean {
@@ -52,6 +57,19 @@ function sortGames(
       const gapDiff = votePlayGap(b) - votePlayGap(a);
       if (gapDiff !== 0) return gapDiff;
       const voteDiff = b.votes - a.votes;
+      if (voteDiff !== 0) return voteDiff;
+      return compareByTitle(a, b);
+    });
+    return list;
+  }
+  if (mode === 'plays-over-votes-desc') {
+    list = list.filter((g) => playVoteGap(g) > 0);
+    list.sort((a, b) => {
+      const gapDiff = playVoteGap(b) - playVoteGap(a);
+      if (gapDiff !== 0) return gapDiff;
+      const playsDiff = b.totalPlays - a.totalPlays;
+      if (playsDiff !== 0) return playsDiff;
+      const voteDiff = a.votes - b.votes;
       if (voteDiff !== 0) return voteDiff;
       return compareByTitle(a, b);
     });
@@ -111,6 +129,8 @@ function sortLabel(mode: LibrarySortMode): string {
       return 'least votes';
     case 'votes-over-plays-desc':
       return 'votes over plays (biggest gap first)';
+    case 'plays-over-votes-desc':
+      return 'plays over votes (biggest gap first)';
   }
 }
 
@@ -162,13 +182,21 @@ export function LibraryList({
     () => games.filter((g) => votePlayGap(g) > 0).length,
     [games],
   );
+  const playsOverVotesCount = useMemo(
+    () => games.filter((g) => playVoteGap(g) > 0).length,
+    [games],
+  );
   const hint =
     debouncedQuery.length === 0
       ? sortMode === 'votes-over-plays-desc'
         ? votesOverPlaysCount === 0
           ? 'No games have more votes than plays in the current jam list'
           : `${votesOverPlaysCount} game${votesOverPlaysCount === 1 ? '' : 's'} with more votes than plays (RUN totals), sorted ${sortPhrase}`
-        : `All ${games.length} games, sorted ${sortPhrase}`
+        : sortMode === 'plays-over-votes-desc'
+          ? playsOverVotesCount === 0
+            ? 'No games have more plays than votes in the current jam list'
+            : `${playsOverVotesCount} game${playsOverVotesCount === 1 ? '' : 's'} with more plays than votes (RUN totals), sorted ${sortPhrase}`
+          : `All ${games.length} games, sorted ${sortPhrase}`
       : visibleGames.length === 0
         ? 'No matches'
         : `${visibleGames.length} match${visibleGames.length === 1 ? '' : 'es'}, sorted ${sortPhrase}`;
@@ -210,6 +238,7 @@ export function LibraryList({
             <option value="votes-desc">Most votes</option>
             <option value="votes-asc">Least votes</option>
             <option value="votes-over-plays-desc">More votes than plays</option>
+            <option value="plays-over-votes-desc">More plays than votes</option>
           </select>
         </div>
         <p className="library-search-hint" aria-live="polite">{hint}</p>
@@ -225,7 +254,9 @@ export function LibraryList({
             ? 'No games match your search. Try another title or creator.'
             : sortMode === 'votes-over-plays-desc'
               ? 'No games in this list have more votes than plays.'
-              : 'No games in this jam yet.'
+              : sortMode === 'plays-over-votes-desc'
+                ? 'No games in this list have more plays than votes.'
+                : 'No games in this jam yet.'
         }
         embedded={embedded}
         jamSlug={jamSlug}

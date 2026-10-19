@@ -77,7 +77,15 @@ export default async function handler(request: Request): Promise<Response> {
       let gameIds: string[] = [];
       try {
         const parsed = JSON.parse(raw) as unknown;
-        gameIds = normalizeIds(parsed);
+        if (Array.isArray(parsed)) {
+          gameIds = normalizeIds(parsed);
+        } else if (
+          parsed &&
+          typeof parsed === 'object' &&
+          Array.isArray((parsed as { gameIds?: unknown }).gameIds)
+        ) {
+          gameIds = normalizeIds((parsed as { gameIds: unknown }).gameIds);
+        }
       } catch {
         return Response.json({ error: 'corrupt' }, { status: 500, headers: CORS });
       }

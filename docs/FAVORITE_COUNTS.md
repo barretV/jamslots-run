@@ -22,6 +22,11 @@ No extra env vars are required when KV is linked.
 - **GET `/api/share-favorites?code=…`** → `{ code, gameIds }`
 - Copied links use `?f=<code>` (8 characters). Long `?favs=id1,id2` still works as a fallback when KV is unavailable.
 
+## Discord / social embeds
+
+- Default Open Graph tags live in `index.html` (site preview + `/api/og-image`).
+- Share links (`?f=` or `?favs=`): Vercel **middleware** serves crawlers (Discord, Twitter, etc.) an HTML page from `/api/social-preview` with title, description (game names when possible), and a dynamic OG image showing the favorite count.
+
 Counts live in Redis hash `jamslots:favorites` (`HINCRBY` / `HGETALL`).
 
 ## UI

@@ -1,6 +1,8 @@
+import { jamPoolSignature } from '../lib/jamPoolSignature';
 import type { HistoryEntry, PickerStats } from '../types';
 
 const STORAGE_KEY = 'october-jam-gamepicker-v1';
+const JAM_POOL_SIG_KEY = 'jamslots-applied-pool-signature';
 const HISTORY_MAX = 40;
 
 const DEFAULTS: PickerStats = {
@@ -73,6 +75,33 @@ export function totalPlays(): number {
 export function clearHistory(): void {
   cache = { ...cache, history: [] };
   flush();
+}
+
+/**
+ * Align local favorites, played history, and play counts with the deployed jam list.
+ */
+export function syncLocalSessionWithJamBundle(
+  games: { gameId: string }[],
+  syncedAt: number,
+): boolean {
+  const ids = games.map((g) => g.gameId);
+  const signature = jamPoolSignature(syncedAt, ids);
+  let prevSig: string | null = null;
+  try {
+    prevSig = localStorage.getItem(JAM_POOL_SIG_KEY);
+  } catch {
+    /* private mode */
+  }
+  const pruned = pruneStatsToJamPool(new Set(ids));
+  const signatureChanged = prevSig !== signature;
+  if (signatureChanged) {
+    try {
+      localStorage.setItem(JAM_POOL_SIG_KEY, signature);
+    } catch {
+      /* private mode */
+    }
+  }
+  return pruned || signatureChanged;
 }
 
 /** Drop local stars/plays/history for games no longer in the synced jam list. */

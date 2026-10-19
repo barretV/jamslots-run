@@ -1,9 +1,18 @@
+import { useEffect, useState } from 'react';
 import { FavoriteCountsProvider } from './components/FavoriteCountsProvider';
 import { SlotMachine } from './components/SlotMachine';
 import { useGames } from './lib/useGames';
+import { syncLocalSessionWithJamBundle } from './state/persistence';
 
 export function App() {
   const { bundle, error, loading } = useGames();
+  const [sessionKey, setSessionKey] = useState('boot');
+
+  useEffect(() => {
+    if (!bundle) return;
+    syncLocalSessionWithJamBundle(bundle.games, bundle.syncedAt);
+    setSessionKey(`${bundle.syncedAt}-${bundle.count}`);
+  }, [bundle]);
 
   if (loading) {
     return (
@@ -27,6 +36,7 @@ export function App() {
   return (
     <FavoriteCountsProvider>
       <SlotMachine
+        key={sessionKey}
         pool={bundle.games}
         jamName={bundle.jamName}
         jamSlug={bundle.jamSlug}

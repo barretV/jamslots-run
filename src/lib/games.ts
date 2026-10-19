@@ -26,7 +26,8 @@ function normalizeBundle(raw: GamesBundle): GamesBundle {
 
 async function tryFetchBundle(url: string): Promise<GamesBundle | null> {
   try {
-    const res = await fetch(url, { cache: 'no-store' });
+    const fetchUrl = url.includes('?') ? url : `${url}?t=${Date.now()}`;
+    const res = await fetch(fetchUrl, { cache: 'no-store' });
     if (!res.ok) return null;
     const json = (await res.json()) as unknown;
     return isBundle(json) ? json : null;

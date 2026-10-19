@@ -10,6 +10,7 @@ import { useReducedMotion } from '../lib/useReducedMotion';
 import {
   getStats,
   isFavorite,
+  pruneStatsToJamPool,
   recordPlay,
   toggleFavorite,
 } from '../state/persistence';
@@ -125,6 +126,25 @@ export function SlotMachine({ pool, jamName, jamSlug, syncedAt, votingCloseAt }:
 
   const stats = getStats();
   void statsTick;
+
+  const poolIds = useMemo(() => new Set(pool.map((g) => g.gameId)), [pool]);
+  const poolSignature = useMemo(
+    () => pool.map((g) => g.gameId).sort().join('\n'),
+    [pool],
+  );
+
+  useEffect(() => {
+    if (poolIds.size === 0) return;
+    if (pruneStatsToJamPool(poolIds)) refreshStats();
+  }, [poolSignature, poolIds]);
+
+  useEffect(() => {
+    if (pool.length < 3) return;
+    setTriplet((prev) => {
+      if (prev.length === 3 && prev.every((g) => poolIds.has(g.gameId))) return prev;
+      return pickRandom(pool, 3);
+    });
+  }, [poolSignature, pool, poolIds]);
 
   const playedIds = useMemo(
     () => new Set(stats.history.map((h) => h.gameId)),
@@ -495,7 +515,7 @@ export function SlotMachine({ pool, jamName, jamSlug, syncedAt, votingCloseAt }:
             className="tab-panel flex min-h-0 flex-1 flex-col overflow-hidden rounded-2xl border border-cyan-500/25 bg-gradient-to-b from-cyan-950/35 to-black/80 p-2 sm:rounded-3xl sm:p-4 md:p-5"
           >
             <PlayedList
-              entries={stats.history}
+              entries={stats.history.filter((e) => poolIds.has(e.gameId))}
               jamSlug={jamSlug}
               onOpen={openFromHistory}
               descriptionFor={(gameId) => pool.find((g) => g.gameId === gameId)?.description}

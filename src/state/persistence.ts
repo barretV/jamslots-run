@@ -75,4 +75,22 @@ export function clearHistory(): void {
   flush();
 }
 
+/** Drop local stars/plays/history for games no longer in the synced jam list. */
+export function pruneStatsToJamPool(validGameIds: ReadonlySet<string>): boolean {
+  const favorites = cache.favorites.filter((id) => validGameIds.has(id));
+  const history = cache.history.filter((h) => validGameIds.has(h.gameId));
+  const playCounts: Record<string, number> = {};
+  for (const [id, n] of Object.entries(cache.playCounts)) {
+    if (validGameIds.has(id)) playCounts[id] = n;
+  }
+  const changed =
+    favorites.length !== cache.favorites.length ||
+    history.length !== cache.history.length ||
+    Object.keys(playCounts).length !== Object.keys(cache.playCounts).length;
+  if (!changed) return false;
+  cache = { ...cache, favorites, history, playCounts };
+  flush();
+  return true;
+}
+
 export type { HistoryEntry };

@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import type { JamGame } from '../types';
 import { useFavoriteCounts } from './FavoriteCountsProvider';
 import { GamePosterGrid } from './GamePosterGrid';
+import { LibrarySortSelect, sortHintPhrase, type LibrarySortMode } from './LibrarySortSelect';
 
 interface LibraryListProps {
   games: JamGame[];
@@ -11,20 +12,6 @@ interface LibraryListProps {
   embedded?: boolean;
   jamSlug?: string;
 }
-
-type LibrarySortMode =
-  | 'title-asc'
-  | 'published-desc'
-  | 'published-asc'
-  | 'plays-desc'
-  | 'plays-asc'
-  | 'favorites-desc'
-  | 'favorites-asc'
-  | 'votes-desc'
-  | 'votes-asc'
-  | 'votes-over-plays-desc'
-  | 'plays-over-votes-desc'
-  | 'votes-today-desc';
 
 function votePlayGap(game: JamGame): number {
   return game.votes - game.totalPlays;
@@ -119,35 +106,6 @@ function sortGames(
   return list;
 }
 
-function sortLabel(mode: LibrarySortMode): string {
-  switch (mode) {
-    case 'title-asc':
-      return 'A to Z';
-    case 'published-desc':
-      return 'newest first';
-    case 'published-asc':
-      return 'oldest first';
-    case 'plays-desc':
-      return 'most plays';
-    case 'plays-asc':
-      return 'least plays';
-    case 'favorites-desc':
-      return 'most favorited';
-    case 'favorites-asc':
-      return 'least favorited';
-    case 'votes-desc':
-      return 'most votes';
-    case 'votes-asc':
-      return 'least votes';
-    case 'votes-over-plays-desc':
-      return 'votes over plays (biggest gap first)';
-    case 'plays-over-votes-desc':
-      return 'plays over votes (biggest gap first)';
-    case 'votes-today-desc':
-      return 'most new votes today (UTC)';
-  }
-}
-
 export function LibraryList({
   games,
   onOpen,
@@ -192,7 +150,7 @@ export function LibraryList({
     votesToday: game.votesToday,
   }));
 
-  const sortPhrase = sortLabel(sortMode);
+  const sortPhrase = sortHintPhrase(sortMode);
   const votesOverPlaysCount = useMemo(
     () => games.filter((g) => votePlayGap(g) > 0).length,
     [games],
@@ -241,29 +199,8 @@ export function LibraryList({
             autoComplete="off"
             enterKeyHint="search"
           />
-          <label className="library-search-label" htmlFor="library-sort-select">
-            Sort library
-          </label>
-          <select
-            id="library-sort-select"
-            className="library-sort-select"
-            value={sortMode}
-            onChange={(e) => setSortMode(e.target.value as LibrarySortMode)}
-            aria-label="Sort library"
-          >
-            <option value="title-asc">A to Z</option>
-            <option value="published-desc">Newest</option>
-            <option value="published-asc">Oldest</option>
-            <option value="plays-desc">Most plays</option>
-            <option value="plays-asc">Least plays</option>
-            <option value="favorites-desc">Most favorited</option>
-            <option value="favorites-asc">Least favorited</option>
-            <option value="votes-desc">Most votes</option>
-            <option value="votes-asc">Least votes</option>
-            <option value="votes-over-plays-desc">More votes than plays</option>
-            <option value="plays-over-votes-desc">More plays than votes</option>
-            <option value="votes-today-desc">Most new votes today</option>
-          </select>
+          <span className="library-search-label">Sort library</span>
+          <LibrarySortSelect value={sortMode} onChange={setSortMode} />
         </div>
         <p className="library-search-hint" aria-live="polite">{hint}</p>
       </div>

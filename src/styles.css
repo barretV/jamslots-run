@@ -1681,7 +1681,7 @@ body {
 .library-toolbar {
   position: sticky;
   top: 0;
-  z-index: 2;
+  z-index: 12;
   margin-bottom: 0.5rem;
   padding-bottom: 0.35rem;
   background: linear-gradient(
@@ -1702,6 +1702,61 @@ body {
 .library-toolbar-row .library-search-input {
   flex: 1 1 10rem;
   min-width: 0;
+}
+
+.library-sort-menu {
+  position: relative;
+  flex: 0 0 auto;
+  z-index: 5;
+}
+
+.library-sort-menu-trigger {
+  width: 100%;
+  text-align: left;
+  cursor: pointer;
+}
+
+.library-sort-menu-list {
+  min-width: 13.5rem;
+  margin: 0;
+  padding: 0.35rem;
+  list-style: none;
+  overflow-y: auto;
+  border-radius: 0.85rem;
+  border: 1px solid rgba(192, 132, 252, 0.5);
+  background: rgba(12, 8, 22, 0.98);
+  box-shadow:
+    0 12px 32px rgba(0, 0, 0, 0.55),
+    0 0 24px rgba(168, 85, 247, 0.2);
+}
+
+.library-sort-menu-list--fixed {
+  margin: 0;
+}
+
+.library-sort-menu-option {
+  display: block;
+  width: 100%;
+  padding: 0.5rem 0.65rem;
+  border: none;
+  border-radius: 0.55rem;
+  background: transparent;
+  text-align: left;
+  font-size: 1.1rem;
+  line-height: 1.35;
+  color: #fafafa;
+  cursor: pointer;
+}
+
+.library-sort-menu-option:hover,
+.library-sort-menu-option:focus-visible {
+  outline: none;
+  background: rgba(168, 85, 247, 0.22);
+}
+
+.library-sort-menu-option--on {
+  background: rgba(168, 85, 247, 0.28);
+  color: #fde68a;
 }
 
 .library-sort-select {

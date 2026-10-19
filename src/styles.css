@@ -1802,6 +1802,9 @@ body {
   flex-direction: column;
   overflow-y: auto;
   overflow-x: hidden;
+  overflow-anchor: auto;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
   padding: 0.15rem 0.25rem 0.35rem;
   scrollbar-width: thin;
   scrollbar-color: rgba(255, 255, 255, 0.22) rgba(0, 0, 0, 0.35);
@@ -1854,19 +1857,31 @@ body {
   backdrop-filter: none;
 }
 
-.poster-tile:not(.poster-tile--in-view) .cover-vote-badge--link {
-  animation: none !important;
-}
-
 .poster-tile {
   content-visibility: auto;
   contain-intrinsic-size: auto 11rem;
+  contain: layout style;
 }
 
-.poster-grid-virtual-row {
-  margin: 0;
-  padding: 0;
-  list-style: none;
+/* Poster grids: static vote chrome while scrolling; wiggle only on hover/focus. */
+.poster-grid .cover-vote-badge--link {
+  animation: none !important;
+}
+
+.poster-grid .cover-vote-today--hot {
+  animation: none !important;
+}
+
+.poster-tile:hover .cover-vote-badge--link,
+.poster-tile:focus-within .cover-vote-badge--link {
+  animation:
+    jam-vote-wiggle 4.2s ease-in-out infinite,
+    cover-vote-glow-pulse 2.8s ease-in-out infinite !important;
+}
+
+.poster-tile:hover .cover-vote-today--hot,
+.poster-tile:focus-within .cover-vote-today--hot {
+  animation: cover-vote-today-glow 2.4s ease-in-out infinite !important;
 }
 
 .poster-grid {

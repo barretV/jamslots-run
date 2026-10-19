@@ -76,31 +76,38 @@ body {
   margin: 0;
 }
 
-.jam-meta-bar--header .app-subtitle {
+.jam-meta-bar__row {
   margin: 0;
   display: flex;
   flex-wrap: wrap;
   align-items: center;
   justify-content: center;
   gap: 0.15rem 0.35rem;
+  font-size: 1.05rem;
+  line-height: 1.25;
 }
 
-.jam-meta-bar__inline-count {
-  display: inline-flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 0.35rem 0.45rem;
-  color: #71717a;
+.jam-meta-bar__jam {
+  color: rgba(237, 233, 254, 0.9);
 }
 
 .jam-meta-bar__sep {
-  color: #71717a;
+  color: #52525b;
+  user-select: none;
 }
 
 .jam-meta-bar__game-count {
-  font-size: inherit;
-  font-weight: inherit;
+  color: #a1a1aa;
+}
+
+.jam-meta-bar__muted {
   color: #71717a;
+}
+
+.jam-meta-bar__timer {
+  color: #a5f3fc;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
 }
 
 .jam-meta-bar__new-badge {
@@ -130,19 +137,6 @@ body {
     opacity: 0;
     transform: translateY(-2px);
   }
-}
-
-.jam-meta-bar__meta {
-  margin: 0.15rem 0 0;
-  width: 100%;
-  text-align: center;
-  font-size: 1.05rem;
-  line-height: 1.35;
-  color: rgba(161, 161, 170, 0.95);
-}
-
-.jam-meta-bar__dot {
-  margin: 0 0.35rem;
 }
 
 .poster-grid-keyboard .poster-tile-open:focus-visible,
@@ -545,8 +539,8 @@ body {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 0.25rem;
-  padding-bottom: 0.3rem;
+  gap: 0.1rem;
+  padding-bottom: 0.15rem;
   text-align: center;
 }
 
@@ -764,7 +758,7 @@ body {
   position: sticky;
   top: 0;
   z-index: 20;
-  padding-bottom: 0.35rem;
+  padding-bottom: 0.2rem;
   background: linear-gradient(180deg, #050508 88%, transparent);
 }
 
@@ -817,22 +811,22 @@ body {
   position: relative;
   display: flex;
   flex-direction: column;
-  flex: 1 1 auto;
+  flex: 1 1 0;
   min-height: 0;
   width: 100%;
-  max-height: min(28dvh, 16rem);
+  max-height: min(34dvh, 18rem);
   overflow: hidden;
 }
 
 @media (min-width: 640px) {
   .reel-thumb-trigger {
-    max-height: min(32dvh, 18rem);
+    max-height: min(40dvh, 21rem);
   }
 }
 
 @media (min-width: 1024px) {
   .reel-thumb-trigger {
-    max-height: min(36dvh, 19.5rem);
+    max-height: min(48dvh, 26rem);
   }
 }
 

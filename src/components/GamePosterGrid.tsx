@@ -16,6 +16,7 @@ export interface PosterGridItem {
   description?: string;
   totalPlays?: number;
   votes?: number;
+  votesToday?: number;
 }
 
 interface GamePosterGridProps {
@@ -92,6 +93,7 @@ export function GamePosterGrid({
                   </DescriptionTooltip>
                   <CoverVoteBadge
                     votes={item.votes}
+                    votesToday={item.votesToday}
                     voteUrl={runJamVoteGameUrl(jamSlug, item.gameId)}
                   />
                   <CoverStatsRow

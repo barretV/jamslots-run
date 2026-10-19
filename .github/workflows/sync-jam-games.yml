@@ -28,11 +28,11 @@ jobs:
       - name: Sync games from RUN API
         run: npm run sync-games
 
-      - name: Commit and push if game list changed
+      - name: Commit and push if game list or vote log changed
         run: |
-          git diff --quiet src/data/games.bundle.json public/games.json && exit 0
+          git add src/data/games.bundle.json public/games.json src/data/votes-day-baseline.json src/data/vote-sync-history.json
+          git diff --cached --quiet && exit 0
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add src/data/games.bundle.json public/games.json
           git commit -m "chore: sync jam games from RUN API"
           git push

@@ -12,6 +12,7 @@ function normalizeBundle(raw: GamesBundle): GamesBundle {
   const games: JamGame[] = raw.games.map((g) => ({
     ...g,
     votes: Number(g.votes ?? 0),
+    votesToday: g.votesToday != null ? Math.max(0, Number(g.votesToday)) : undefined,
     totalPlays: Number(g.totalPlays ?? 0),
     publishedAt: Number(g.publishedAt ?? 0),
   }));
@@ -21,6 +22,7 @@ function normalizeBundle(raw: GamesBundle): GamesBundle {
     games,
     votingCloseAt: raw.votingCloseAt ? Number(raw.votingCloseAt) : undefined,
     submissionsCloseAt: raw.submissionsCloseAt ? Number(raw.submissionsCloseAt) : undefined,
+    votesDayUtc: typeof raw.votesDayUtc === 'string' ? raw.votesDayUtc : undefined,
   };
 }
 

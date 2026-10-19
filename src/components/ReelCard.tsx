@@ -312,6 +312,7 @@ export function ReelCard({
       {!reelSpinning && (
         <CoverVoteBadge
           votes={game.votes}
+          votesToday={game.votesToday}
           voteUrl={runJamVoteGameUrl(jamSlug, game.gameId)}
           className="reel-cover-vote-badge"
         />

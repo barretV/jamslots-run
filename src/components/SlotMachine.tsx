@@ -523,6 +523,7 @@ export function SlotMachine({ pool, jamName, jamSlug, syncedAt, votingCloseAt }:
               creatorFor={(gameId) => pool.find((g) => g.gameId === gameId)?.creatorName}
               totalPlaysFor={(gameId) => pool.find((g) => g.gameId === gameId)?.totalPlays}
               votesFor={(gameId) => pool.find((g) => g.gameId === gameId)?.votes}
+              votesTodayFor={(gameId) => pool.find((g) => g.gameId === gameId)?.votesToday}
               isFavorite={isFavorite}
               onToggleFavorite={toggleFavoriteWithCount}
               embedded

@@ -23,7 +23,8 @@ type LibrarySortMode =
   | 'votes-desc'
   | 'votes-asc'
   | 'votes-over-plays-desc'
-  | 'plays-over-votes-desc';
+  | 'plays-over-votes-desc'
+  | 'votes-today-desc';
 
 function votePlayGap(game: JamGame): number {
   return game.votes - game.totalPlays;
@@ -70,6 +71,17 @@ function sortGames(
       const playsDiff = b.totalPlays - a.totalPlays;
       if (playsDiff !== 0) return playsDiff;
       const voteDiff = a.votes - b.votes;
+      if (voteDiff !== 0) return voteDiff;
+      return compareByTitle(a, b);
+    });
+    return list;
+  }
+  if (mode === 'votes-today-desc') {
+    list = list.filter((g) => (g.votesToday ?? 0) > 0);
+    list.sort((a, b) => {
+      const todayDiff = (b.votesToday ?? 0) - (a.votesToday ?? 0);
+      if (todayDiff !== 0) return todayDiff;
+      const voteDiff = b.votes - a.votes;
       if (voteDiff !== 0) return voteDiff;
       return compareByTitle(a, b);
     });
@@ -131,6 +143,8 @@ function sortLabel(mode: LibrarySortMode): string {
       return 'votes over plays (biggest gap first)';
     case 'plays-over-votes-desc':
       return 'plays over votes (biggest gap first)';
+    case 'votes-today-desc':
+      return 'most new votes today (UTC)';
   }
 }
 
@@ -175,6 +189,7 @@ export function LibraryList({
     description: game.description,
     totalPlays: game.totalPlays,
     votes: game.votes,
+    votesToday: game.votesToday,
   }));
 
   const sortPhrase = sortLabel(sortMode);
@@ -184,6 +199,10 @@ export function LibraryList({
   );
   const playsOverVotesCount = useMemo(
     () => games.filter((g) => playVoteGap(g) > 0).length,
+    [games],
+  );
+  const newVotesTodayCount = useMemo(
+    () => games.filter((g) => (g.votesToday ?? 0) > 0).length,
     [games],
   );
   const hint =
@@ -196,6 +215,10 @@ export function LibraryList({
           ? playsOverVotesCount === 0
             ? 'No games have more plays than votes in the current jam list'
             : `${playsOverVotesCount} game${playsOverVotesCount === 1 ? '' : 's'} with more plays than votes (RUN totals), sorted ${sortPhrase}`
+          : sortMode === 'votes-today-desc'
+            ? newVotesTodayCount === 0
+              ? 'No new votes yet today (UTC). Counts reset at midnight UTC.'
+              : `${newVotesTodayCount} game${newVotesTodayCount === 1 ? '' : 's'} with new votes today (UTC), sorted ${sortPhrase}`
           : `All ${games.length} games, sorted ${sortPhrase}`
       : visibleGames.length === 0
         ? 'No matches'
@@ -239,6 +262,7 @@ export function LibraryList({
             <option value="votes-asc">Least votes</option>
             <option value="votes-over-plays-desc">More votes than plays</option>
             <option value="plays-over-votes-desc">More plays than votes</option>
+            <option value="votes-today-desc">Most new votes today</option>
           </select>
         </div>
         <p className="library-search-hint" aria-live="polite">{hint}</p>
@@ -256,7 +280,9 @@ export function LibraryList({
               ? 'No games in this list have more votes than plays.'
               : sortMode === 'plays-over-votes-desc'
                 ? 'No games in this list have more plays than votes.'
-                : 'No games in this jam yet.'
+                : sortMode === 'votes-today-desc'
+                  ? 'No games have new votes today yet (UTC).'
+                  : 'No games in this jam yet.'
         }
         embedded={embedded}
         jamSlug={jamSlug}

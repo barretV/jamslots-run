@@ -17,6 +17,7 @@ export function bundleFromJamApi(d: {
       slug: String(e.slug ?? ''),
       shareUrl: String(e.shareUrl ?? ''),
       votes: Number(e.votes ?? 0),
+      votesToday: 0,
       totalPlays: Number(e.totalPlays ?? 0),
       publishedAt: Number(e.publishedAt ?? 0),
       rank: e.rank != null ? Number(e.rank) : undefined,
@@ -29,5 +30,6 @@ export function bundleFromJamApi(d: {
     jamSlug: d.jam?.slug ?? 'octoberjam',
     count: games.length,
     games,
+    votesDayUtc: new Date().toISOString().slice(0, 10),
   };
 }

@@ -7,6 +7,8 @@ export interface JamGame {
   slug: string;
   shareUrl: string;
   votes: number;
+  /** Votes gained since UTC day start (from sync snapshots). */
+  votesToday?: number;
   totalPlays: number;
   publishedAt: number;
   rank?: number;
@@ -19,6 +21,8 @@ export interface GamesBundle {
   jamSlug: string;
   count: number;
   games: JamGame[];
+  /** UTC day (`YYYY-MM-DD`) that `votesToday` is relative to. */
+  votesDayUtc?: string;
   votingCloseAt?: number;
   submissionsCloseAt?: number;
 }

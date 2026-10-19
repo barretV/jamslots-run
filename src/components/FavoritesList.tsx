@@ -31,6 +31,7 @@ export function FavoritesList({
     description: game.description,
     totalPlays: game.totalPlays,
     votes: game.votes,
+    votesToday: game.votesToday,
   }));
 
   return (

@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { pickRandom } from '../lib/games';
+import { getPlayUrl } from '../lib/playUrl';
 import {
   parseLegacyFavoritesFromLocation,
   parseShortShareCodeFromLocation,
@@ -288,9 +289,10 @@ export function SlotMachine({ pool, jamName, jamSlug }: SlotMachineProps) {
   const interactionLocked = spinning || anyReelSpinning;
 
   const launchGame = useCallback((game: JamGame) => {
-    recordPlay(game.gameId, game.title, game.shareUrl);
+    const url = getPlayUrl(game);
+    recordPlay(game.gameId, game.title, url);
     refreshStats();
-    window.open(game.shareUrl, '_blank', 'noopener,noreferrer');
+    window.open(url, '_blank', 'noopener,noreferrer');
   }, []);
 
   const playFromReel = useCallback(
@@ -303,11 +305,13 @@ export function SlotMachine({ pool, jamName, jamSlug }: SlotMachineProps) {
 
   const openFromHistory = useCallback(
     (entry: HistoryEntry) => {
-      recordPlay(entry.gameId, entry.title, entry.shareUrl);
+      const fromPool = pool.find((g) => g.gameId === entry.gameId);
+      const url = fromPool ? getPlayUrl(fromPool) : entry.shareUrl;
+      recordPlay(entry.gameId, entry.title, url);
       refreshStats();
-      window.open(entry.shareUrl, '_blank', 'noopener,noreferrer');
+      window.open(url, '_blank', 'noopener,noreferrer');
     },
-    [],
+    [pool],
   );
 
   const favoriteGames = useMemo(

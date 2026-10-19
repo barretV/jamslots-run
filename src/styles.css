@@ -916,6 +916,19 @@ body {
   }
 }
 
+.poster-desc-crawl-viewport {
+  max-height: 7.25rem;
+  width: 100%;
+  margin-inline: 0;
+  padding-inline: 0.15rem;
+}
+
+@media (min-width: 640px) {
+  .poster-desc-crawl-viewport {
+    max-height: 8.25rem;
+  }
+}
+
 .reel-desc-crawl-inner {
   transform-origin: 50% 0%;
   will-change: transform;

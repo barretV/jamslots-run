@@ -6,7 +6,8 @@ import {
   type MouseEvent,
   type ReactElement,
 } from 'react';
-import { descriptionPanelTeaser, descriptionTeaser } from '../lib/descriptionTeaser';
+import { descriptionTeaser } from '../lib/descriptionTeaser';
+import { OverflowCrawlText } from './OverflowCrawlText';
 
 interface DescriptionTooltipProps {
   description: string;
@@ -21,20 +22,25 @@ interface DescriptionTooltipProps {
   placement?: 'above' | 'below' | 'overlay';
 }
 
+function panelDescriptionText(description: string): string {
+  return description.trim().replace(/\s+/g, ' ');
+}
+
 export function DescriptionTooltip({
   description,
   children,
   disabled = false,
   placement = 'above',
 }: DescriptionTooltipProps) {
-  const teaser =
-    placement === 'overlay'
-      ? descriptionPanelTeaser(description)
-      : descriptionTeaser(description);
+  const panelText = panelDescriptionText(description);
+  const teaser = descriptionTeaser(description);
   const tooltipId = useId();
   const [open, setOpen] = useState(false);
 
-  if (!teaser || disabled) {
+  const hasOverlay = placement === 'overlay' && panelText.length > 0;
+  const hasTooltip = placement !== 'overlay' && teaser.length > 0;
+
+  if ((!hasOverlay && !hasTooltip) || disabled) {
     return children;
   }
 
@@ -71,12 +77,14 @@ export function DescriptionTooltip({
             role="tooltip"
             className="pointer-events-none absolute inset-x-0 bottom-0 z-30 flex flex-col justify-end"
           >
-            <span
-              className="bg-gradient-to-t from-black/92 via-black/65 to-transparent px-2.5 pb-2 pt-10"
-            >
-              <span className="line-clamp-4 text-[1.05rem] leading-snug text-zinc-100">
-                {teaser}
-              </span>
+            <span className="bg-gradient-to-t from-black/92 via-black/65 to-transparent px-2 pb-2 pt-12 sm:pt-14">
+              <OverflowCrawlText
+                active={open}
+                className="poster-desc-crawl-viewport text-[1.05rem] leading-snug text-zinc-100"
+                aria-hidden={!open}
+              >
+                {panelText}
+              </OverflowCrawlText>
             </span>
           </span>
         )}

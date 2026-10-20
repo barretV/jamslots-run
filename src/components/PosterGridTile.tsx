@@ -2,8 +2,8 @@ import { memo } from 'react';
 import { runJamVoteGameUrl } from '../lib/runVoteUrl';
 import { DescriptionTooltip } from './DescriptionTooltip';
 import { CoverStatsRow } from './CoverStatsRow';
-import { CoverVoteBadge } from './CoverVoteBadge';
 import { GameThumbnail } from './GameThumbnail';
+import { PosterMetaChip } from './PosterMetaChip';
 import type { PosterGridItem } from './GamePosterGrid';
 
 function titleTextClass(title: string): string {
@@ -15,6 +15,7 @@ function titleTextClass(title: string): string {
 
 export interface PosterGridTileProps {
   item: PosterGridItem;
+  rank: number;
   jamSlug: string;
   favorited: boolean;
   showStar: boolean;
@@ -24,6 +25,7 @@ export interface PosterGridTileProps {
 
 export const PosterGridTile = memo(function PosterGridTile({
   item,
+  rank,
   jamSlug,
   favorited,
   showStar,
@@ -45,26 +47,17 @@ export const PosterGridTile = memo(function PosterGridTile({
               />
             </button>
           </DescriptionTooltip>
-          <CoverVoteBadge
-            votes={item.votes}
-            votesToday={item.votesToday}
-            voteUrl={runJamVoteGameUrl(jamSlug, item.gameId)}
-          />
           <CoverStatsRow gameId={item.gameId} totalPlays={item.totalPlays} density="compact" />
-          {showStar && (
-            <button
-              type="button"
-              className={`poster-tile-star ${favorited ? 'poster-tile-star--on' : ''}`}
-              onClick={(e) => {
-                e.stopPropagation();
-                onToggleFavorite?.(item.gameId);
-              }}
-              aria-label={favorited ? 'Remove from favorites' : 'Add to favorites'}
-            >
-              {favorited ? '★' : '☆'}
-            </button>
-          )}
         </div>
+        <PosterMetaChip
+          rank={rank}
+          votes={item.votes}
+          votesToday={item.votesToday}
+          voteUrl={runJamVoteGameUrl(jamSlug, item.gameId)}
+          favorited={favorited}
+          showFavorite={showStar}
+          onToggleFavorite={() => onToggleFavorite?.(item.gameId)}
+        />
         <button type="button" className="poster-tile-meta" onClick={() => onOpen(item)}>
           <span className={`poster-tile-title line-clamp-2 ${titleTextClass(item.title)}`}>
             {item.title}

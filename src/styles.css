@@ -1914,7 +1914,7 @@ body {
 
 .poster-tile {
   content-visibility: auto;
-  contain-intrinsic-size: auto 11rem;
+  contain-intrinsic-size: auto 13.5rem;
   contain: layout style;
 }
 
@@ -1970,8 +1970,127 @@ body {
 .poster-tile-card {
   display: flex;
   flex-direction: column;
-  gap: 0.35rem;
+  gap: 0.3rem;
   min-width: 0;
+}
+
+.poster-meta-chip {
+  display: grid;
+  grid-template-columns: minmax(2rem, 1fr) auto minmax(2rem, 1fr);
+  align-items: center;
+  gap: 0.2rem;
+  min-height: 2.1rem;
+  padding: 0.15rem 0.35rem;
+  border-radius: 0.5rem;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(10, 8, 18, 0.94);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
+}
+
+.poster-meta-chip__side {
+  display: flex;
+  align-items: center;
+  min-width: 0;
+}
+
+.poster-meta-chip__side--start {
+  justify-content: flex-start;
+}
+
+.poster-meta-chip__side--end {
+  justify-content: flex-end;
+}
+
+.poster-meta-chip__center {
+  display: flex;
+  justify-content: center;
+}
+
+.poster-meta-chip__rank {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 2.15rem;
+  height: 2.15rem;
+  padding: 0 0.4rem;
+  border-radius: 9999px;
+  border: 1px solid rgba(251, 191, 36, 0.5);
+  background: rgba(30, 20, 8, 0.85);
+  font-size: 0.95rem;
+  font-weight: 800;
+  line-height: 1;
+  color: #fde68a;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.8);
+}
+
+.poster-meta-chip__star {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 2rem;
+  min-height: 2rem;
+  padding: 0;
+  border: none;
+  border-radius: 0.4rem;
+  background: transparent;
+  font-size: 1.15rem;
+  line-height: 1;
+  color: rgba(228, 228, 231, 0.85);
+  cursor: pointer;
+}
+
+.poster-meta-chip__star:hover {
+  color: #f9a8d4;
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.poster-meta-chip__star--on {
+  color: #f472b6;
+}
+
+.poster-meta-chip__star-spacer {
+  display: block;
+  width: 2rem;
+  height: 2rem;
+}
+
+.poster-meta-chip__votes {
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.25rem;
+  max-width: 100%;
+  font-size: 1.05rem;
+  font-weight: 700;
+  line-height: 1.1;
+  color: rgba(103, 232, 249, 0.98);
+  white-space: nowrap;
+}
+
+.poster-meta-chip__votes--link {
+  text-decoration: none;
+  border-radius: 0.35rem;
+  padding: 0.1rem 0.2rem;
+  transition: color 0.15s ease, background 0.15s ease;
+}
+
+.poster-meta-chip__votes--link:hover {
+  color: #fff;
+  background: rgba(34, 211, 238, 0.12);
+}
+
+.poster-meta-chip__votes-today {
+  font-size: 0.9rem;
+  font-weight: 800;
+  color: rgba(134, 239, 172, 0.98);
+}
+
+.poster-meta-chip__votes-today--hot {
+  text-shadow: 0 0 8px rgba(34, 197, 94, 0.55);
+}
+
+.poster-grid-scroll--scrolling .poster-meta-chip__votes-today--hot {
+  text-shadow: none;
 }
 
 .poster-tile-poster {

@@ -54,10 +54,11 @@ export function GamePosterGrid({
       onKeyDown={onGridKeyDown}
     >
       <ul className="poster-grid">
-        {items.map((item) => (
+        {items.map((item, index) => (
           <PosterGridTile
             key={item.key}
             item={item}
+            rank={index + 1}
             jamSlug={jamSlug}
             favorited={isFavorite?.(item.gameId) ?? false}
             showStar={showStar}

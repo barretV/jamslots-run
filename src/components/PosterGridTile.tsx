@@ -47,17 +47,17 @@ export const PosterGridTile = memo(function PosterGridTile({
               />
             </button>
           </DescriptionTooltip>
+          <PosterMetaChip
+            rank={rank}
+            votes={item.votes}
+            votesToday={item.votesToday}
+            voteUrl={runJamVoteGameUrl(jamSlug, item.gameId)}
+            favorited={favorited}
+            showFavorite={showStar}
+            onToggleFavorite={() => onToggleFavorite?.(item.gameId)}
+          />
           <CoverStatsRow gameId={item.gameId} totalPlays={item.totalPlays} density="compact" />
         </div>
-        <PosterMetaChip
-          rank={rank}
-          votes={item.votes}
-          votesToday={item.votesToday}
-          voteUrl={runJamVoteGameUrl(jamSlug, item.gameId)}
-          favorited={favorited}
-          showFavorite={showStar}
-          onToggleFavorite={() => onToggleFavorite?.(item.gameId)}
-        />
         <button type="button" className="poster-tile-meta" onClick={() => onOpen(item)}>
           <span className={`poster-tile-title line-clamp-2 ${titleTextClass(item.title)}`}>
             {item.title}

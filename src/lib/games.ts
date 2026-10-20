@@ -11,6 +11,7 @@ function isBundle(value: unknown): value is GamesBundle {
 function normalizeBundle(raw: GamesBundle): GamesBundle {
   const games: JamGame[] = raw.games.map((g) => ({
     ...g,
+    thumbnailUrl: typeof g.thumbnailUrl === 'string' ? g.thumbnailUrl.trim() : '',
     votes: Number(g.votes ?? 0),
     votesToday: g.votesToday != null ? Math.max(0, Number(g.votesToday)) : undefined,
     totalPlays: Number(g.totalPlays ?? 0),

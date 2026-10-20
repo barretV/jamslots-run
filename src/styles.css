@@ -2094,6 +2094,7 @@ body {
 }
 
 .poster-tile-poster {
+  content-visibility: visible;
   position: relative;
   width: 100%;
   aspect-ratio: 2 / 3;

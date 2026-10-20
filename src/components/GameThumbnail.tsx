@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState, type ImgHTMLAttributes } from 'react';
 
 interface GameThumbnailProps {
   url: string;
@@ -6,11 +6,30 @@ interface GameThumbnailProps {
   className?: string;
   fit?: 'contain' | 'cover';
   loading?: 'lazy' | 'eager';
+  referrerPolicy?: ImgHTMLAttributes<HTMLImageElement>['referrerPolicy'];
 }
 
-function thumbSrc(url: string, retried: boolean): string {
-  if (!retried) return url;
+function cacheBustUrl(url: string): string {
   return url.includes('?') ? `${url}&jamslots=1` : `${url}?jamslots=1`;
+}
+
+function lowercasedHostUrl(url: string): string | null {
+  try {
+    const u = new URL(url);
+    const lowered = u.hostname.toLowerCase();
+    if (lowered === u.hostname) return null;
+    u.hostname = lowered;
+    return u.toString();
+  } catch {
+    return null;
+  }
+}
+
+/** 0 = original, 1 = cache-bust, 2 = lowercased host */
+function thumbSrc(url: string, stage: number): string {
+  if (stage <= 0) return url;
+  if (stage === 1) return cacheBustUrl(url);
+  return lowercasedHostUrl(url) ?? url;
 }
 
 /** RUN jam thumbs are mostly square/portrait; contain inside the card frame. */
@@ -20,18 +39,22 @@ export function GameThumbnail({
   className = '',
   fit = 'contain',
   loading = 'lazy',
+  referrerPolicy = 'strict-origin-when-cross-origin',
 }: GameThumbnailProps) {
   const [failed, setFailed] = useState(false);
-  const [retried, setRetried] = useState(false);
+  const [retryStage, setRetryStage] = useState(0);
 
   const trimmed = url?.trim() ?? '';
 
   useEffect(() => {
     setFailed(false);
-    setRetried(false);
+    setRetryStage(0);
   }, [trimmed]);
 
-  const src = useMemo(() => (trimmed ? thumbSrc(trimmed, retried) : ''), [trimmed, retried]);
+  const src = useMemo(
+    () => (trimmed ? thumbSrc(trimmed, retryStage) : ''),
+    [trimmed, retryStage],
+  );
 
   const showErrorPlaceholder = trimmed.length === 0 || failed;
 
@@ -58,10 +81,14 @@ export function GameThumbnail({
           }`}
           loading={loading}
           decoding="async"
-          referrerPolicy="no-referrer"
+          referrerPolicy={referrerPolicy}
+          onLoad={() => setFailed(false)}
           onError={() => {
-            if (!retried) setRetried(true);
-            else setFailed(true);
+            if (retryStage === 0) setRetryStage(1);
+            else if (retryStage === 1) {
+              if (lowercasedHostUrl(trimmed)) setRetryStage(2);
+              else setFailed(true);
+            } else setFailed(true);
           }}
         />
       )}

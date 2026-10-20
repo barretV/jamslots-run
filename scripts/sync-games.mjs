@@ -34,7 +34,7 @@ for (const e of d.entries ?? []) {
     title: e.title,
     creatorName: e.creatorName,
     description: (e.description ?? '').slice(0, 280),
-    thumbnailUrl: e.thumbnailUrl,
+    thumbnailUrl: e.thumbnailUrl ?? '',
     slug: e.slug,
     shareUrl: e.shareUrl,
     votes: e.votes ?? 0,

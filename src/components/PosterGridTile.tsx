@@ -43,7 +43,7 @@ export const PosterGridTile = memo(function PosterGridTile({
                 title={item.title}
                 className="poster-tile-thumb"
                 fit="cover"
-                loading="lazy"
+                loading="eager"
               />
             </button>
           </DescriptionTooltip>

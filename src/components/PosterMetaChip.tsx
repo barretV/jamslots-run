@@ -28,6 +28,23 @@ export function PosterMetaChip({
       ? `${formatPlays(count)} jam votes${todayGain > 0 ? `, +${formatPlays(todayGain)} today` : ''}`
       : 'Vote on RUN';
 
+  const voteTotal = (
+    <span className="poster-meta-chip__votes-total">
+      ▲ {count > 0 ? formatPlays(count) : linked ? 'Vote' : '—'}
+    </span>
+  );
+
+  const todayChip =
+    todayGain > 0 ? (
+      <span
+        className={`poster-meta-chip__votes-today ${todayGain >= 10 ? 'poster-meta-chip__votes-today--hot' : ''}`}
+        aria-hidden="true"
+        title={`+${formatPlays(todayGain)} new votes today (UTC)`}
+      >
+        +{formatPlays(todayGain)}
+      </span>
+    ) : null;
+
   return (
     <div className="poster-meta-chip" aria-label={`Rank ${rank}${count > 0 ? `, ${voteLabel}` : ''}`}>
       <div className="poster-meta-chip__side poster-meta-chip__side--start">
@@ -53,34 +70,26 @@ export function PosterMetaChip({
         </span>
       </div>
       <div className="poster-meta-chip__side poster-meta-chip__side--end">
-        {linked ? (
-          <a
-            href={href}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="poster-meta-chip__votes poster-meta-chip__votes--link"
-            title={`Vote on RUN (${voteLabel})`}
-            aria-label={`Vote on RUN (${voteLabel})`}
-            onClick={(e) => e.stopPropagation()}
-          >
-            <span className="poster-meta-chip__votes-total">
-              ▲ {count > 0 ? formatPlays(count) : 'Vote'}
+        <div className="poster-meta-chip__votes-stack">
+          {linked ? (
+            <a
+              href={href}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="poster-meta-chip__votes poster-meta-chip__votes--link"
+              title={`Vote on RUN (${voteLabel})`}
+              aria-label={`Vote on RUN (${voteLabel})`}
+              onClick={(e) => e.stopPropagation()}
+            >
+              {voteTotal}
+            </a>
+          ) : (
+            <span className="poster-meta-chip__votes" aria-hidden={count <= 0 && todayGain <= 0}>
+              {voteTotal}
             </span>
-            {todayGain > 0 ? (
-              <span
-                className={`poster-meta-chip__votes-today ${todayGain >= 10 ? 'poster-meta-chip__votes-today--hot' : ''}`}
-              >
-                +{formatPlays(todayGain)}
-              </span>
-            ) : null}
-          </a>
-        ) : (
-          <span className="poster-meta-chip__votes">
-            <span className="poster-meta-chip__votes-total">
-              ▲ {count > 0 ? formatPlays(count) : '—'}
-            </span>
-          </span>
-        )}
+          )}
+          {todayChip}
+        </div>
       </div>
     </div>
   );

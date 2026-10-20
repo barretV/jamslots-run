@@ -1990,10 +1990,10 @@ body {
 .poster-meta-chip {
   display: grid;
   grid-template-columns: minmax(1.6rem, 1fr) auto minmax(1.6rem, 1fr);
-  align-items: center;
+  align-items: start;
   gap: 0.15rem;
   min-height: 1.85rem;
-  padding: 0.1rem 0.28rem;
+  padding: 0.1rem 0.28rem 0.14rem;
   border: none;
 }
 
@@ -2014,6 +2014,7 @@ body {
 
 .poster-meta-chip__side--end {
   justify-content: flex-end;
+  max-width: 38%;
 }
 
 .poster-meta-chip__center {
@@ -2069,11 +2070,19 @@ body {
   height: 1.65rem;
 }
 
+.poster-meta-chip__votes-stack {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 0.12rem;
+  max-width: 100%;
+  min-width: 0;
+}
+
 .poster-meta-chip__votes {
   display: inline-flex;
   align-items: center;
   justify-content: flex-end;
-  gap: 0.2rem;
   max-width: 100%;
   font-size: 0.95rem;
   font-weight: 700;
@@ -2095,9 +2104,15 @@ body {
 }
 
 .poster-meta-chip__votes-today {
-  font-size: 0.9rem;
+  padding: 0.06rem 0.28rem;
+  border-radius: 0.28rem;
+  border: 1px solid rgba(74, 222, 128, 0.45);
+  background: rgba(6, 24, 14, 0.88);
+  font-size: 0.78rem;
   font-weight: 800;
+  line-height: 1.1;
   color: rgba(134, 239, 172, 0.98);
+  white-space: nowrap;
 }
 
 .poster-meta-chip__votes-today--hot {

@@ -2017,8 +2017,7 @@ body {
   display: flex;
   justify-content: flex-end;
   align-items: flex-start;
-  max-width: 38%;
-  min-width: 0;
+  max-width: calc(50% - 0.9rem);
 }
 
 .poster-meta-chip__center {
@@ -2085,30 +2084,24 @@ body {
   flex-direction: column;
   align-items: flex-end;
   gap: 0.12rem;
-  max-width: 5.25rem;
-  width: 100%;
-  min-width: 0;
-  overflow: hidden;
+  max-width: 100%;
+  width: max-content;
 }
 
 .poster-meta-chip__votes {
   display: inline-flex;
   align-items: center;
   justify-content: flex-end;
-  max-width: 100%;
-  min-width: 0;
-  font-size: 0.95rem;
+  font-size: 0.88rem;
   font-weight: 700;
+  font-variant-numeric: tabular-nums;
   line-height: 1.1;
   color: rgba(103, 232, 249, 0.98);
   white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
 }
 
 .poster-meta-chip__votes-total {
-  overflow: hidden;
-  text-overflow: ellipsis;
+  display: inline-block;
 }
 
 .poster-meta-chip__votes--link {

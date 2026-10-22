@@ -12,10 +12,6 @@ export default async function middleware(request: Request): Promise<Response | u
   const ua = request.headers.get('user-agent') ?? '';
   if (!isSocialCrawler(ua)) return undefined;
 
-  const hasShare =
-    url.searchParams.get('f')?.trim() || url.searchParams.get('favs')?.trim();
-  if (!hasShare) return undefined;
-
   const preview = new URL('/api/social-preview', url.origin);
   preview.search = url.search;
   return fetch(preview);

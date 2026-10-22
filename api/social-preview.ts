@@ -114,14 +114,34 @@ export default async function handler(request: Request): Promise<Response> {
   const titles = await loadTitleMap(origin);
   const count = ids.length;
 
+  let jamGameCount = 0;
+  try {
+    const res = await fetch(`${origin}/games.json`, { headers: { Accept: 'application/json' } });
+    if (res.ok) {
+      const data = (await res.json()) as { count?: number; games?: unknown[] };
+      jamGameCount = Number(data.count ?? data.games?.length ?? 0) || 0;
+    }
+  } catch {
+    /* ignore */
+  }
+
   const ogTitle =
     count > 0
       ? `${count} jam favorite${count === 1 ? '' : 's'} · JamSlots`
-      : 'JamSlots · RUN.world October Jam picker';
+      : jamGameCount > 0
+        ? `JamSlots · ${jamGameCount.toLocaleString()} October Jam games`
+        : 'JamSlots · RUN.world October Jam picker';
 
-  const ogDescription = buildDescription(ids, titles);
+  const ogDescription =
+    count > 0
+      ? buildDescription(ids, titles)
+      : jamGameCount > 0
+        ? `Spin the reels through ${jamGameCount.toLocaleString()} games, star favorites, and jump into the October Jam on RUN.`
+        : 'Spin the reels, star your favorites, and jump into October Jam games on RUN.';
+
   const ogImage = new URL('/api/og-image', origin);
   if (count > 0) ogImage.searchParams.set('count', String(count));
+  else if (jamGameCount > 0) ogImage.searchParams.set('games', String(jamGameCount));
 
   const html = `<!DOCTYPE html>
 <html lang="en">

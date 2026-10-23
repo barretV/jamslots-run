@@ -11,13 +11,13 @@ const outDir =
 
 const here = dirname(fileURLToPath(import.meta.url));
 const validateScript = join(here, 'validate-nebula-screenshot.mjs');
-const outName = process.env.NEBULA_PASS_NAME ?? 'charts-nebula-pass-4.png';
+const outName = process.env.NEBULA_PASS_NAME ?? 'charts-nebula-pass-5.png';
 
 await mkdir(outDir, { recursive: true });
 
 const browser = await chromium.launch({
   headless: true,
-  args: ['--enable-unsafe-swiftshader', '--use-gl=angle', '--use-angle=swiftshader'],
+  channel: 'chrome',
 });
 const page = await browser.newPage({ viewport: { width: 1280, height: 900 } });
 
@@ -28,10 +28,14 @@ await page.getByRole('button', { name: 'Charts' }).click();
 await page.waitForSelector('.library-charts-toolbar', { timeout: 30000 });
 await page.getByRole('tab', { name: 'Nebula' }).click();
 await page.getByRole('button', { name: 'Playstyle' }).click();
-await page.waitForTimeout(6500);
+await page.waitForTimeout(8000);
 
 const passPath = `${outDir}/${outName}`;
-await page.screenshot({ path: passPath, fullPage: false, timeout: 60000, animations: 'disabled' });
+await page.locator('.library-charts-nebula__canvas').screenshot({
+  path: passPath,
+  timeout: 60000,
+  animations: 'disabled',
+});
 await browser.close();
 
 const passCheck = spawnSync(process.execPath, [validateScript, passPath], { encoding: 'utf8' });

@@ -1,4 +1,4 @@
-﻿import type { JamGame } from '../types';
+import type { JamGame } from '../types';
 
 export type PlaystyleCluster = 'rusher' | 'tactician' | 'survivor';
 
@@ -79,12 +79,13 @@ function nebulaPosition(p: ChartGamePoint): [number, number, number] {
   const j = hashId(p.game.gameId);
   const j2 = hashId(p.game.gameId, 'b');
   const j3 = hashId(p.game.gameId, 'c');
-  const spread = 0.24;
+  const spread = 0.18;
   const scale = 2.8;
+  const layout = 1.2;
   return [
-    (p.votesNorm - 0.5) * scale + (j - 0.5) * spread,
-    (p.playsNorm - 0.5) * scale + (j2 - 0.5) * spread,
-    (p.todayNorm - 0.5) * scale + (j3 - 0.5) * spread,
+    ((p.votesNorm - 0.5) * scale + (j - 0.5) * spread) * layout,
+    ((p.playsNorm - 0.5) * scale + (j2 - 0.5) * spread) * layout,
+    ((p.todayNorm - 0.5) * scale + (j3 - 0.5) * spread) * layout,
   ];
 }
 
@@ -151,7 +152,7 @@ export function computeCloudBoundingSphere(points: ChartGamePoint[]): {
     const dz = p.position[2] - centroid[2];
     radius = Math.max(radius, Math.sqrt(dx * dx + dy * dy + dz * dz));
   }
-  return { center: centroid, radius: Math.max(radius, 0.35) + 0.18 };
+  return { center: centroid, radius: Math.max(radius, 0.35) };
 }
 
 function hslColor(h: number, s: number, l: number): string {
@@ -180,9 +181,9 @@ export function nebulaDistinctColor(p: ChartGamePoint, mode: NebulaColorMode): s
 }
 
 export function nebulaPointSize(p: ChartGamePoint): number {
-  const base = 0.036;
-  const voteBoost = 0.018 + p.votesNorm * 0.038;
-  const todayBoost = p.todayNorm * 0.028;
+  const base = 0.038;
+  const voteBoost = 0.02 + p.votesNorm * 0.045;
+  const todayBoost = p.todayNorm * 0.035;
   return base + voteBoost + todayBoost;
 }
 
@@ -199,7 +200,7 @@ export function leaderMetricValue(game: JamGame, metric: LeaderMetric): number {
 
 export function truncateTitle(title: string, max = 28): string {
   if (title.length <= max) return title;
-  return `${title.slice(0, max - 1)}ΓÇª`;
+  return `${title.slice(0, max - 1)}…`;
 }
 
 export function topGamesByMetric(games: JamGame[], metric: LeaderMetric, limit = 15): JamGame[] {

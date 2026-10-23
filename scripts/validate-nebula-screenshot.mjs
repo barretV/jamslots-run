@@ -11,21 +11,39 @@ const { PNG } = await import('pngjs');
 const png = PNG.sync.read(buf);
 const { width, height, data } = png;
 
-const x0 = Math.floor(width * 0.1);
-const x1 = Math.floor(width * 0.9);
-const y0 = Math.floor(height * 0.14);
-const y1 = Math.floor(height * 0.9);
-
 function isStarPixel(r, g, b) {
   const lum = (r + g + b) / 3;
   return lum > 30 && (r > 42 || g > 42 || b > 52);
 }
 
+function bandFill(x0, x1, y0, y1) {
+  let bright = 0;
+  let total = 0;
+  for (let y = y0; y < y1; y++) {
+    for (let x = x0; x < x1; x++) {
+      const i = (y * width + x) * 4;
+      total++;
+      if (isStarPixel(data[i], data[i + 1], data[i + 2])) bright++;
+    }
+  }
+  return total > 0 ? bright / total : 0;
+}
+
+const marginX = Math.floor(width * 0.1);
+const marginY = Math.floor(height * 0.14);
+const edge = bandFill(0, width, marginY, height);
+const center = bandFill(
+  Math.floor(width * 0.3),
+  Math.floor(width * 0.7),
+  Math.floor(height * 0.3),
+  Math.floor(height * 0.7),
+);
+
 let planetLike = false;
-for (let y = y0; y < y1; y++) {
+for (let y = marginY; y < height - marginY; y++) {
   let run = 0;
   let lastKey = '';
-  for (let x = x0; x < x1; x++) {
+  for (let x = marginX; x < width - marginX; x++) {
     const i = (y * width + x) * 4;
     const r = data[i];
     const g = data[i + 1];
@@ -49,6 +67,8 @@ for (let y = y0; y < y1; y++) {
   if (planetLike) break;
 }
 
-const pass = !planetLike;
-console.log(JSON.stringify({ path, width, height, planetLike, pass }));
+const reachesEdges = edge > 0.055 && edge >= center * 0.22;
+const pass = !planetLike && reachesEdges;
+
+console.log(JSON.stringify({ path, width, height, edgeFill: edge, centerFill: center, planetLike, pass }));
 process.exit(pass ? 0 : 1);

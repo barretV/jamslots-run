@@ -2547,6 +2547,45 @@ body {
   font: inherit;
 }
 
+.vote-stats-modal__body {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+  overflow-anchor: auto;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(103, 232, 249, 0.55) rgba(76, 29, 149, 0.28);
+}
+
+.vote-stats-modal__body::-webkit-scrollbar {
+  width: 7px;
+}
+
+.vote-stats-modal__body::-webkit-scrollbar-track {
+  margin: 4px 0;
+  background: linear-gradient(
+    180deg,
+    rgba(76, 29, 149, 0.22) 0%,
+    rgba(12, 10, 18, 0.5) 50%,
+    rgba(76, 29, 149, 0.18) 100%
+  );
+  border-radius: 999px;
+}
+
+.vote-stats-modal__body::-webkit-scrollbar-thumb {
+  border-radius: 999px;
+  border: 1px solid rgba(192, 132, 252, 0.35);
+  background: linear-gradient(180deg, #67e8f9 0%, #a78bfa 48%, #c084fc 100%);
+  box-shadow: 0 0 10px rgba(34, 211, 238, 0.25);
+}
+
+.vote-stats-modal__body::-webkit-scrollbar-thumb:hover {
+  background: linear-gradient(180deg, #a5f3fc 0%, #c4b5fd 50%, #e9d5ff 100%);
+  box-shadow: 0 0 12px rgba(167, 139, 250, 0.35);
+}
+
 .vote-stats-btn {
   display: block;
   width: 100%;

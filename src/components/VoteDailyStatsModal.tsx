@@ -133,7 +133,7 @@ export function VoteDailyStatsModal({ target, onClose }: VoteDailyStatsModalProp
         role="dialog"
         aria-modal="true"
         aria-labelledby="vote-stats-title"
-        className="relative z-10 flex max-h-[min(88dvh,36rem)] w-full max-w-lg flex-col overflow-hidden rounded-2xl border border-violet-500/40 bg-zinc-950 shadow-2xl"
+        className="vote-stats-modal relative z-10 flex max-h-[min(88dvh,36rem)] w-full max-w-lg flex-col overflow-hidden rounded-2xl border border-violet-500/40 bg-zinc-950 shadow-2xl"
       >
         <div className="flex items-start justify-between gap-3 border-b border-white/10 px-4 py-3">
           <div className="min-w-0">
@@ -158,7 +158,7 @@ export function VoteDailyStatsModal({ target, onClose }: VoteDailyStatsModalProp
           </button>
         </div>
 
-        <div className="overflow-y-auto touch-pan-y px-4 py-4">
+        <div className="vote-stats-modal__body touch-pan-y px-4 py-4">
           {view === 'menu' ? (
             <div className="flex flex-col gap-3">
               <button

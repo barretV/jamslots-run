@@ -7,6 +7,9 @@ import { LibrarySortSelect, sortHintPhrase, type LibrarySortMode } from './Libra
 const LibraryChartsModal = lazy(() =>
   import('./LibraryChartsModal').then((m) => ({ default: m.LibraryChartsModal })),
 );
+const InteractiveCity = lazy(() =>
+  import('./city/InteractiveCity').then((m) => ({ default: m.InteractiveCity })),
+);
 
 interface LibraryListProps {
   games: JamGame[];
@@ -123,6 +126,7 @@ export function LibraryList({
   const [debouncedQuery, setDebouncedQuery] = useState('');
   const [sortMode, setSortMode] = useState<LibrarySortMode>('title-asc');
   const [chartsOpen, setChartsOpen] = useState(false);
+  const [cityOpen, setCityOpen] = useState(false);
   useEffect(() => {
     const id = window.setTimeout(() => setDebouncedQuery(query.trim()), 200);
     return () => window.clearTimeout(id);
@@ -208,14 +212,24 @@ export function LibraryList({
         </div>
         <div className="library-hint-row">
           <p className="library-search-hint" aria-live="polite">{hint}</p>
-          <button
-            type="button"
-            className="library-charts-btn"
-            onClick={() => setChartsOpen(true)}
-            disabled={visibleGames.length === 0}
-          >
-            Charts
-          </button>
+          <div className="library-hint-actions">
+            <button
+              type="button"
+              className="library-charts-btn"
+              onClick={() => setChartsOpen(true)}
+              disabled={visibleGames.length === 0}
+            >
+              Charts
+            </button>
+            <button
+              type="button"
+              className="library-city-btn"
+              onClick={() => setCityOpen(true)}
+              disabled={visibleGames.length === 0}
+            >
+              Interactive City
+            </button>
+          </div>
         </div>
       </div>
       <GamePosterGrid
@@ -246,7 +260,21 @@ export function LibraryList({
             games={visibleGames}
             open={chartsOpen}
             onClose={() => setChartsOpen(false)}
-            filterLabel={debouncedQuery ? `search “${debouncedQuery}”` : sortPhrase}
+            filterLabel={debouncedQuery ? `search "${debouncedQuery}"` : sortPhrase}
+          />
+        </Suspense>
+      ) : null}
+      {cityOpen ? (
+        <Suspense fallback={null}>
+          <InteractiveCity
+            games={visibleGames}
+            open={cityOpen}
+            onClose={() => setCityOpen(false)}
+            onOpen={(game) => {
+              setCityOpen(false);
+              onOpen(game);
+            }}
+            filterLabel={debouncedQuery ? `search "${debouncedQuery}"` : sortPhrase}
           />
         </Suspense>
       ) : null}

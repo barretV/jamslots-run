@@ -79,7 +79,7 @@ function nebulaPosition(p: ChartGamePoint): [number, number, number] {
   const j = hashId(p.game.gameId);
   const j2 = hashId(p.game.gameId, 'b');
   const j3 = hashId(p.game.gameId, 'c');
-  const spread = 0.18;
+  const spread = 0.22;
   const scale = 2.8;
   const layout = 1.2;
   return [
@@ -153,6 +153,27 @@ export function computeCloudBoundingSphere(points: ChartGamePoint[]): {
     radius = Math.max(radius, Math.sqrt(dx * dx + dy * dy + dz * dz));
   }
   return { center: centroid, radius: Math.max(radius, 0.35) };
+}
+
+/** Camera fit: bulk cloud radius (ignore distant outliers that blow the frame). */
+export function computeNebulaViewSphere(points: ChartGamePoint[]): {
+  center: [number, number, number];
+  radius: number;
+} {
+  if (points.length === 0) return { center: [0, 0, 0], radius: 1 };
+  const { center } = computeCloudBoundingSphere(points);
+  const [cx, cy, cz] = center;
+  const dists: number[] = [];
+  for (const p of points) {
+    const dx = p.position[0] - cx;
+    const dy = p.position[1] - cy;
+    const dz = p.position[2] - cz;
+    dists.push(Math.sqrt(dx * dx + dy * dy + dz * dz));
+  }
+  dists.sort((a, b) => a - b);
+  const idx = Math.min(dists.length - 1, Math.floor(dists.length * 0.9));
+  const bulk = dists[idx];
+  return { center, radius: Math.max(bulk * 1.06, 0.42) };
 }
 
 function hslColor(h: number, s: number, l: number): string {

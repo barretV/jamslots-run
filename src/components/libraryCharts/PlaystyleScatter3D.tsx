@@ -8,7 +8,7 @@ import { gameMatchesChartFilters } from '../../lib/libraryChartFilters';
 import type { ChartGamePoint, NebulaColorMode } from '../../lib/libraryChartModels';
 import {
   colorForPoint,
-  computeCloudBoundingSphere,
+  computeNebulaViewSphere,
   nebulaPointSize,
 } from '../../lib/libraryChartModels';
 import { GameCallout } from './GameCallout';
@@ -17,6 +17,37 @@ interface PlaystyleScatter3DProps {
   points: ChartGamePoint[];
   colorMode: NebulaColorMode;
   filters: ChartFilters;
+}
+
+const NEBULA_FIT_MULT = 1.05;
+
+function applyNebulaCameraFit(
+  camera: THREE.Camera,
+  bounds: { center: [number, number, number]; radius: number },
+  controls: OrbitControlsImpl | null,
+  target: THREE.Vector3,
+  symmetric: boolean,
+) {
+  const [cx, cy, cz] = bounds.center;
+  const persp = camera as THREE.PerspectiveCamera;
+  const fov = (persp.fov * Math.PI) / 180;
+  const dist = bounds.radius / Math.tan(fov / 2);
+  const fit = dist * NEBULA_FIT_MULT;
+  if (symmetric) {
+    persp.position.set(cx, cy, cz + fit);
+  } else {
+    persp.position.set(cx + fit * 0.14, cy + fit * 0.22, cz + fit);
+  }
+  persp.near = Math.max(0.08, fit / 120);
+  persp.far = Math.max(120, fit * 16);
+  persp.lookAt(cx, cy, cz);
+  persp.updateProjectionMatrix();
+  if (controls) {
+    controls.target.copy(target);
+    controls.minDistance = bounds.radius * 0.18;
+    controls.maxDistance = bounds.radius * 3.2;
+    controls.update();
+  }
 }
 
 const nebulaPointMaterial = new THREE.ShaderMaterial({
@@ -30,7 +61,7 @@ const nebulaPointMaterial = new THREE.ShaderMaterial({
     void main() {
       vColor = color;
       vec4 mvPosition = modelViewMatrix * vec4(position, 1.0);
-      gl_PointSize = aSize * (320.0 / -mvPosition.z);
+      gl_PointSize = aSize * (400.0 / -mvPosition.z);
       gl_Position = projectionMatrix * mvPosition;
     }
   `,
@@ -61,11 +92,16 @@ function NebulaScene({
 }) {
   const ref = useRef<THREE.Points>(null);
   const controlsRef = useRef<OrbitControlsImpl>(null);
+  const fitFrames = useRef(0);
   const { camera } = useThree();
-  const bounds = useMemo(() => computeCloudBoundingSphere(points), [points]);
+  const viewSphere = useMemo(() => computeNebulaViewSphere(points), [points]);
+  const captureMode = useMemo(
+    () => typeof window !== 'undefined' && window.location.search.includes('nebulaCapture'),
+    [],
+  );
   const orbitTarget = useMemo(
-    () => new THREE.Vector3(...bounds.center),
-    [bounds.center[0], bounds.center[1], bounds.center[2]],
+    () => new THREE.Vector3(...viewSphere.center),
+    [viewSphere.center[0], viewSphere.center[1], viewSphere.center[2]],
   );
 
   const geometry = useMemo(() => {
@@ -94,29 +130,19 @@ function NebulaScene({
   }, [points, colorMode, filters]);
 
   useLayoutEffect(() => {
-    const [cx, cy, cz] = bounds.center;
-    const persp = camera as THREE.PerspectiveCamera;
-    const fov = (persp.fov * Math.PI) / 180;
-    const dist = bounds.radius / Math.tan(fov / 2);
-    const fit = dist * 1.05;
-    camera.position.set(cx + fit * 0.14, cy + fit * 0.22, cz + fit);
-    camera.near = Math.max(0.08, fit / 120);
-    camera.far = Math.max(80, fit * 12);
-    camera.lookAt(cx, cy, cz);
-    camera.updateProjectionMatrix();
-    const ctrl = controlsRef.current;
-    if (ctrl) {
-      ctrl.target.copy(orbitTarget);
-      ctrl.minDistance = bounds.radius * 0.35;
-      ctrl.maxDistance = bounds.radius * 8;
-      ctrl.update();
-    }
-  }, [camera, bounds, orbitTarget]);
+    fitFrames.current = 0;
+    applyNebulaCameraFit(camera, viewSphere, controlsRef.current, orbitTarget, captureMode);
+  }, [camera, viewSphere, orbitTarget, captureMode]);
 
   useFrame(() => {
-    if (controlsRef.current) {
-      controlsRef.current.autoRotate = true;
-      controlsRef.current.autoRotateSpeed = 0.28;
+    const ctrl = controlsRef.current;
+    if (fitFrames.current < 90) {
+      fitFrames.current += 1;
+      applyNebulaCameraFit(camera, viewSphere, ctrl, orbitTarget, captureMode);
+    }
+    if (ctrl) {
+      ctrl.autoRotate = !captureMode;
+      ctrl.autoRotateSpeed = 0.28;
     }
   });
 
@@ -163,7 +189,7 @@ export function PlaystyleScatter3D({ points, colorMode, filters }: PlaystyleScat
   return (
     <div className="library-charts-nebula">
       <div className="library-charts-nebula__canvas">
-        <Canvas camera={{ fov: 42, near: 0.1, far: 100 }}>
+        <Canvas camera={{ fov: 42, near: 0.05, far: 200 }}>
           <color attach="background" args={['#050510']} />
           <fog attach="fog" args={['#0a0818', 8, 28]} />
           <ambientLight intensity={0.45} />

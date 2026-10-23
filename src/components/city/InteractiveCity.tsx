@@ -1,11 +1,12 @@
 import { Canvas } from '@react-three/fiber';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
+import * as THREE from 'three';
 import { useLibraryImmersiveOverlay } from '../../lib/useLibraryImmersiveOverlay';
 import type { CityBuildingSlot } from '../../lib/citySpiral';
 import type { JamGame } from '../../types';
 import { CityScene, type CityFlightMode } from './CityScene';
-import type { FlightInput } from './BalloonRig';
+import type { FlightInput } from './UfoRig';
 
 interface InteractiveCityProps {
   games: JamGame[];
@@ -142,8 +143,13 @@ export function InteractiveCity({ games, open, onClose, onOpen, filterLabel }: I
         <div className="interactive-city-modal__canvas-wrap">
           <Canvas
             dpr={[1, 1.5]}
-            camera={{ fov: 55, near: 0.5, far: 400, position: [0, 22, 28] }}
-            gl={{ antialias: true, powerPreference: 'high-performance' }}
+            camera={{ fov: 58, near: 1, far: 420, position: [0, 42, 24] }}
+            gl={{
+              antialias: true,
+              powerPreference: 'high-performance',
+              toneMapping: THREE.NeutralToneMapping,
+              toneMappingExposure: 1.08,
+            }}
           >
             <CityScene
               games={games}
@@ -151,7 +157,7 @@ export function InteractiveCity({ games, open, onClose, onOpen, filterLabel }: I
               mode={mode}
               landTarget={landTarget}
               landProgress={landProgress}
-              onBalloonMove={() => {}}
+              onCraftMove={() => {}}
               onNearBuilding={setNearBuilding}
             />
           </Canvas>

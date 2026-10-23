@@ -6,49 +6,34 @@ interface CityRoadProps {
 }
 
 export function CityRoad({ points }: CityRoadProps) {
-  const { tubeGeo, ringGeos } = useMemo(() => {
+  const { asphaltGeo, neonGeo } = useMemo(() => {
     if (points.length < 3) {
-      return { tubeGeo: null, ringGeos: [] as THREE.BufferGeometry[] };
+      return { asphaltGeo: null, neonGeo: null };
     }
-    const vecs = points.map((p) => new THREE.Vector3(p.x, 0.08, p.z));
-    const curve = new THREE.CatmullRomCurve3(vecs, false, 'catmullrom', 0.2);
-    const tubeGeo = new THREE.TubeGeometry(curve, Math.min(512, points.length * 2), 0.55, 6, false);
-
-    const ringGeos: THREE.BufferGeometry[] = [];
-    for (let i = 8; i < points.length; i += 24) {
-      const p = points[i];
-      const ring = new THREE.RingGeometry(3.5, 4.2, 32);
-      ring.rotateX(-Math.PI / 2);
-      ring.translate(p.x, 0.05, p.z);
-      ringGeos.push(ring);
-    }
-    return { tubeGeo, ringGeos };
+    const vecs = points.map((p) => new THREE.Vector3(p.x, 0.12, p.z));
+    const curve = new THREE.CatmullRomCurve3(vecs, false, 'catmullrom', 0.18);
+    const segs = Math.min(640, points.length * 2);
+    const asphaltGeo = new THREE.TubeGeometry(curve, segs, 1.35, 8, false);
+    const neonGeo = new THREE.TubeGeometry(curve, segs, 1.55, 8, false);
+    return { asphaltGeo, neonGeo };
   }, [points]);
 
-  if (!tubeGeo) return null;
+  if (!asphaltGeo || !neonGeo) return null;
 
   return (
     <group>
-      <mesh geometry={tubeGeo} receiveShadow>
+      <mesh geometry={neonGeo}>
         <meshStandardMaterial
-          color="#0a0a12"
-          emissive="#1e1b4b"
-          emissiveIntensity={0.35}
-          metalness={0.85}
-          roughness={0.35}
+          color="#0a1628"
+          emissive="#22d3ee"
+          emissiveIntensity={0.82}
+          metalness={0.7}
+          roughness={0.4}
         />
       </mesh>
-      {ringGeos.map((g, i) => (
-        <mesh key={i} geometry={g}>
-          <meshStandardMaterial
-            color="#050508"
-            emissive="#22d3ee"
-            emissiveIntensity={0.25}
-            metalness={0.9}
-            roughness={0.4}
-          />
-        </mesh>
-      ))}
+      <mesh geometry={asphaltGeo}>
+        <meshStandardMaterial color="#14101c" emissive="#1a1030" emissiveIntensity={0.15} metalness={0.75} roughness={0.45} />
+      </mesh>
     </group>
   );
 }

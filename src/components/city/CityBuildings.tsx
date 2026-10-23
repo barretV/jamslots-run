@@ -1,25 +1,27 @@
 import { useFrame } from '@react-three/fiber';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import * as THREE from 'three';
+import { loadGameThumbnail } from '../../lib/cityTextureCache';
 import type { CityBuildingSlot } from '../../lib/citySpiral';
-import { createBuildingWindowMaterial } from './buildingWindowMaterial';
 
 interface CityBuildingsProps {
   buildings: CityBuildingSlot[];
-  balloonPos: THREE.Vector3;
-  onMaterialsReady?: (mat: THREE.ShaderMaterial) => void;
+  craftPos: THREE.Vector3;
 }
 
-const POSTER_MAX = 48;
+const POSTER_MAX = 56;
+/** World units for the 512×512 poster quad (square billboards). */
+const POSTER_WORLD = 5.12;
+const BODY_SEGMENTS = 3;
 
-function pickPosterSlots(buildings: CityBuildingSlot[], balloon: THREE.Vector3): Set<string> {
+function pickPosterSlots(buildings: CityBuildingSlot[], craft: THREE.Vector3): Set<string> {
   const ids = new Set<string>();
   for (const b of buildings) {
     if (b.topVotes || b.topToday) ids.add(b.game.gameId);
   }
   const byDist = [...buildings].sort((a, b) => {
-    const da = (a.x - balloon.x) ** 2 + (a.z - balloon.z) ** 2;
-    const db = (b.x - balloon.x) ** 2 + (b.z - balloon.z) ** 2;
+    const da = (a.x - craft.x) ** 2 + (a.z - craft.z) ** 2;
+    const db = (b.x - craft.x) ** 2 + (b.z - craft.z) ** 2;
     return da - db;
   });
   for (const b of byDist) {
@@ -29,58 +31,136 @@ function pickPosterSlots(buildings: CityBuildingSlot[], balloon: THREE.Vector3):
   return ids;
 }
 
-export function CityBuildings({ buildings, balloonPos, onMaterialsReady }: CityBuildingsProps) {
+function voxelColor(seed: number, lift = 0): THREE.Color {
+  const hues = [0.74, 0.78, 0.82, 0.68, 0.58];
+  const h = hues[(seed + lift) % hues.length];
+  const c = new THREE.Color();
+  c.setHSL(h, 0.68, 0.28 + lift * 0.04);
+  return c;
+}
+
+function emissiveColor(seed: number): THREE.Color {
+  const hues = [0.82, 0.52, 0.12, 0.68];
+  const h = hues[seed % hues.length];
+  const c = new THREE.Color();
+  c.setHSL(h, 0.85, 0.55);
+  return c;
+}
+
+export function CityBuildings({ buildings, craftPos }: CityBuildingsProps) {
   const bodyRef = useRef<THREE.InstancedMesh>(null);
+  const windowRef = useRef<THREE.InstancedMesh>(null);
   const crownRef = useRef<THREE.InstancedMesh>(null);
-  const material = useMemo(() => createBuildingWindowMaterial(), []);
   const dummy = useMemo(() => new THREE.Object3D(), []);
   const [posterIds, setPosterIds] = useState<Set<string>>(() => new Set());
 
-  useEffect(() => {
-    onMaterialsReady?.(material);
-  }, [material, onMaterialsReady]);
+  const bodyMat = useMemo(() => {
+    const m = new THREE.MeshStandardMaterial({
+      color: '#1a1038',
+      emissive: '#4c1d95',
+      emissiveIntensity: 0.52,
+      metalness: 0.38,
+      roughness: 0.44,
+      vertexColors: true,
+    });
+    return m;
+  }, []);
+
+  const windowMat = useMemo(
+    () =>
+      new THREE.MeshStandardMaterial({
+        color: '#0f172a',
+        emissive: '#22d3ee',
+        emissiveIntensity: 1.85,
+        metalness: 0.2,
+        roughness: 0.35,
+        vertexColors: true,
+      }),
+    [],
+  );
+
+  const crownMat = useMemo(
+    () =>
+      new THREE.MeshStandardMaterial({
+        color: '#2e1065',
+        emissive: '#ffffff',
+        emissiveIntensity: 1.2,
+        metalness: 0.35,
+        roughness: 0.3,
+        vertexColors: true,
+      }),
+    [],
+  );
 
   useEffect(() => {
     const mesh = bodyRef.current;
     if (!mesh || buildings.length === 0) return;
 
-    const seeds = new Float32Array(buildings.length);
-    let crownCount = 0;
     const crownIndices: number[] = [];
+    const windows = windowRef.current;
+    let winIdx = 0;
 
+    const bodyCount = buildings.length * BODY_SEGMENTS;
+    let bodyIdx = 0;
     for (let i = 0; i < buildings.length; i++) {
       const b = buildings[i];
-      seeds[i] = b.seed % 997;
-      dummy.position.set(b.x, b.height / 2, b.z);
-      dummy.scale.set(b.width, b.height, b.depth);
-      dummy.rotation.y = (b.seed % 360) * (Math.PI / 180) * 0.08;
-      dummy.updateMatrix();
-      mesh.setMatrixAt(i, dummy.matrix);
+      for (let s = 0; s < BODY_SEGMENTS; s++) {
+        const t0 = s / BODY_SEGMENTS;
+        const t1 = (s + 1) / BODY_SEGMENTS;
+        const segH = b.height * (t1 - t0);
+        const y = b.height * t0 + segH / 2;
+        const taper = 1 - s * 0.07;
+        dummy.position.set(b.x, y, b.z);
+        dummy.scale.set(b.width * taper, segH, b.depth * taper);
+        dummy.rotation.y = b.faceYaw;
+        dummy.updateMatrix();
+        mesh.setMatrixAt(bodyIdx, dummy.matrix);
+        mesh.setColorAt(bodyIdx, voxelColor(b.seed, s));
+        bodyIdx++;
+      }
       if (b.topVotes || b.topToday) crownIndices.push(i);
-    }
-    mesh.instanceMatrix.needsUpdate = true;
 
-    const geo = mesh.geometry as THREE.BoxGeometry;
-    geo.setAttribute('aSeed', new THREE.InstancedBufferAttribute(seeds, 1));
-    crownCount = crownIndices.length;
+      if (windows) {
+        const bands = [0.28, 0.52, 0.76];
+        for (const t of bands) {
+          dummy.position.set(b.x, b.height * t, b.z + b.depth * 0.52);
+          dummy.scale.set(b.width * 0.88, 0.42, 0.18);
+          dummy.rotation.y = b.faceYaw;
+          dummy.updateMatrix();
+          windows.setMatrixAt(winIdx, dummy.matrix);
+          windows.setColorAt(winIdx, emissiveColor(b.seed + winIdx));
+          winIdx++;
+        }
+      }
+    }
+    mesh.count = bodyCount;
+    mesh.instanceMatrix.needsUpdate = true;
+    if (windows) {
+      windows.count = winIdx;
+      windows.instanceMatrix.needsUpdate = true;
+      if (windows.instanceColor) windows.instanceColor.needsUpdate = true;
+    }
+    if (mesh.instanceColor) mesh.instanceColor.needsUpdate = true;
 
     const crown = crownRef.current;
-    if (crown && crownCount > 0) {
+    if (crown && crownIndices.length > 0) {
       let ci = 0;
       for (const i of crownIndices) {
         const b = buildings[i];
-        dummy.position.set(b.x, b.height + (b.topVotes ? 1.2 : 0.6), b.z);
+        dummy.position.set(b.x, b.height + (b.topVotes ? 2.2 : 1.2), b.z);
         dummy.scale.set(
-          b.width * (b.topVotes ? 1.15 : 1),
-          b.topToday ? 1.4 : 0.9,
-          b.depth * (b.topVotes ? 1.15 : 1),
+          b.width * (b.topVotes ? 1.08 : 1),
+          b.topVotes ? 2.8 : 1.6,
+          b.depth * (b.topVotes ? 1.08 : 1),
         );
-        dummy.rotation.y = 0;
+        dummy.rotation.y = b.faceYaw;
         dummy.updateMatrix();
         crown.setMatrixAt(ci++, dummy.matrix);
+        crown.setColorAt(ci - 1, emissiveColor(b.seed));
       }
-      crown.count = crownCount;
+      crown.count = crownIndices.length;
       crown.instanceMatrix.needsUpdate = true;
+      if (crown.instanceColor) crown.instanceColor.needsUpdate = true;
     } else if (crown) {
       crown.count = 0;
     }
@@ -88,7 +168,7 @@ export function CityBuildings({ buildings, balloonPos, onMaterialsReady }: CityB
 
   useFrame(() => {
     setPosterIds((prev) => {
-      const next = pickPosterSlots(buildings, balloonPos);
+      const next = pickPosterSlots(buildings, craftPos);
       if (prev.size === next.size && [...next].every((id) => prev.has(id))) return prev;
       return next;
     });
@@ -101,126 +181,83 @@ export function CityBuildings({ buildings, balloonPos, onMaterialsReady }: CityB
 
   return (
     <group>
-      <instancedMesh ref={bodyRef} args={[undefined, material, buildings.length]} frustumCulled={false}>
+      <instancedMesh
+        ref={bodyRef}
+        args={[undefined, bodyMat, Math.max(1, buildings.length * BODY_SEGMENTS)]}
+        frustumCulled={false}
+      >
         <boxGeometry />
       </instancedMesh>
-      <instancedMesh ref={crownRef} args={[undefined, undefined, Math.min(24, buildings.length)]} frustumCulled={false}>
-        <coneGeometry args={[1, 1, 4]} />
-        <meshStandardMaterial
-          color="#1a1030"
-          emissive="#f472b6"
-          emissiveIntensity={1.4}
-          metalness={0.6}
-          roughness={0.25}
-        />
+      <instancedMesh
+        ref={windowRef}
+        args={[undefined, windowMat, Math.max(1, buildings.length * 3)]}
+        frustumCulled={false}
+      >
+        <boxGeometry />
+      </instancedMesh>
+      <instancedMesh
+        ref={crownRef}
+        args={[undefined, crownMat, Math.min(24, buildings.length)]}
+        frustumCulled={false}
+      >
+        <boxGeometry />
       </instancedMesh>
       {posters.map((b) => (
-        <BuildingFacade key={b.game.gameId} slot={b} balloonPos={balloonPos} />
+        <GameBillboard key={b.game.gameId} slot={b} />
       ))}
     </group>
   );
 }
 
-function BuildingFacade({ slot, balloonPos }: { slot: CityBuildingSlot; balloonPos: THREE.Vector3 }) {
+function GameBillboard({ slot }: { slot: CityBuildingSlot }) {
   const [tex, setTex] = useState<THREE.Texture | null>(null);
-  const dist = Math.hypot(slot.x - balloonPos.x, slot.z - balloonPos.z);
-  const showLabels = dist < 28;
+  const size = Math.min(POSTER_WORLD, slot.posterSize);
+  const y = slot.height * 0.48;
+  const offset = slot.depth / 2 + 0.22;
 
   useEffect(() => {
     let alive = true;
-    let loaded: THREE.Texture | null = null;
-    const loader = new THREE.TextureLoader();
-    loader.setCrossOrigin('anonymous');
-    loader.load(
-      slot.game.thumbnailUrl,
-      (t) => {
-        if (!alive) {
-          t.dispose();
-          return;
-        }
-        t.colorSpace = THREE.SRGBColorSpace;
-        loaded = t;
-        setTex(t);
-      },
-      undefined,
-      () => {
+    loadGameThumbnail(slot.game.thumbnailUrl)
+      .then((t) => {
+        if (alive) setTex(t);
+      })
+      .catch(() => {
         if (alive) setTex(null);
-      },
-    );
+      });
     return () => {
       alive = false;
-      loaded?.dispose();
     };
   }, [slot.game.thumbnailUrl]);
 
-  const faceZ = slot.depth / 2 + 0.06;
-  const signPulse = slot.topToday ? 1.1 + Math.sin(performance.now() * 0.004) * 0.15 : 1;
-
   return (
-    <group position={[slot.x, 0, slot.z]} rotation={[0, (slot.seed % 8) * 0.12, 0]}>
-      {tex ? (
-        <mesh position={[0, slot.height * 0.45, faceZ]}>
-          <planeGeometry args={[slot.width * 0.85, slot.height * 0.35]} />
-          <meshBasicMaterial map={tex} toneMapped={false} />
-        </mesh>
-      ) : null}
-      {slot.topToday && (slot.game.votesToday ?? 0) > 0 && showLabels ? (
-        <mesh position={[0, slot.height + 0.8, faceZ]} scale={[signPulse, signPulse, 1]}>
-          <planeGeometry args={[2.4, 0.9]} />
-          <meshStandardMaterial
-            color="#0f172a"
-            emissive="#fbbf24"
-            emissiveIntensity={2}
-            metalness={0.2}
-            roughness={0.4}
-          />
-        </mesh>
-      ) : null}
-      {showLabels ? (
-        <TitleLabel
-          title={slot.game.title}
-          today={slot.game.votesToday ?? 0}
-          y={slot.height + (slot.topToday ? 1.6 : 0.4)}
-          z={faceZ}
+    <group position={[slot.x, 0, slot.z]} rotation={[0, slot.faceYaw, 0]}>
+      <mesh position={[0, y, offset]}>
+        <boxGeometry args={[size + 0.35, size + 0.35, 0.12]} />
+        <meshStandardMaterial
+          color="#120a1e"
+          emissive="#f472b6"
+          emissiveIntensity={0.65}
+          metalness={0.55}
+          roughness={0.32}
         />
+      </mesh>
+      {tex ? (
+        <mesh position={[0, y, offset + 0.08]}>
+          <planeGeometry args={[size, size]} />
+          <meshBasicMaterial map={tex} toneMapped={false} color="#ffffff" />
+        </mesh>
+      ) : (
+        <mesh position={[0, y, offset + 0.08]}>
+          <planeGeometry args={[size, size]} />
+          <meshStandardMaterial color="#4c1d95" emissive="#a855f7" emissiveIntensity={0.9} />
+        </mesh>
+      )}
+      {slot.topToday && (slot.game.votesToday ?? 0) > 0 ? (
+        <mesh position={[0, y + size * 0.55, offset + 0.12]}>
+          <planeGeometry args={[size * 0.85, 1.1]} />
+          <meshStandardMaterial color="#0f172a" emissive="#fbbf24" emissiveIntensity={2.2} />
+        </mesh>
       ) : null}
     </group>
-  );
-}
-
-function TitleLabel({ title, today, y, z }: { title: string; today: number; y: number; z: number }) {
-  const canvas = useMemo(() => {
-    const c = document.createElement('canvas');
-    c.width = 512;
-    c.height = today > 0 ? 128 : 96;
-    return c;
-  }, [today]);
-
-  const texture = useMemo(() => {
-    const ctx = canvas.getContext('2d');
-    if (!ctx) return new THREE.CanvasTexture(canvas);
-    ctx.fillStyle = 'rgba(8,4,18,0.75)';
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
-    ctx.font = 'bold 36px system-ui, sans-serif';
-    ctx.fillStyle = '#fde68a';
-    const line = title.length > 28 ? `${title.slice(0, 26)}…` : title;
-    ctx.fillText(line, 16, 52);
-    if (today > 0) {
-      ctx.font = 'bold 40px system-ui, sans-serif';
-      ctx.fillStyle = '#fbbf24';
-      ctx.fillText(`+${today} today`, 16, 108);
-    }
-    const t = new THREE.CanvasTexture(canvas);
-    t.colorSpace = THREE.SRGBColorSpace;
-    return t;
-  }, [canvas, title, today]);
-
-  useEffect(() => () => texture.dispose(), [texture]);
-
-  return (
-    <mesh position={[0, y, z]}>
-      <planeGeometry args={[4.2, today > 0 ? 1.05 : 0.75]} />
-      <meshBasicMaterial map={texture} transparent toneMapped={false} depthWrite={false} />
-    </mesh>
   );
 }

@@ -1,15 +1,15 @@
 import { Stars } from '@react-three/drei';
 import { useFrame } from '@react-three/fiber';
 import type { MutableRefObject } from 'react';
-import { useMemo, useRef, useState } from 'react';
+import { useMemo, useRef } from 'react';
 import * as THREE from 'three';
 import { buildCityLayout, type CityBuildingSlot } from '../../lib/citySpiral';
 import type { JamGame } from '../../types';
-import { BalloonRig } from './BalloonRig';
-import type { FlightInput } from './BalloonRig';
 import { CityBuildings } from './CityBuildings';
+import { CityGreenery } from './CityGreenery';
 import { CityRoad } from './CityRoad';
 import { CityTraffic } from './CityTraffic';
+import { UfoRig, type FlightInput } from './UfoRig';
 
 export type CityFlightMode = 'fly' | 'landing' | 'landed';
 
@@ -19,7 +19,7 @@ interface CitySceneProps {
   mode: CityFlightMode;
   landTarget: CityBuildingSlot | null;
   landProgress: number;
-  onBalloonMove: (pos: THREE.Vector3) => void;
+  onCraftMove: (pos: THREE.Vector3) => void;
   onNearBuilding: (slot: CityBuildingSlot | null) => void;
 }
 
@@ -29,32 +29,43 @@ export function CityScene({
   mode,
   landTarget,
   landProgress,
-  onBalloonMove,
+  onCraftMove,
   onNearBuilding,
 }: CitySceneProps) {
   const layout = useMemo(() => buildCityLayout(games), [games]);
   const { buildings, roadPoints } = layout;
   const spawn = useMemo(() => {
-    const b = buildings[0];
-    if (!b) return { x: 0, y: 30, z: 6 };
-    return { x: b.x, y: b.roofY + 7, z: b.z + 5 };
+    if (buildings.length === 0) return { x: 58, y: 52, z: 48, yaw: -2.35 };
+    let cx = 0;
+    let cz = 0;
+    let maxR = 0;
+    for (const b of buildings) {
+      cx += b.x;
+      cz += b.z;
+      maxR = Math.max(maxR, Math.hypot(b.x, b.z));
+    }
+    cx /= buildings.length;
+    cz /= buildings.length;
+    const hubDist = maxR + 26;
+    const hubAngle = Math.atan2(cx, cz) + 0.55;
+    const x = Math.sin(hubAngle) * hubDist;
+    const z = Math.cos(hubAngle) * hubDist;
+    const yaw = Math.atan2(cx - x, cz - z);
+    return { x, y: 40, z, yaw };
   }, [buildings]);
-  const balloonPos = useRef(new THREE.Vector3(spawn.x, spawn.y, spawn.z));
-  const windowMat = useRef<THREE.ShaderMaterial | null>(null);
-  const [, setTick] = useState(0);
+  const craftPos = useRef(new THREE.Vector3(spawn.x, spawn.y, spawn.z));
 
-  useFrame((state) => {
-    if (windowMat.current) windowMat.current.uniforms.uTime.value = state.clock.elapsedTime;
+  useFrame(() => {
     if (mode === 'fly') {
       let best: CityBuildingSlot | null = null;
       let bestD = Infinity;
       for (const b of buildings) {
-        const dx = balloonPos.current.x - b.x;
-        const dz = balloonPos.current.z - b.z;
+        const dx = craftPos.current.x - b.x;
+        const dz = craftPos.current.z - b.z;
         const horiz = Math.hypot(dx, dz);
-        if (horiz > Math.max(9, b.width * 1.8)) continue;
-        const dy = Math.abs(balloonPos.current.y - (b.roofY + 4));
-        if (dy > 14) continue;
+        if (horiz > Math.max(12, b.width * 1.5)) continue;
+        const dy = Math.abs(craftPos.current.y - (b.roofY + 5));
+        if (dy > 16) continue;
         if (horiz < bestD) {
           bestD = horiz;
           best = b;
@@ -64,47 +75,50 @@ export function CityScene({
     } else {
       onNearBuilding(landTarget);
     }
-    setTick((t) => t);
   });
-
-  const groundSize = 520;
 
   return (
     <>
-      <color attach="background" args={['#020208']} />
-      <fog attach="fog" args={['#020208', 45, 260]} />
-      <ambientLight intensity={0.25} />
-      <directionalLight position={[40, 80, 20]} intensity={0.55} color="#c4b5fd" />
-      <pointLight position={[0, 40, 0]} intensity={0.35} color="#22d3ee" distance={120} />
-      <Stars radius={180} depth={60} count={1200} factor={3} saturation={0.15} fade speed={0.2} />
-      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0, 0]} receiveShadow>
-        <planeGeometry args={[groundSize, groundSize]} />
+      <color attach="background" args={['#07020f']} />
+      <fog attach="fog" args={['#2d1b69', 55, 300]} />
+      <hemisphereLight color="#c4b5fd" groundColor="#1a0a2e" intensity={0.72} />
+      <ambientLight intensity={0.28} color="#4c1d95" />
+      <directionalLight position={[60, 90, 40]} intensity={0.95} color="#e9d5ff" />
+      <pointLight position={[0, 42, 0]} intensity={1.05} color="#a855f7" distance={200} decay={2} />
+      <pointLight position={[-80, 30, 60]} intensity={1.05} color="#f472b6" distance={170} decay={2} />
+      <pointLight position={[90, 25, -50]} intensity={0.85} color="#22d3ee" distance={160} decay={2} />
+      <spotLight
+        position={[0, 120, 0]}
+        angle={0.45}
+        penumbra={0.6}
+        intensity={0.65}
+        color="#c4b5fd"
+        distance={280}
+      />
+      <Stars radius={220} depth={80} count={900} factor={4} saturation={0.2} fade speed={0.15} />
+      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.02, 0]} receiveShadow>
+        <planeGeometry args={[600, 600]} />
         <meshStandardMaterial
-          color="#030308"
-          emissive="#0f172a"
-          emissiveIntensity={0.2}
-          metalness={0.92}
-          roughness={0.28}
+          color="#080612"
+          emissive="#1e1b4b"
+          emissiveIntensity={0.35}
+          metalness={0.88}
+          roughness={0.32}
         />
       </mesh>
       <CityRoad points={roadPoints} />
       <CityTraffic points={roadPoints} />
-      <CityBuildings
-        buildings={buildings}
-        balloonPos={balloonPos.current}
-        onMaterialsReady={(m) => {
-          windowMat.current = m;
-        }}
-      />
-      <BalloonRig
+      <CityGreenery buildings={buildings} />
+      <CityBuildings buildings={buildings} craftPos={craftPos.current} />
+      <UfoRig
         inputRef={inputRef}
         mode={mode}
         spawn={spawn}
         landTarget={landTarget ? { x: landTarget.x, z: landTarget.z, roofY: landTarget.roofY } : null}
         landProgress={landProgress}
         onPosition={(pos) => {
-          balloonPos.current.copy(pos);
-          onBalloonMove(pos);
+          craftPos.current.copy(pos);
+          onCraftMove(pos);
         }}
       />
     </>

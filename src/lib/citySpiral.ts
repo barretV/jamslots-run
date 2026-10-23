@@ -13,6 +13,8 @@ export interface CityBuildingSlot {
   depth: number;
   seed: number;
   roofY: number;
+  faceYaw: number;
+  posterSize: number;
   topVotes: boolean;
   topToday: boolean;
 }
@@ -46,7 +48,7 @@ export function buildCityLayout(
   games: JamGame[],
   options?: { radiusStep?: number; roadInset?: number; buildingOutset?: number },
 ): { buildings: CityBuildingSlot[]; roadPoints: { x: number; z: number }[] } {
-  const radiusStep = options?.radiusStep ?? 5.2;
+  const radiusStep = options?.radiusStep ?? 6.8;
   const roadInset = options?.roadInset ?? 0.72;
   const buildingOutset = options?.buildingOutset ?? 4.2;
 
@@ -74,10 +76,14 @@ export function buildCityLayout(
     const x = rBuild * Math.cos(angle);
     const z = rBuild * Math.sin(angle);
 
-    const voteT = Math.pow(game.votes / maxVotes, 0.62);
-    const height = 3.2 + voteT * 42 + (topVoteIds.has(game.gameId) ? 4 : 0);
-    const width = 2.1 + (seed % 5) * 0.28 + (topVoteIds.has(game.gameId) ? 0.6 : 0);
-    const depth = 2 + ((seed >> 3) % 5) * 0.26 + (topTodayIds.has(game.gameId) ? 0.5 : 0);
+    const topVotes = topVoteIds.has(game.gameId);
+    const topToday = topTodayIds.has(game.gameId);
+    const voteT = Math.pow(game.votes / maxVotes, 0.58);
+    const height = 6 + voteT * 48 + (topVotes ? 8 : 0) + (topToday ? 3 : 0);
+    const width = Math.max(4.6, 4.2 + voteT * 8 + (topVotes ? 2.8 : 0) + (seed % 4) * 0.4);
+    const depth = Math.max(4.2, 3.8 + voteT * 6.2 + (topToday ? 1.4 : 0) + ((seed >> 3) % 4) * 0.35);
+    const faceYaw = Math.atan2(x, z);
+    const posterSize = topVotes ? 5.12 : topToday ? 4.8 : 4.2;
 
     buildings.push({
       game,
@@ -89,8 +95,10 @@ export function buildCityLayout(
       depth,
       seed,
       roofY: height,
-      topVotes: topVoteIds.has(game.gameId),
-      topToday: topTodayIds.has(game.gameId),
+      faceYaw,
+      posterSize,
+      topVotes,
+      topToday,
     });
   }
 

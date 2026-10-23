@@ -1,4 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
+import { useLibraryImmersiveOverlay } from '../lib/useLibraryImmersiveOverlay';
 import {
   EMPTY_CHART_FILTERS,
   filterGamesForCharts,
@@ -9,6 +11,7 @@ import {
 import { buildChartPoints, type NebulaColorMode } from '../lib/libraryChartModels';
 import type { JamGame } from '../types';
 import { ChartFilterBar } from './libraryCharts/ChartFilterBar';
+import { NebulaColorModeBar } from './libraryCharts/NebulaColorModeBar';
 import { CompareRadar } from './libraryCharts/CompareRadar';
 import { LeadersChart } from './libraryCharts/LeadersChart';
 import { PlaystyleScatter3D } from './libraryCharts/PlaystyleScatter3D';
@@ -46,6 +49,8 @@ export function LibraryChartsModal({ games, open, onClose, filterLabel }: Librar
     [games, filters],
   );
 
+  useLibraryImmersiveOverlay(open);
+
   useEffect(() => {
     if (!open) return;
     closeRef.current?.focus();
@@ -58,7 +63,7 @@ export function LibraryChartsModal({ games, open, onClose, filterLabel }: Librar
 
   if (!open) return null;
 
-  return (
+  return createPortal(
     <div className="library-charts-modal" role="presentation">
       <button
         type="button"
@@ -85,7 +90,7 @@ export function LibraryChartsModal({ games, open, onClose, filterLabel }: Librar
             className="library-charts-modal__close"
             onClick={onClose}
           >
-            Close
+            Back
           </button>
         </header>
 
@@ -106,13 +111,16 @@ export function LibraryChartsModal({ games, open, onClose, filterLabel }: Librar
 
         <ChartFilterBar total={games.length} showing={showingCount} filters={filters} onChange={setFilters} />
 
+        {tab === 'nebula' ? (
+          <NebulaColorModeBar value={nebulaColorMode} onChange={setNebulaColorMode} />
+        ) : null}
+
         <div className="library-charts-modal__body">
           {tab === 'nebula' ? (
             <PlaystyleScatter3D
               points={chartPoints}
               colorMode={nebulaColorMode}
               filters={filters}
-              onColorModeChange={setNebulaColorMode}
             />
           ) : null}
           {tab === 'leaders' ? <LeadersChart games={games} filters={filters} /> : null}
@@ -127,6 +135,7 @@ export function LibraryChartsModal({ games, open, onClose, filterLabel }: Librar
           {tab === 'compare' ? <CompareRadar games={scatterGames.length ? scatterGames : games} /> : null}
         </div>
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 }

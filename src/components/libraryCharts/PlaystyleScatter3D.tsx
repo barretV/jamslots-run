@@ -19,15 +19,7 @@ interface PlaystyleScatter3DProps {
   points: ChartGamePoint[];
   colorMode: NebulaColorMode;
   filters: ChartFilters;
-  onColorModeChange: (mode: NebulaColorMode) => void;
 }
-
-const COLOR_MODES: { id: NebulaColorMode; label: string }[] = [
-  { id: 'playstyle', label: 'Playstyle' },
-  { id: 'votes', label: 'Votes' },
-  { id: 'plays', label: 'Plays' },
-  { id: 'today', label: 'Votes today' },
-];
 
 function NebulaScene({
   points,
@@ -129,12 +121,7 @@ function NebulaScene({
   );
 }
 
-export function PlaystyleScatter3D({
-  points,
-  colorMode,
-  filters,
-  onColorModeChange,
-}: PlaystyleScatter3DProps) {
+export function PlaystyleScatter3D({ points, colorMode, filters }: PlaystyleScatter3DProps) {
   const [hovered, setHovered] = useState<ChartGamePoint | null>(null);
   const [pinned, setPinned] = useState<ChartGamePoint | null>(null);
   const active = pinned ?? hovered;
@@ -145,35 +132,6 @@ export function PlaystyleScatter3D({
 
   return (
     <div className="library-charts-nebula">
-      <div className="library-charts-nebula__modes" role="group" aria-label="Color mode">
-        {COLOR_MODES.map((m) => (
-          <button
-            key={m.id}
-            type="button"
-            className={`library-charts-chip ${colorMode === m.id ? 'library-charts-chip--on' : ''}`}
-            aria-pressed={colorMode === m.id}
-            onClick={() => onColorModeChange(m.id)}
-          >
-            {m.label}
-          </button>
-        ))}
-      </div>
-      {colorMode === 'playstyle' ? (
-        <p className="library-charts-legend library-charts-legend--inline">
-          <span className="library-charts-legend__dot" style={{ background: CLUSTER_COLORS.rusher }} />
-          {CLUSTER_LABELS.rusher}
-          <span className="library-charts-legend__dot" style={{ background: CLUSTER_COLORS.tactician }} />
-          {CLUSTER_LABELS.tactician}
-          <span className="library-charts-legend__dot" style={{ background: CLUSTER_COLORS.survivor }} />
-          {CLUSTER_LABELS.survivor}
-        </p>
-      ) : (
-        <p className="library-charts-cap-hint">
-          {colorMode === 'votes' && 'Cool cyan to hot orange by jam votes in this list.'}
-          {colorMode === 'plays' && 'Deep indigo to violet by RUN plays in this list.'}
-          {colorMode === 'today' && 'Muted blue to gold by new votes today (UTC).'}
-        </p>
-      )}
       <div className="library-charts-nebula__canvas">
         <Canvas camera={{ fov: 48, near: 0.1, far: 100 }}>
           <color attach="background" args={['#000000']} />
@@ -199,6 +157,22 @@ export function PlaystyleScatter3D({
           <p className="library-charts-nebula__hint">Hover or tap a star to see the game.</p>
         )}
       </div>
+      {colorMode === 'playstyle' ? (
+        <p className="library-charts-legend library-charts-legend--below">
+          <span className="library-charts-legend__dot" style={{ background: CLUSTER_COLORS.rusher }} />
+          {CLUSTER_LABELS.rusher}
+          <span className="library-charts-legend__dot" style={{ background: CLUSTER_COLORS.tactician }} />
+          {CLUSTER_LABELS.tactician}
+          <span className="library-charts-legend__dot" style={{ background: CLUSTER_COLORS.survivor }} />
+          {CLUSTER_LABELS.survivor}
+        </p>
+      ) : (
+        <p className="library-charts-cap-hint library-charts-cap-hint--below">
+          {colorMode === 'votes' && 'Cool cyan to hot orange by jam votes in this list.'}
+          {colorMode === 'plays' && 'Deep indigo to violet by RUN plays in this list.'}
+          {colorMode === 'today' && 'Muted blue to gold by new votes today (UTC).'}
+        </p>
+      )}
     </div>
   );
 }

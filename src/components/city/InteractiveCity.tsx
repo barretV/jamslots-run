@@ -1,5 +1,7 @@
 import { Canvas } from '@react-three/fiber';
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
+import { useLibraryImmersiveOverlay } from '../../lib/useLibraryImmersiveOverlay';
 import type { CityBuildingSlot } from '../../lib/citySpiral';
 import type { JamGame } from '../../types';
 import { CityScene, type CityFlightMode } from './CityScene';
@@ -44,6 +46,8 @@ export function InteractiveCity({ games, open, onClose, onOpen, filterLabel }: I
     landAnimRef.current = requestAnimationFrame(step);
   }, []);
 
+  useLibraryImmersiveOverlay(open);
+
   const resetFlight = useCallback(() => {
     setMode('fly');
     setLandTarget(null);
@@ -64,8 +68,8 @@ export function InteractiveCity({ games, open, onClose, onOpen, filterLabel }: I
     const onKeyDown = (e: KeyboardEvent) => {
       keysRef.current[e.code] = true;
       if (e.code === 'Escape') {
-        if (mode === 'landed') resetFlight();
-        else onClose();
+        e.preventDefault();
+        onClose();
       }
       if (e.code === 'Space' && mode === 'fly' && nearBuilding) {
         e.preventDefault();
@@ -114,7 +118,7 @@ export function InteractiveCity({ games, open, onClose, onOpen, filterLabel }: I
   const canLand = mode === 'fly' && nearBuilding != null;
   const activeGame = mode === 'landed' ? landTarget?.game : null;
 
-  return (
+  return createPortal(
     <div className="interactive-city-modal" role="presentation">
       <button
         type="button"
@@ -131,7 +135,7 @@ export function InteractiveCity({ games, open, onClose, onOpen, filterLabel }: I
             </p>
           </div>
           <button ref={closeRef} type="button" className="interactive-city-modal__close" onClick={onClose}>
-            Close
+            Back
           </button>
         </header>
 
@@ -197,6 +201,7 @@ export function InteractiveCity({ games, open, onClose, onOpen, filterLabel }: I
           ) : null}
         </div>
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 }

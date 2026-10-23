@@ -129,15 +129,22 @@ export function ChartsToolbar({
               {m.label}
             </button>
           ))}
-          {nebulaColorMode === 'playstyle' ? (
-            <span className="library-charts-toolbar__legend" aria-label="Playstyle legend">
-              <span className="library-charts-toolbar__swatch" style={{ background: CLUSTER_COLORS.rusher }} title={CLUSTER_LABELS.rusher} />
-              <span className="library-charts-toolbar__swatch" style={{ background: CLUSTER_COLORS.tactician }} title={CLUSTER_LABELS.tactician} />
-              <span className="library-charts-toolbar__swatch" style={{ background: CLUSTER_COLORS.survivor }} title={CLUSTER_LABELS.survivor} />
-            </span>
-          ) : (
-            <span className="library-charts-toolbar__legend-hint">Hue spread by metric</span>
-          )}
+          <span className="library-charts-toolbar__legend" aria-label="Color legend">
+            {nebulaColorMode === 'playstyle' ? (
+              <>
+                <span className="library-charts-toolbar__swatch" style={{ background: CLUSTER_COLORS.rusher }} title={CLUSTER_LABELS.rusher} />
+                <span className="library-charts-toolbar__swatch" style={{ background: CLUSTER_COLORS.tactician }} title={CLUSTER_LABELS.tactician} />
+                <span className="library-charts-toolbar__swatch" style={{ background: CLUSTER_COLORS.survivor }} title={CLUSTER_LABELS.survivor} />
+              </>
+            ) : (
+              <>
+                <span className="library-charts-toolbar__swatch" style={{ background: '#22d3ee' }} title="Cyan" />
+                <span className="library-charts-toolbar__swatch" style={{ background: '#fbbf24' }} title="Amber" />
+                <span className="library-charts-toolbar__swatch" style={{ background: '#f472b6' }} title="Magenta" />
+                <span className="library-charts-toolbar__swatch" style={{ background: '#a78bfa' }} title="Violet" />
+              </>
+            )}
+          </span>
         </div>
       ) : null}
 

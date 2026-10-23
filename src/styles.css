@@ -1953,9 +1953,10 @@ body.library-immersive-open {
 
 .library-charts-toolbar {
   display: flex;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
   align-items: center;
   gap: 0.35rem 0.5rem;
+  overflow-x: auto;
   padding: 0.4rem 0.55rem;
   border-bottom: 1px solid rgba(255, 255, 255, 0.08);
   flex-shrink: 0;
@@ -1994,9 +1995,10 @@ body.library-immersive-open {
 .library-charts-toolbar__chips,
 .library-charts-toolbar__nebula {
   display: flex;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
   align-items: center;
   gap: 0.25rem;
+  flex-shrink: 0;
 }
 
 .library-charts-toolbar__legend {
@@ -2078,8 +2080,10 @@ body.library-immersive-open {
 .library-charts-nebula {
   display: flex;
   flex-direction: column;
-  flex: 1;
+  flex: 1 1 auto;
   min-height: 0;
+  height: 100%;
+  width: 100%;
   gap: 0.45rem;
 }
 
@@ -2102,7 +2106,7 @@ body.library-immersive-open {
 .library-charts-nebula__canvas {
   position: relative;
   flex: 1;
-  min-height: 0;
+  min-height: min(58vh, 520px);
   border-radius: 0.65rem;
   overflow: hidden;
   border: 1px solid rgba(88, 28, 135, 0.45);

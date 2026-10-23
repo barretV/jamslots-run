@@ -79,7 +79,7 @@ function nebulaPosition(p: ChartGamePoint): [number, number, number] {
   const j = hashId(p.game.gameId);
   const j2 = hashId(p.game.gameId, 'b');
   const j3 = hashId(p.game.gameId, 'c');
-  const spread = 0.22;
+  const spread = 0.23;
   const scale = 2.8;
   return [
     (p.votesNorm - 0.5) * scale + (j - 0.5) * spread,
@@ -151,7 +151,7 @@ export function computeCloudBoundingSphere(points: ChartGamePoint[]): {
     const dz = p.position[2] - centroid[2];
     radius = Math.max(radius, Math.sqrt(dx * dx + dy * dy + dz * dz));
   }
-  return { center: centroid, radius: Math.max(radius, 0.35) };
+  return { center: centroid, radius: Math.max(radius, 0.35) + 0.18 };
 }
 
 function hslColor(h: number, s: number, l: number): string {
@@ -180,9 +180,9 @@ export function nebulaDistinctColor(p: ChartGamePoint, mode: NebulaColorMode): s
 }
 
 export function nebulaPointSize(p: ChartGamePoint): number {
-  const base = 0.038;
-  const voteBoost = 0.02 + p.votesNorm * 0.045;
-  const todayBoost = p.todayNorm * 0.035;
+  const base = 0.052;
+  const voteBoost = 0.028 + p.votesNorm * 0.055;
+  const todayBoost = p.todayNorm * 0.042;
   return base + voteBoost + todayBoost;
 }
 

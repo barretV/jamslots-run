@@ -51,7 +51,7 @@ function emissiveColor(seed: number): THREE.Color {
   return c;
 }
 
-export function CityBuildings({ buildings, craftPos, spawn }: CityBuildingsProps) {
+export function CityBuildings({ buildings, spawn }: CityBuildingsProps) {
   const bodyRef = useRef<THREE.InstancedMesh>(null);
   const slabRef = useRef<THREE.InstancedMesh>(null);
   const windowRef = useRef<THREE.InstancedMesh>(null);

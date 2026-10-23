@@ -62,17 +62,17 @@ export function CityTraffic({ points }: CityTrafficProps) {
       const pos = curve.getPointAt(o.t);
       const tan = curve.getTangentAt(o.t).normalize();
       dummy.position.copy(pos);
-      dummy.position.y = 0.92;
+      dummy.position.y = 1.05;
       dummy.quaternion.setFromUnitVectors(new THREE.Vector3(0, 0, 1), tan);
 
       if (o.isScooter && scooters) {
-        dummy.scale.set(1.45, 1.45, 1.45);
+        dummy.scale.set(1.85, 1.85, 1.85);
         dummy.updateMatrix();
         scooters.setMatrixAt(scIdx, dummy.matrix);
         scooters.setColorAt(scIdx, carColors[i % carColors.length]);
         scIdx++;
       } else if (cars) {
-        dummy.scale.set(1.65, 1.65, 1.65);
+        dummy.scale.set(2.05, 2.05, 2.05);
         dummy.updateMatrix();
         cars.setMatrixAt(carIdx, dummy.matrix);
         cars.setColorAt(carIdx, carColors[i % carColors.length]);

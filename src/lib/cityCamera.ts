@@ -2,10 +2,10 @@ import * as THREE from 'three';
 import type { CityBuildingSlot } from './citySpiral';
 
 export const CITY_GROUND_Y = 0;
-export const MIN_CAMERA_Y = 18;
-export const MIN_UFO_Y = 24;
+export const MIN_CAMERA_Y = 9;
+export const MIN_UFO_Y = 14;
 /** Keep UFO at least this far from skyline focus on XZ during the opening flight window. */
-export const MIN_FOCUS_DIST_XZ = 44;
+export const MIN_FOCUS_DIST_XZ = 34;
 
 /** UFO / low flight — skip roofs we are clearly above. */
 export function pushOutOfBuildings(pos: THREE.Vector3, buildings: CityBuildingSlot[], margin: number): void {
@@ -55,7 +55,7 @@ export function clampAboveGround(pos: THREE.Vector3, minY: number): void {
 }
 
 export function skylineLookAt(focusX: number, focusZ: number, peakRoof: number, out: THREE.Vector3): THREE.Vector3 {
-  return out.set(focusX, Math.max(22, peakRoof * 0.58), focusZ);
+  return out.set(focusX, Math.max(10, peakRoof * 0.34), focusZ);
 }
 
 /** Camera behind the UFO, looking toward the skyline (mockup-style, never grazing the ground). */
@@ -64,8 +64,8 @@ export function chaseCameraFromUfo(
   look: THREE.Vector3,
   buildings: CityBuildingSlot[],
   out: THREE.Vector3,
-  back = 56,
-  up = 28,
+  back = 26,
+  up = 5,
 ): THREE.Vector3 {
   const toLook = new THREE.Vector3(look.x - ufo.x, 0, look.z - ufo.z);
   if (toLook.lengthSq() < 1e-5) toLook.set(0, 0, -1);
@@ -75,7 +75,7 @@ export function chaseCameraFromUfo(
   clampAboveGround(out, MIN_CAMERA_Y);
 
   const horiz = Math.hypot(look.x - out.x, look.z - out.z);
-  const minPitchDrop = Math.max(4, horiz * 0.09);
+  const minPitchDrop = Math.max(1.5, horiz * 0.035);
   if (out.y < look.y + minPitchDrop) {
     out.y = look.y + minPitchDrop;
   }
@@ -85,13 +85,14 @@ export function chaseCameraFromUfo(
   const away = new THREE.Vector3(out.x - look.x, 0, out.z - look.z);
   if (away.lengthSq() < 1e-5) away.set(0, 0, 1);
   else away.normalize();
-  for (let i = 0; i < 10 && viewRayBlocked(out, look, buildings, 10); i++) {
-    out.y += 5;
-    out.addScaledVector(away, 7);
-    pushCameraOutOfColumns(out, buildings, 18);
+  for (let i = 0; i < 6 && viewRayBlocked(out, look, buildings, 8); i++) {
+    out.y += 2.5;
+    out.addScaledVector(away, 4);
+    pushCameraOutOfColumns(out, buildings, 16);
     clampAboveGround(out, MIN_CAMERA_Y);
   }
 
+  out.y = Math.min(out.y, ufo.y + 14);
   clampAboveGround(out, MIN_CAMERA_Y);
   return out;
 }

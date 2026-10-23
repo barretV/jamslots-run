@@ -32,8 +32,8 @@ interface UfoRigProps {
 
 const MOVE_SPEED = 14;
 const VERT_SPEED = 10;
-const CAM_BACK = 50;
-const CAM_UP = 16;
+const CAM_BACK = 24;
+const CAM_UP = 4;
 const OPENING_FLIGHT_SEC = 3.2;
 
 export function UfoRig({
@@ -159,7 +159,7 @@ export function UfoRig({
         }
       }
 
-      lookTarget.copy(lookRef.current);
+      lookTarget.set(spawn.focusX, spawn.focusY + 4, spawn.focusZ);
     }
 
     g.position.copy(posRef.current);
@@ -188,7 +188,7 @@ export function UfoRig({
   });
 
   return (
-    <group ref={groupRef} scale={0.52}>
+    <group ref={groupRef} scale={0.68}>
       <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.15, 0]} material={hullMat}>
         <cylinderGeometry args={[2.5, 3.1, 0.62, 24]} />
       </mesh>

@@ -74,7 +74,7 @@ export function CityScene({
   return (
     <>
       <color attach="background" args={['#12061f']} />
-      <fog attach="fog" args={['#12061f', 120, 420]} />
+      <fog attach="fog" args={['#12061f', 85, 380]} />
       <hemisphereLight color="#a78bfa" groundColor="#0a0614" intensity={0.38} />
       <ambientLight intensity={0.28} color="#4c1d95" />
       <directionalLight position={[60, 90, 40]} intensity={0.95} color="#e9d5ff" />

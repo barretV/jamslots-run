@@ -236,8 +236,8 @@ export function computeCitySpawn(buildings: CityBuildingSlot[]): CitySpawn {
   focusX /= weightSum;
   focusZ /= weightSum;
 
-  const focusY = peakRoof * 0.32;
-  const flyY = peakRoof + 14;
+  const focusY = peakRoof * 0.22;
+  const flyY = Math.min(22, Math.max(14, peakRoof * 0.32 + 10));
 
   let spawnAngle = 0.62;
   let spawnR = 58;

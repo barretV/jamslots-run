@@ -18,14 +18,8 @@ interface PlaystyleScatter3DProps {
   filters: ChartFilters;
 }
 
-function isChartCapture(): boolean {
-  if (typeof window === 'undefined') return false;
-  return new URLSearchParams(window.location.search).get('chartCapture') === '1';
-}
-
-function starSize(): number {
-  return isChartCapture() ? 7.2 : 0.26;
-}
+/** Fixed pixel diameter per star (not world-scale discs). */
+const STAR_PX = 6.5;
 
 function NebulaScene({
   points,
@@ -44,7 +38,6 @@ function NebulaScene({
   const controlsRef = useRef<OrbitControlsImpl>(null);
   const { camera } = useThree();
   const bounds = useMemo(() => computeCloudBoundingSphere(points), [points]);
-  const [pointSize, setPointSize] = useState(starSize);
 
   const { positions, colors } = useMemo(() => {
     const positions = new Float32Array(points.length * 3);
@@ -66,12 +59,11 @@ function NebulaScene({
   }, [points, colorMode, filters]);
 
   useLayoutEffect(() => {
-    setPointSize(starSize());
     const [cx, cy, cz] = bounds.center;
     const persp = camera as THREE.PerspectiveCamera;
     const fov = (persp.fov * Math.PI) / 180;
     const dist = bounds.radius / Math.tan(fov / 2);
-    const fit = dist * (isChartCapture() ? 1.1 : 1.05);
+    const fit = dist * 0.78;
     persp.position.set(cx + fit * 0.14, cy + fit * 0.22, cz + fit);
     persp.near = Math.max(0.08, fit / 120);
     persp.far = Math.max(80, fit * 12);
@@ -119,8 +111,8 @@ function NebulaScene({
         <PointMaterial
           transparent
           vertexColors
-          size={pointSize}
-          sizeAttenuation
+          size={STAR_PX}
+          sizeAttenuation={false}
           depthWrite
           toneMapped={false}
         />
@@ -149,7 +141,7 @@ export function PlaystyleScatter3D({ points, colorMode, filters }: PlaystyleScat
   return (
     <div className="library-charts-nebula">
       <div className="library-charts-nebula__canvas">
-        <Canvas camera={{ fov: 42, near: 0.1, far: 120 }} dpr={[1, 2]} style={{ width: '100%', height: '100%' }}>
+        <Canvas camera={{ fov: 48, near: 0.1, far: 120 }} dpr={[1, 2]} style={{ width: '100%', height: '100%' }}>
           <color attach="background" args={['#050510']} />
           <fog attach="fog" args={['#0a0818', 12, 42]} />
           <ambientLight intensity={0.45} />

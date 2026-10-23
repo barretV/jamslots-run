@@ -79,7 +79,7 @@ function nebulaPosition(p: ChartGamePoint): [number, number, number] {
   const j = hashId(p.game.gameId);
   const j2 = hashId(p.game.gameId, 'b');
   const j3 = hashId(p.game.gameId, 'c');
-  const spread = 0.23;
+  const spread = 0.24;
   const scale = 2.8;
   return [
     (p.votesNorm - 0.5) * scale + (j - 0.5) * spread,
@@ -180,9 +180,9 @@ export function nebulaDistinctColor(p: ChartGamePoint, mode: NebulaColorMode): s
 }
 
 export function nebulaPointSize(p: ChartGamePoint): number {
-  const base = 0.052;
-  const voteBoost = 0.028 + p.votesNorm * 0.055;
-  const todayBoost = p.todayNorm * 0.042;
+  const base = 0.036;
+  const voteBoost = 0.018 + p.votesNorm * 0.038;
+  const todayBoost = p.todayNorm * 0.028;
   return base + voteBoost + todayBoost;
 }
 

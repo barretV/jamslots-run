@@ -4,14 +4,14 @@ import { spawnSync } from 'child_process';
 import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';
 
-const base = process.env.CHARTS_BASE ?? 'http://localhost:5290/?fresh=1&chartCapture=1';
+const base = process.env.CHARTS_BASE ?? 'http://localhost:5290/?fresh=1';
 const outDir =
   process.env.CHARTS_SCREENSHOT_DIR ??
   'C:/Users/janit/AppData/Local/Cursor/AgentStores/cursor_agent_stores/bc-27b61a18-4663-4d05-9c98-c020674dfa52/files/media';
 
 const here = dirname(fileURLToPath(import.meta.url));
 const validateScript = join(here, 'validate-nebula-screenshot.mjs');
-const outName = process.env.NEBULA_PASS_NAME ?? 'charts-nebula-pass-3.png';
+const outName = process.env.NEBULA_PASS_NAME ?? 'charts-nebula-pass-4.png';
 
 await mkdir(outDir, { recursive: true });
 

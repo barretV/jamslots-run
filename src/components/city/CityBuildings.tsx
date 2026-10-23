@@ -12,6 +12,10 @@ interface CityBuildingsProps {
 const POSTER_MAX = 52;
 const BODY_SEGMENTS = 3;
 
+export function pickCityPosterIds(buildings: CityBuildingSlot[], spawn: CitySpawn): Set<string> {
+  return pickPosterSlots(buildings, spawn);
+}
+
 function pickPosterSlots(buildings: CityBuildingSlot[], spawn: CitySpawn): Set<string> {
   const ids = new Set<string>();
   for (const b of buildings) {
@@ -25,7 +29,7 @@ function pickPosterSlots(buildings: CityBuildingSlot[], spawn: CitySpawn): Set<s
   for (const b of byDist) {
     if (ids.size >= POSTER_MAX) break;
     const dSpawn = (b.x - spawn.x) ** 2 + (b.z - spawn.z) ** 2;
-    if (dSpawn < 20 * 20 || dSpawn > 95 * 95) continue;
+    if (dSpawn < 10 * 10 || dSpawn > 120 * 120) continue;
     ids.add(b.game.gameId);
   }
   return ids;
@@ -128,8 +132,8 @@ export function CityBuildings({ buildings, spawn }: CityBuildingsProps) {
         }
       }
 
-      if (windows) {
-        const bands = [0.32, 0.58, 0.82];
+      if (windows && !posterIds.has(b.game.gameId)) {
+        const bands = [0.28, 0.78];
         for (const t of bands) {
           const taper = 1 - Math.floor(t * BODY_SEGMENTS) * 0.09;
           const faceZ = b.depth * taper * 0.52;
@@ -162,7 +166,7 @@ export function CityBuildings({ buildings, spawn }: CityBuildingsProps) {
       windows.instanceMatrix.needsUpdate = true;
       if (windows.instanceColor) windows.instanceColor.needsUpdate = true;
     }
-  }, [buildings, dummy]);
+  }, [buildings, dummy, posterIds]);
 
   const posters = useMemo(
     () => buildings.filter((b) => posterIds.has(b.game.gameId)),
@@ -195,21 +199,27 @@ export function CityBuildings({ buildings, spawn }: CityBuildingsProps) {
 
 function posterWorldSizeFor(slot: CityBuildingSlot, spawn: CitySpawn): number {
   const d2 = (slot.x - spawn.x) ** 2 + (slot.z - spawn.z) ** 2;
-  return d2 < 58 * 58 ? 5.85 : 5.12;
+  return d2 < 65 * 65 ? 6.2 : 5.12;
 }
 
 function GameBillboard({ slot, spawn }: { slot: CityBuildingSlot; spawn: CitySpawn }) {
   const [tex, setTex] = useState<THREE.Texture | null>(null);
   const size = posterWorldSizeFor(slot, spawn);
   const y = slot.height * 0.46;
-  const faceYaw = Math.atan2(spawn.x - slot.x, spawn.z - slot.z);
-  const offset = -(slot.depth / 2 + 0.16);
+  const yaw = slot.faceYaw;
+  const taper = 1 - Math.floor(0.46 * BODY_SEGMENTS) * 0.09;
+  const faceOut = slot.depth * taper * 0.52 + 0.62;
+  const px = slot.x + Math.sin(yaw) * faceOut;
+  const pz = slot.z + Math.cos(yaw) * faceOut;
 
   const posterMat = useMemo(() => {
     if (!tex) return null;
     return new THREE.MeshBasicMaterial({
       map: tex,
       toneMapped: false,
+      depthWrite: false,
+      depthTest: false,
+      side: THREE.DoubleSide,
     });
   }, [tex]);
 
@@ -243,15 +253,15 @@ function GameBillboard({ slot, spawn }: { slot: CityBuildingSlot; spawn: CitySpa
   if (!tex || !posterMat) return null;
 
   return (
-    <group position={[slot.x, 0, slot.z]} rotation={[0, faceYaw, 0]}>
-      <mesh position={[0, y, offset - 0.06]} material={frameMat}>
-        <boxGeometry args={[size + 0.28, size + 0.28, 0.16]} />
+    <group position={[px, 0, pz]} rotation={[0, yaw, 0]}>
+      <mesh position={[0, y, 0.08]} material={frameMat} renderOrder={8}>
+        <boxGeometry args={[size + 0.22, size + 0.22, 0.12]} />
       </mesh>
-      <mesh position={[0, y, offset - 0.04]} material={posterMat} rotation={[0, Math.PI, 0]}>
+      <mesh position={[0, y, 0.14]} material={posterMat} renderOrder={9}>
         <planeGeometry args={[size, size]} />
       </mesh>
       {slot.topToday && (slot.game.votesToday ?? 0) > 0 ? (
-        <mesh position={[0, y + size * 0.52, offset + 0.05]}>
+        <mesh position={[0, y + size * 0.52, 0.18]} renderOrder={5}>
           <boxGeometry args={[size * 0.82, 0.9, 0.1]} />
           <meshStandardMaterial color="#0f172a" emissive="#fbbf24" emissiveIntensity={2.2} />
         </mesh>

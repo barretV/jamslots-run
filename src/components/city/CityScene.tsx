@@ -2,10 +2,10 @@ import { useFrame } from '@react-three/fiber';
 import type { MutableRefObject } from 'react';
 import { useEffect, useMemo, useRef } from 'react';
 import * as THREE from 'three';
-import { preloadCityThumbnails } from '../../lib/cityTextureCache';
+import { loadGameThumbnail, preloadCityThumbnails } from '../../lib/cityTextureCache';
 import { buildCityLayout, computeCitySpawn, type CityBuildingSlot } from '../../lib/citySpiral';
 import type { JamGame } from '../../types';
-import { CityBuildings } from './CityBuildings';
+import { CityBuildings, pickCityPosterIds } from './CityBuildings';
 import { CityRoad } from './CityRoad';
 import { CityTraffic } from './CityTraffic';
 import { UfoRig, type FlightInput } from './UfoRig';
@@ -41,13 +41,31 @@ export function CityScene({
     w.__cityFocus = { x: spawn.focusX, z: spawn.focusZ };
   }, [spawn]);
 
+  const posterUrls = useMemo(() => {
+    const ids = pickCityPosterIds(buildings, spawn);
+    return buildings.filter((b) => ids.has(b.game.gameId)).map((b) => b.game.thumbnailUrl);
+  }, [buildings, spawn]);
+
   useEffect(() => {
-    const urls = buildings
-      .filter((b) => b.topVotes || b.topToday || b.index < 160)
-      .slice(0, 120)
-      .map((b) => b.game.thumbnailUrl);
-    preloadCityThumbnails(urls);
+    preloadCityThumbnails(
+      buildings
+        .filter((b) => b.topVotes || b.topToday || b.index < 80)
+        .slice(0, 64)
+        .map((b) => b.game.thumbnailUrl),
+    );
   }, [buildings]);
+
+  useEffect(() => {
+    let alive = true;
+    Promise.all(posterUrls.map((u) => loadGameThumbnail(u).catch(() => null))).then(() => {
+      if (!alive) return;
+      const w = window as typeof window & { __cityPostersReady?: boolean };
+      w.__cityPostersReady = true;
+    });
+    return () => {
+      alive = false;
+    };
+  }, [posterUrls]);
 
   useFrame(() => {
     if (mode === 'fly') {

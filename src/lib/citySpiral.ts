@@ -104,3 +104,65 @@ export function buildCityLayout(
 
   return { buildings, roadPoints };
 }
+
+export interface CitySpawn {
+  x: number;
+  y: number;
+  z: number;
+  yaw: number;
+  focusX: number;
+  focusY: number;
+  focusZ: number;
+}
+
+/** Spawn just outside the inner vote cluster, facing the skyline (not the outer spiral rim). */
+export function computeCitySpawn(buildings: CityBuildingSlot[]): CitySpawn {
+  const fallback: CitySpawn = {
+    x: 34,
+    y: 30,
+    z: 44,
+    yaw: -0.7,
+    focusX: 0,
+    focusY: 20,
+    focusZ: 0,
+  };
+  if (buildings.length === 0) return fallback;
+
+  const innerRadius = 42;
+  const inner = buildings.filter((b) => Math.hypot(b.x, b.z) <= innerRadius);
+  const sample = inner.length >= 10 ? inner : buildings.slice(0, Math.min(28, buildings.length));
+
+  let focusX = 0;
+  let focusZ = 0;
+  let weightSum = 0;
+  let peakRoof = 12;
+  let extent = 14;
+
+  for (const b of sample) {
+    const w = b.topVotes ? 2.5 : b.topToday ? 1.5 : 1;
+    focusX += b.x * w;
+    focusZ += b.z * w;
+    weightSum += w;
+    peakRoof = Math.max(peakRoof, b.roofY);
+    extent = Math.max(extent, Math.hypot(b.x, b.z) + Math.max(b.width, b.depth) * 0.45);
+  }
+  focusX /= weightSum;
+  focusZ /= weightSum;
+
+  const spawnR = extent + 10;
+  const spawnAngle = 0.68;
+  const x = focusX + Math.sin(spawnAngle) * spawnR;
+  const z = focusZ + Math.cos(spawnAngle) * spawnR;
+  const yaw = Math.atan2(focusX - x, focusZ - z);
+  const y = peakRoof + 9;
+
+  return {
+    x,
+    y,
+    z,
+    yaw,
+    focusX,
+    focusY: peakRoof * 0.38,
+    focusZ,
+  };
+}

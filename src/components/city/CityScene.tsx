@@ -3,7 +3,7 @@ import { useFrame } from '@react-three/fiber';
 import type { MutableRefObject } from 'react';
 import { useMemo, useRef } from 'react';
 import * as THREE from 'three';
-import { buildCityLayout, type CityBuildingSlot } from '../../lib/citySpiral';
+import { buildCityLayout, computeCitySpawn, type CityBuildingSlot } from '../../lib/citySpiral';
 import type { JamGame } from '../../types';
 import { CityBuildings } from './CityBuildings';
 import { CityGreenery } from './CityGreenery';
@@ -34,25 +34,7 @@ export function CityScene({
 }: CitySceneProps) {
   const layout = useMemo(() => buildCityLayout(games), [games]);
   const { buildings, roadPoints } = layout;
-  const spawn = useMemo(() => {
-    if (buildings.length === 0) return { x: 58, y: 52, z: 48, yaw: -2.35 };
-    let cx = 0;
-    let cz = 0;
-    let maxR = 0;
-    for (const b of buildings) {
-      cx += b.x;
-      cz += b.z;
-      maxR = Math.max(maxR, Math.hypot(b.x, b.z));
-    }
-    cx /= buildings.length;
-    cz /= buildings.length;
-    const hubDist = maxR + 26;
-    const hubAngle = Math.atan2(cx, cz) + 0.55;
-    const x = Math.sin(hubAngle) * hubDist;
-    const z = Math.cos(hubAngle) * hubDist;
-    const yaw = Math.atan2(cx - x, cz - z);
-    return { x, y: 40, z, yaw };
-  }, [buildings]);
+  const spawn = useMemo(() => computeCitySpawn(buildings), [buildings]);
   const craftPos = useRef(new THREE.Vector3(spawn.x, spawn.y, spawn.z));
 
   useFrame(() => {
@@ -80,11 +62,11 @@ export function CityScene({
   return (
     <>
       <color attach="background" args={['#07020f']} />
-      <fog attach="fog" args={['#2d1b69', 55, 300]} />
+      <fog attach="fog" args={['#2d1b69', 95, 380]} />
       <hemisphereLight color="#c4b5fd" groundColor="#1a0a2e" intensity={0.72} />
       <ambientLight intensity={0.28} color="#4c1d95" />
       <directionalLight position={[60, 90, 40]} intensity={0.95} color="#e9d5ff" />
-      <pointLight position={[0, 42, 0]} intensity={1.05} color="#a855f7" distance={200} decay={2} />
+      <pointLight position={[spawn.focusX, spawn.focusY + 18, spawn.focusZ]} intensity={1.35} color="#c084fc" distance={320} decay={1.6} />
       <pointLight position={[-80, 30, 60]} intensity={1.05} color="#f472b6" distance={170} decay={2} />
       <pointLight position={[90, 25, -50]} intensity={0.85} color="#22d3ee" distance={160} decay={2} />
       <spotLight

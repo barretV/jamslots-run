@@ -2,6 +2,7 @@ import { useFrame } from '@react-three/fiber';
 import type { MutableRefObject } from 'react';
 import { useEffect, useMemo, useRef } from 'react';
 import * as THREE from 'three';
+import type { CitySpawn } from '../../lib/citySpiral';
 
 export interface FlightInput {
   forward: number;
@@ -14,13 +15,18 @@ interface UfoRigProps {
   mode: 'fly' | 'landing' | 'landed';
   landTarget: { x: number; z: number; roofY: number } | null;
   landProgress: number;
-  spawn: { x: number; y: number; z: number; yaw?: number };
+  spawn: CitySpawn;
   onPosition: (pos: THREE.Vector3, yaw: number) => void;
 }
 
 const MOVE_SPEED = 16;
 const VERT_SPEED = 11;
 const YAW_SPEED = 1.65;
+
+const CAM_BACK = 26;
+const CAM_UP = 19;
+const LOOK_AHEAD = 52;
+const LOOK_DROP = 7;
 
 export function UfoRig({ inputRef, mode, landTarget, landProgress, spawn, onPosition }: UfoRigProps) {
   const groupRef = useRef<THREE.Group>(null);
@@ -30,11 +36,15 @@ export function UfoRig({ inputRef, mode, landTarget, landProgress, spawn, onPosi
   const flyStart = useRef(new THREE.Vector3());
   const flyEnd = useRef(new THREE.Vector3());
   const bobRef = useRef(0);
+  const focusRef = useRef(new THREE.Vector3(spawn.focusX, spawn.focusY, spawn.focusZ));
+  const camSnapped = useRef(false);
 
   useEffect(() => {
     posRef.current.set(spawn.x, spawn.y, spawn.z);
-    if (spawn.yaw != null) yawRef.current = spawn.yaw;
-  }, [spawn.x, spawn.y, spawn.z, spawn.yaw]);
+    yawRef.current = spawn.yaw;
+    focusRef.current.set(spawn.focusX, spawn.focusY, spawn.focusZ);
+    camSnapped.current = false;
+  }, [spawn.x, spawn.y, spawn.z, spawn.yaw, spawn.focusX, spawn.focusY, spawn.focusZ]);
 
   const hullMat = useMemo(
     () =>
@@ -72,12 +82,34 @@ export function UfoRig({ inputRef, mode, landTarget, landProgress, spawn, onPosi
     [],
   );
 
+  const aimCamera = (cam: THREE.PerspectiveCamera, ufo: THREE.Vector3, yaw: number, snap: boolean, dt: number) => {
+    const forward = new THREE.Vector3(0, 0, -1).applyAxisAngle(new THREE.Vector3(0, 1, 0), yaw);
+    const desired = ufo
+      .clone()
+      .addScaledVector(forward, -CAM_BACK)
+      .add(new THREE.Vector3(0, CAM_UP, 0));
+    const look =
+      mode === 'landing' && landTarget
+        ? new THREE.Vector3(landTarget.x, landTarget.roofY + 6, landTarget.z)
+        : ufo
+            .clone()
+            .addScaledVector(forward, -LOOK_AHEAD)
+            .add(new THREE.Vector3(0, -LOOK_DROP, 0));
+
+    if (snap) {
+      cam.position.copy(desired);
+    } else {
+      cam.position.lerp(desired, 1 - Math.pow(0.00012, dt));
+    }
+    cam.lookAt(look);
+  };
+
   useFrame((state, delta) => {
     const g = groupRef.current;
     if (!g) return;
 
     bobRef.current += delta * 2.2;
-    const bob = Math.sin(bobRef.current) * 0.15;
+    const bob = Math.sin(bobRef.current) * 0.12;
 
     const input = inputRef.current;
     if (mode === 'landing' && landTarget) {
@@ -109,18 +141,17 @@ export function UfoRig({ inputRef, mode, landTarget, landProgress, spawn, onPosi
       glowRef.current.intensity = 2.2 + Math.sin(bobRef.current * 3) * 0.4;
     }
 
-    const cam = state.camera;
-    const camOffset = new THREE.Vector3(0, 11, 24).applyAxisAngle(new THREE.Vector3(0, 1, 0), yawRef.current);
-    const desired = posRef.current.clone().add(camOffset);
-    cam.position.lerp(desired, 1 - Math.pow(0.00015, delta));
-    const lookAt = posRef.current.clone().add(new THREE.Vector3(0, 1.5, 0));
-    cam.lookAt(lookAt);
+    const ufoWorld = posRef.current.clone();
+    ufoWorld.y += bob;
+    const snap = !camSnapped.current;
+    aimCamera(state.camera as THREE.PerspectiveCamera, ufoWorld, yawRef.current, snap, delta);
+    if (snap) camSnapped.current = true;
 
     onPosition(posRef.current.clone(), yawRef.current);
   });
 
   return (
-    <group ref={groupRef}>
+    <group ref={groupRef} scale={0.82}>
       <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.15, 0]} material={hullMat}>
         <cylinderGeometry args={[2.5, 3.1, 0.62, 24]} />
       </mesh>

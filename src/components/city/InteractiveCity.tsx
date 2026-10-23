@@ -143,7 +143,7 @@ export function InteractiveCity({ games, open, onClose, onOpen, filterLabel }: I
         <div className="interactive-city-modal__canvas-wrap">
           <Canvas
             dpr={[1, 1.5]}
-            camera={{ fov: 58, near: 1, far: 420, position: [0, 42, 24] }}
+            camera={{ fov: 52, near: 0.8, far: 420, position: [0, 38, 52] }}
             gl={{
               antialias: true,
               powerPreference: 'high-performance',

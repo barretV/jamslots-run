@@ -142,6 +142,7 @@ export default async function handler(request: Request): Promise<Response> {
   const ogImage = new URL('/api/og-image', origin);
   if (count > 0) ogImage.searchParams.set('count', String(count));
   else if (jamGameCount > 0) ogImage.searchParams.set('games', String(jamGameCount));
+  ogImage.searchParams.set('v', '2');
 
   const html = `<!DOCTYPE html>
 <html lang="en">

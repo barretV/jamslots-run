@@ -8,23 +8,15 @@ import {
   hasActiveChartFilters,
   type ChartFilters,
 } from '../lib/libraryChartFilters';
-import { buildChartPoints, type NebulaColorMode } from '../lib/libraryChartModels';
+import { buildChartPoints, type LeaderMetric, type NebulaColorMode } from '../lib/libraryChartModels';
 import type { JamGame } from '../types';
-import { ChartFilterBar } from './libraryCharts/ChartFilterBar';
-import { NebulaColorModeBar } from './libraryCharts/NebulaColorModeBar';
+import { ChartsToolbar } from './libraryCharts/ChartsToolbar';
 import { CompareRadar } from './libraryCharts/CompareRadar';
 import { LeadersChart } from './libraryCharts/LeadersChart';
 import { PlaystyleScatter3D } from './libraryCharts/PlaystyleScatter3D';
 import { VotesPlaysScatter } from './libraryCharts/VotesPlaysScatter';
 
 export type LibraryChartTab = 'nebula' | 'leaders' | 'scatter' | 'compare';
-
-const TABS: { id: LibraryChartTab; label: string }[] = [
-  { id: 'nebula', label: 'Nebula' },
-  { id: 'leaders', label: 'Leaders' },
-  { id: 'scatter', label: 'Scatter' },
-  { id: 'compare', label: 'Compare' },
-];
 
 interface LibraryChartsModalProps {
   games: JamGame[];
@@ -33,11 +25,12 @@ interface LibraryChartsModalProps {
   filterLabel: string;
 }
 
-export function LibraryChartsModal({ games, open, onClose, filterLabel }: LibraryChartsModalProps) {
+export function LibraryChartsModal({ games, open, onClose }: LibraryChartsModalProps) {
   const closeRef = useRef<HTMLButtonElement>(null);
   const [tab, setTab] = useState<LibraryChartTab>('nebula');
   const [filters, setFilters] = useState<ChartFilters>(EMPTY_CHART_FILTERS);
-  const [nebulaColorMode, setNebulaColorMode] = useState<NebulaColorMode>('playstyle');
+  const [nebulaColorMode, setNebulaColorMode] = useState<NebulaColorMode>('votes');
+  const [leaderMetric, setLeaderMetric] = useState<LeaderMetric>('votes');
 
   const chartPoints = useMemo(() => buildChartPoints(games), [games]);
   const showingCount = useMemo(
@@ -63,6 +56,8 @@ export function LibraryChartsModal({ games, open, onClose, filterLabel }: Librar
 
   if (!open) return null;
 
+  const bodyScroll = tab === 'nebula' || tab === 'scatter';
+
   return createPortal(
     <div className="library-charts-modal" role="presentation">
       <button
@@ -75,47 +70,26 @@ export function LibraryChartsModal({ games, open, onClose, filterLabel }: Librar
         className="library-charts-modal__panel"
         role="dialog"
         aria-modal="true"
-        aria-labelledby="library-charts-title"
+        aria-label="Library charts"
       >
-        <header className="library-charts-modal__header">
-          <div>
-            <h2 id="library-charts-title" className="library-charts-modal__title">Library charts</h2>
-            <p className="library-charts-modal__subtitle">
-              {games.length} games · {filterLabel}
-            </p>
-          </div>
-          <button
-            ref={closeRef}
-            type="button"
-            className="library-charts-modal__close"
-            onClick={onClose}
-          >
-            Back
-          </button>
-        </header>
+        <ChartsToolbar
+          tab={tab}
+          onTabChange={setTab}
+          showing={showingCount}
+          total={games.length}
+          filters={filters}
+          onFiltersChange={setFilters}
+          nebulaColorMode={nebulaColorMode}
+          onNebulaColorModeChange={setNebulaColorMode}
+          leaderMetric={leaderMetric}
+          onLeaderMetricChange={setLeaderMetric}
+          onBack={onClose}
+          backRef={closeRef}
+        />
 
-        <div className="library-charts-modal__tabs" role="tablist" aria-label="Chart type">
-          {TABS.map((t) => (
-            <button
-              key={t.id}
-              type="button"
-              role="tab"
-              aria-selected={tab === t.id}
-              className={`library-charts-modal__tab ${tab === t.id ? 'library-charts-modal__tab--on' : ''}`}
-              onClick={() => setTab(t.id)}
-            >
-              {t.label}
-            </button>
-          ))}
-        </div>
-
-        <ChartFilterBar total={games.length} showing={showingCount} filters={filters} onChange={setFilters} />
-
-        {tab === 'nebula' ? (
-          <NebulaColorModeBar value={nebulaColorMode} onChange={setNebulaColorMode} />
-        ) : null}
-
-        <div className="library-charts-modal__body">
+        <div
+          className={`library-charts-modal__body ${bodyScroll ? 'library-charts-modal__body--plot' : 'library-charts-modal__body--scroll'}`}
+        >
           {tab === 'nebula' ? (
             <PlaystyleScatter3D
               points={chartPoints}
@@ -123,7 +97,9 @@ export function LibraryChartsModal({ games, open, onClose, filterLabel }: Librar
               filters={filters}
             />
           ) : null}
-          {tab === 'leaders' ? <LeadersChart games={games} filters={filters} /> : null}
+          {tab === 'leaders' ? (
+            <LeadersChart games={games} filters={filters} metric={leaderMetric} />
+          ) : null}
           {tab === 'scatter' ? (
             <VotesPlaysScatter
               games={games}

@@ -1902,7 +1902,12 @@ body {
   cursor: not-allowed;
 }
 
-body.library-immersive-open .app-layout {
+body.library-immersive-open #root {
+  display: none !important;
+}
+
+body.library-immersive-open .app-layout,
+body.library-immersive-open .picker-side-panel {
   display: none !important;
 }
 
@@ -1946,55 +1951,25 @@ body.library-immersive-open {
   box-shadow: inset 0 0 80px rgba(168, 85, 247, 0.08);
 }
 
-.library-charts-modal__header {
+.library-charts-toolbar {
   display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 0.75rem;
-  padding: 1rem 1rem 0.65rem;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.35rem 0.5rem;
+  padding: 0.4rem 0.55rem;
   border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  flex-shrink: 0;
 }
 
-.library-charts-modal__title {
-  margin: 0;
-  font-size: 1.35rem;
-  font-weight: 800;
-  color: #fde68a;
+.library-charts-toolbar__tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem;
 }
 
-.library-charts-modal__subtitle {
-  margin: 0.25rem 0 0;
-  font-size: 1.1rem;
-  color: #a78bfa;
-}
-
-.library-charts-modal__close {
-  border: 1px solid rgba(167, 139, 250, 0.4);
-  background: rgba(30, 15, 50, 0.65);
-  color: #e9d5ff;
-  font-size: 1.1rem;
-  font-weight: 700;
-  line-height: 1.2;
-  cursor: pointer;
-  padding: 0.45rem 0.85rem;
-  border-radius: 0.55rem;
-}
-
-.library-charts-modal__tabs {
-  display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 0.35rem;
-  padding: 0.65rem 1rem;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
-}
-
-.library-charts-modal__tab {
-  min-width: 0;
-  padding: 0.45rem 0.35rem;
-  white-space: normal;
-  line-height: 1.2;
-  text-align: center;
-  border-radius: 0.55rem;
+.library-charts-toolbar__tab {
+  padding: 0.3rem 0.55rem;
+  border-radius: 0.45rem;
   border: 1px solid rgba(255, 255, 255, 0.1);
   background: rgba(255, 255, 255, 0.04);
   color: #d4d4d8;
@@ -2003,65 +1978,80 @@ body.library-immersive-open {
   cursor: pointer;
 }
 
-.library-charts-modal__tab--on {
+.library-charts-toolbar__tab--on {
   border-color: rgba(34, 211, 238, 0.45);
   background: rgba(34, 211, 238, 0.12);
   color: #a5f3fc;
 }
 
-.library-charts-modal__body {
-  flex: 1 1 auto;
-  min-height: 0;
-  overflow: hidden;
-  display: flex;
-  flex-direction: column;
-  padding: 0.5rem 1rem 1rem;
-}
-
-.library-charts-filters {
-  display: flex;
-  flex-direction: column;
-  align-items: stretch;
-  gap: 0.45rem;
-  padding: 0.45rem 1rem;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
-}
-
-.library-charts-color-modes {
-  display: flex;
-  flex-direction: column;
-  align-items: stretch;
-  gap: 0.4rem;
-  padding: 0.45rem 1rem;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
-}
-
-.library-charts-color-modes__label {
-  margin: 0;
-  font-size: 1.1rem;
-  font-weight: 700;
-  color: #a78bfa;
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
-}
-
-.library-charts-color-modes__chips {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.35rem;
-}
-
-.library-charts-filters__count {
-  margin: 0;
+.library-charts-toolbar__count {
   font-size: 1.1rem;
   color: #a78bfa;
   font-variant-numeric: tabular-nums;
+  padding: 0 0.15rem;
 }
 
-.library-charts-filters__chips {
+.library-charts-toolbar__chips,
+.library-charts-toolbar__nebula {
   display: flex;
   flex-wrap: wrap;
-  gap: 0.35rem;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.library-charts-toolbar__legend {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  margin-left: 0.15rem;
+}
+
+.library-charts-toolbar__swatch {
+  width: 0.75rem;
+  height: 0.75rem;
+  border-radius: 2px;
+  box-shadow: 0 0 6px currentColor;
+}
+
+.library-charts-toolbar__legend-hint {
+  font-size: 1.1rem;
+  color: #71717a;
+  margin-left: 0.15rem;
+}
+
+.library-charts-toolbar__back {
+  margin-left: auto;
+  border: 1px solid rgba(167, 139, 250, 0.4);
+  background: rgba(30, 15, 50, 0.65);
+  color: #e9d5ff;
+  font-size: 1.1rem;
+  font-weight: 700;
+  cursor: pointer;
+  padding: 0.3rem 0.65rem;
+  border-radius: 0.45rem;
+}
+
+.library-charts-modal__body {
+  flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  padding: 0.35rem 0.45rem 0.45rem;
+}
+
+.library-charts-modal__body--plot {
+  overflow: hidden;
+}
+
+.library-charts-modal__body--scroll {
+  overflow: auto;
+  touch-action: pan-y;
+  -webkit-overflow-scrolling: touch;
+}
+
+.library-charts-chip--dense {
+  padding: 0.28rem 0.55rem;
+  font-size: 1.1rem;
 }
 
 .library-charts-chip {
@@ -2118,10 +2108,15 @@ body.library-immersive-open {
   border: 1px solid rgba(88, 28, 135, 0.45);
 }
 
+.library-charts-nebula__canvas {
+  flex: 1;
+  min-height: 0;
+}
+
 .library-charts-nebula__canvas canvas {
   width: 100% !important;
   height: 100% !important;
-  min-height: min(62dvh, 28rem);
+  min-height: 0;
 }
 
 .library-charts-nebula__callout {
@@ -2201,7 +2196,11 @@ body.library-immersive-open {
 
 .library-charts-leaders__chart {
   flex: 1;
-  min-height: min(62dvh, 32rem);
+  min-height: 0;
+}
+
+.library-charts-leaders--scroll {
+  min-height: min-content;
 }
 
 .library-charts-scatter-layout {

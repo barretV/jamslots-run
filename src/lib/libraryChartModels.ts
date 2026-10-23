@@ -138,24 +138,56 @@ export function computeCloudRadius(points: ChartGamePoint[], centroid: [number, 
   return maxR;
 }
 
-function lerpColor(a: string, b: string, t: number): string {
-  const parse = (hex: string) => {
-    const h = hex.replace('#', '');
-    return [parseInt(h.slice(0, 2), 16), parseInt(h.slice(2, 4), 16), parseInt(h.slice(4, 6), 16)];
-  };
-  const [r1, g1, b1] = parse(a);
-  const [r2, g2, b2] = parse(b);
-  const r = Math.round(r1 + (r2 - r1) * t);
-  const g = Math.round(g1 + (g2 - g1) * t);
-  const bl = Math.round(b1 + (b2 - b1) * t);
-  return `rgb(${r}, ${g}, ${bl})`;
+export function computeCloudBoundingSphere(points: ChartGamePoint[]): {
+  center: [number, number, number];
+  radius: number;
+} {
+  if (points.length === 0) return { center: [0, 0, 0], radius: 1 };
+  const centroid = computeCentroid(points);
+  let radius = 0.25;
+  for (const p of points) {
+    const dx = p.position[0] - centroid[0];
+    const dy = p.position[1] - centroid[1];
+    const dz = p.position[2] - centroid[2];
+    radius = Math.max(radius, Math.sqrt(dx * dx + dy * dy + dz * dz));
+  }
+  return { center: centroid, radius: Math.max(radius, 0.35) };
+}
+
+function hslColor(h: number, s: number, l: number): string {
+  return `hsl(${h}, ${s}%, ${l}%)`;
+}
+
+export function nebulaDistinctColor(p: ChartGamePoint, mode: NebulaColorMode): string {
+  const idHue = hashId(p.game.gameId) * 360;
+  const mix = hashId(p.game.gameId, 'm');
+  if (mode === 'playstyle') {
+    const clusterHue =
+      p.cluster === 'rusher' ? 42 : p.cluster === 'survivor' ? 305 : 192;
+    const h = clusterHue * 0.45 + idHue * 0.55;
+    return hslColor(h, 78, 56);
+  }
+  if (mode === 'votes') {
+    const h = 210 - p.votesNorm * 175 + mix * 28;
+    return hslColor(h, 82, 52 + p.votesNorm * 10);
+  }
+  if (mode === 'plays') {
+    const h = 265 + p.playsNorm * 55 + mix * 22;
+    return hslColor(h, 75, 50 + p.playsNorm * 12);
+  }
+  const h = 220 + p.todayNorm * 95 + mix * 30;
+  return hslColor(h, 88, 48 + p.todayNorm * 14);
+}
+
+export function nebulaPointSize(p: ChartGamePoint): number {
+  const base = 0.038;
+  const voteBoost = 0.02 + p.votesNorm * 0.045;
+  const todayBoost = p.todayNorm * 0.035;
+  return base + voteBoost + todayBoost;
 }
 
 export function colorForPoint(p: ChartGamePoint, mode: NebulaColorMode): string {
-  if (mode === 'playstyle') return CLUSTER_COLORS[p.cluster];
-  if (mode === 'votes') return lerpColor('#0e7490', '#f97316', p.votesNorm);
-  if (mode === 'plays') return lerpColor('#312e81', '#a78bfa', p.playsNorm);
-  return lerpColor('#1e3a5f', '#fbbf24', p.todayNorm);
+  return nebulaDistinctColor(p, mode);
 }
 
 export function leaderMetricValue(game: JamGame, metric: LeaderMetric): number {

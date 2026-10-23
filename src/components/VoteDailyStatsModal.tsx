@@ -222,10 +222,20 @@ export function VoteDailyStatsModal({ target, onClose }: VoteDailyStatsModalProp
                         const pct = chartMax > 0 ? (row.delta / chartMax) * 100 : 0;
                         return (
                           <li key={row.day} className="vote-daily-day">
-                            <div className="vote-daily-day__head">
+                            <div
+                              className="vote-daily-day__head"
+                              aria-label={`${utcDayLabel(row.day)}: votes ${formatPlays(row.before)} to ${formatPlays(row.after)}`}
+                            >
                               <span className="vote-daily-day__date">{utcDayLabel(row.day)}</span>
-                              <span className="vote-daily-day__delta-chip">
-                                {row.delta > 0 ? `+${formatPlays(row.delta)}` : '0'}
+                              <span className="vote-daily-day__meta">
+                                <span className="vote-daily-chart__before">{formatPlays(row.before)}</span>
+                                <span className="vote-daily-chart__arrow" aria-hidden>→</span>
+                                <span className="vote-daily-chart__after">{formatPlays(row.after)}</span>
+                                {row.delta > 0 ? (
+                                  <span className="vote-daily-chart__delta">(+{formatPlays(row.delta)})</span>
+                                ) : (
+                                  <span className="vote-daily-chart__delta vote-daily-chart__delta--zero">(0)</span>
+                                )}
                               </span>
                             </div>
                             <div className="vote-daily-chart__track vote-daily-day__track">
@@ -234,17 +244,6 @@ export function VoteDailyStatsModal({ target, onClose }: VoteDailyStatsModalProp
                                 style={{ width: `${Math.max(row.delta > 0 ? 6 : 0, pct)}%` }}
                               />
                             </div>
-                            <p
-                              className="vote-daily-chart__range"
-                              aria-label={`Votes ${formatPlays(row.before)} to ${formatPlays(row.after)}`}
-                            >
-                              <span className="vote-daily-chart__before">{formatPlays(row.before)}</span>
-                              <span className="vote-daily-chart__arrow" aria-hidden>→</span>
-                              <span className="vote-daily-chart__after">{formatPlays(row.after)}</span>
-                              {row.delta > 0 ? (
-                                <span className="vote-daily-chart__delta">(+{formatPlays(row.delta)})</span>
-                              ) : null}
-                            </p>
                           </li>
                         );
                       })}

@@ -1,87 +1,122 @@
 import { Canvas, useFrame } from '@react-three/fiber';
-import { OrbitControls, Html } from '@react-three/drei';
+import { Html, OrbitControls, Stars } from '@react-three/drei';
 import { useMemo, useRef, useState } from 'react';
 import * as THREE from 'three';
-import {
-  buildPlaystylePoints,
-  PLAYSTYLE_COLORS,
-  type PlaystylePoint,
-} from '../../lib/libraryChartModels';
-import type { JamGame } from '../../types';
+import type { ChartGamePoint } from '../../lib/libraryChartModels';
+import { CLUSTER_COLORS } from '../../lib/libraryChartModels';
 
-function PointCloud({ points }: { points: PlaystylePoint[] }) {
-  const meshRef = useRef<THREE.InstancedMesh>(null);
-  const [hovered, setHovered] = useState<PlaystylePoint | null>(null);
-  const dummy = useMemo(() => new THREE.Object3D(), []);
+interface PlaystyleScatter3DProps {
+  points: ChartGamePoint[];
+}
 
-  useFrame(() => {
-    const mesh = meshRef.current;
-    if (!mesh) return;
-    points.forEach((p, i) => {
-      dummy.position.set(p.x, p.y, p.z);
-      dummy.scale.setScalar(0.045);
-      dummy.updateMatrix();
-      mesh.setMatrixAt(i, dummy.matrix);
-      const color = new THREE.Color(PLAYSTYLE_COLORS[p.cluster]);
-      mesh.setColorAt(i, color);
-    });
-    mesh.instanceMatrix.needsUpdate = true;
-    if (mesh.instanceColor) mesh.instanceColor.needsUpdate = true;
+function hashId(id: string): number {
+  let h = 0;
+  for (let i = 0; i < id.length; i++) h = (h * 31 + id.charCodeAt(i)) | 0;
+  return (h % 1000) / 1000;
+}
+
+function NebulaPoints({ points }: PlaystyleScatter3DProps) {
+  const ref = useRef<THREE.Points>(null);
+  const [hovered, setHovered] = useState<ChartGamePoint | null>(null);
+
+  const { positions, colors, meta } = useMemo(() => {
+    const positions = new Float32Array(points.length * 3);
+    const colors = new Float32Array(points.length * 3);
+    const meta: ChartGamePoint[] = [];
+    const color = new THREE.Color();
+    let i = 0;
+    for (const p of points) {
+      const j = hashId(p.game.gameId);
+      const j2 = hashId(p.game.gameId + 'b');
+      const j3 = hashId(p.game.gameId + 'c');
+      const spread = 0.22;
+      positions[i * 3] = (p.votesNorm - 0.5) * 3.6 + (j - 0.5) * spread;
+      positions[i * 3 + 1] = (p.playsNorm - 0.5) * 3.6 + (j2 - 0.5) * spread;
+      positions[i * 3 + 2] = (p.todayNorm - 0.5) * 3.6 + (j3 - 0.5) * spread;
+      color.set(CLUSTER_COLORS[p.cluster]);
+      colors[i * 3] = color.r;
+      colors[i * 3 + 1] = color.g;
+      colors[i * 3 + 2] = color.b;
+      meta.push(p);
+      i++;
+    }
+    return { positions, colors, meta };
+  }, [points]);
+
+  useFrame((_, delta) => {
+    if (ref.current) ref.current.rotation.y += delta * 0.04;
   });
 
   return (
     <>
-      <instancedMesh
-        ref={meshRef}
-        args={[undefined, undefined, Math.max(1, points.length)]}
+      <Stars radius={80} depth={40} count={1200} factor={3} saturation={0.15} fade speed={0.4} />
+      <points
+        ref={ref}
         onPointerMove={(e) => {
-          e.stopPropagation();
-          const id = e.instanceId;
-          if (id != null) setHovered(points[id] ?? null);
+          const idx = e.index;
+          if (idx !== undefined && idx >= 0 && idx < meta.length) setHovered(meta[idx]);
         }}
         onPointerOut={() => setHovered(null)}
       >
-        <sphereGeometry args={[1, 8, 8]} />
-        <meshStandardMaterial vertexColors />
-      </instancedMesh>
+        <bufferGeometry>
+          <bufferAttribute attach="attributes-position" args={[positions, 3]} />
+          <bufferAttribute attach="attributes-color" args={[colors, 3]} />
+        </bufferGeometry>
+        <pointsMaterial
+          size={0.055}
+          vertexColors
+          transparent
+          opacity={0.92}
+          sizeAttenuation
+          depthWrite={false}
+          blending={THREE.AdditiveBlending}
+        />
+      </points>
       {hovered ? (
-        <Html position={[hovered.x, hovered.y + 0.12, hovered.z]} center>
-          <div className="library-charts-tooltip">{hovered.title}</div>
+        <Html
+          position={[0, 0, 0]}
+          style={{ pointerEvents: 'none' }}
+          className="library-charts-3d-tip library-charts-3d-tip--fixed"
+        >
+          <div>
+            <strong>{hovered.game.title}</strong>
+            <div>
+              {hovered.game.votes} votes · {hovered.game.totalPlays} plays · +
+              {hovered.game.votesToday ?? 0} today
+            </div>
+          </div>
         </Html>
       ) : null}
     </>
   );
 }
 
-interface PlaystyleScatter3DProps {
-  games: JamGame[];
-}
-
-export function PlaystyleScatter3D({ games }: PlaystyleScatter3DProps) {
-  const points = useMemo(() => buildPlaystylePoints(games), [games]);
-
+export function PlaystyleScatter3D({ points }: PlaystyleScatter3DProps) {
   if (points.length === 0) {
     return <p className="library-charts-empty">No games in this view.</p>;
   }
 
   return (
-    <div className="library-charts-panel library-charts-panel--3d">
-      <p className="library-charts-caption">
-        X = votes · Y = plays · Z = votes today (normalized). Pink = Rusher, cyan = Tactician, amber
-        = Survivor.
-      </p>
-      <Canvas camera={{ position: [2.2, 2, 2.2], fov: 50 }}>
-        <color attach="background" args={['#0a0612']} />
-        <ambientLight intensity={0.65} />
-        <pointLight position={[4, 4, 4]} intensity={1.1} color="#c084fc" />
-        <PointCloud points={points} />
-        <OrbitControls enablePan enableZoom />
+    <div className="library-charts-3d-wrap library-charts-3d-wrap--nebula">
+      <Canvas camera={{ position: [0, 0.4, 5.2], fov: 52 }}>
+        <color attach="background" args={['#000000']} />
+        <fog attach="fog" args={['#000000', 4, 14]} />
+        <ambientLight intensity={0.25} />
+        <NebulaPoints points={points} />
+        <OrbitControls enablePan enableZoom autoRotate autoRotateSpeed={0.35} />
       </Canvas>
-      <ul className="library-charts-legend">
-        <li><span className="library-charts-swatch" style={{ background: PLAYSTYLE_COLORS.rusher }} /> Rusher</li>
-        <li><span className="library-charts-swatch" style={{ background: PLAYSTYLE_COLORS.tactician }} /> Tactician</li>
-        <li><span className="library-charts-swatch" style={{ background: PLAYSTYLE_COLORS.survivor }} /> Survivor</li>
-      </ul>
+      <p className="library-charts-legend library-charts-legend--inline">
+        <span className="library-charts-legend__dot" style={{ background: CLUSTER_COLORS.rusher }} />
+        Rusher
+        <span className="library-charts-legend__dot" style={{ background: CLUSTER_COLORS.tactician }} />
+        Tactician
+        <span className="library-charts-legend__dot" style={{ background: CLUSTER_COLORS.survivor }} />
+        Survivor
+      </p>
+      <p className="library-charts-cap-hint">
+        Each star is a game. Drag to orbit, scroll to zoom. Axes: votes, plays, votes today (this list
+        only).
+      </p>
     </div>
   );
 }

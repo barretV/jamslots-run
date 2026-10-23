@@ -1,4 +1,5 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { buildChartPoints } from '../lib/libraryChartModels';
 import type { JamGame } from '../types';
 import { PlaystyleScatter3D } from './libraryCharts/PlaystyleScatter3D';
 import { TopGamesRadar } from './libraryCharts/TopGamesRadar';
@@ -6,11 +7,11 @@ import { VotePlayHeatmap } from './libraryCharts/VotePlayHeatmap';
 import { VotePlaySankey } from './libraryCharts/VotePlaySankey';
 import { VoteTierWaffle } from './libraryCharts/VoteTierWaffle';
 
-export type LibraryChartTab = 'playstyle' | 'sankey' | 'radar' | 'heatmap' | 'waffle';
+export type LibraryChartTab = 'nebula' | 'sankey' | 'radar' | 'heatmap' | 'waffle';
 
 const TABS: { id: LibraryChartTab; label: string }[] = [
-  { id: 'playstyle', label: 'Playstyle 3D' },
-  { id: 'sankey', label: 'Sankey' },
+  { id: 'nebula', label: 'Nebula' },
+  { id: 'sankey', label: 'Flows' },
   { id: 'radar', label: 'Radar' },
   { id: 'heatmap', label: 'Heatmap' },
   { id: 'waffle', label: 'Waffle' },
@@ -25,7 +26,8 @@ interface LibraryChartsModalProps {
 
 export function LibraryChartsModal({ games, open, onClose, filterLabel }: LibraryChartsModalProps) {
   const closeRef = useRef<HTMLButtonElement>(null);
-  const [tab, setTab] = useState<LibraryChartTab>('playstyle');
+  const [tab, setTab] = useState<LibraryChartTab>('nebula');
+  const chartPoints = useMemo(() => buildChartPoints(games), [games]);
 
   useEffect(() => {
     if (!open) return;
@@ -89,7 +91,7 @@ export function LibraryChartsModal({ games, open, onClose, filterLabel }: Librar
         </div>
 
         <div className="library-charts-modal__body">
-          {tab === 'playstyle' ? <PlaystyleScatter3D games={games} /> : null}
+          {tab === 'nebula' ? <PlaystyleScatter3D points={chartPoints} /> : null}
           {tab === 'sankey' ? <VotePlaySankey games={games} /> : null}
           {tab === 'radar' ? <TopGamesRadar games={games} /> : null}
           {tab === 'heatmap' ? <VotePlayHeatmap games={games} /> : null}

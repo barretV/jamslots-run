@@ -2,6 +2,20 @@ import type { JamGame } from '../types';
 
 export type PlaystyleCluster = 'rusher' | 'tactician' | 'survivor';
 
+export interface ChartGamePoint {
+  game: JamGame;
+  votesNorm: number;
+  playsNorm: number;
+  todayNorm: number;
+  cluster: PlaystyleCluster;
+}
+
+export const CLUSTER_COLORS: Record<PlaystyleCluster, string> = {
+  rusher: '#fbbf24',
+  tactician: '#22d3ee',
+  survivor: '#e879f9',
+};
+
 export interface PlaystylePoint {
   gameId: string;
   title: string;
@@ -106,6 +120,53 @@ function classifyPlaystyle(
   if (Math.abs(votesN - playsN) <= 0.22) return 'tactician';
   if (playsN > votesN) return 'survivor';
   return 'tactician';
+}
+
+function tertileTier(value: number, sortedValues: number[]): 'Low' | 'Mid' | 'High' {
+  if (sortedValues.length === 0) return 'Low';
+  const { min, max } = minMax(sortedValues);
+  const t = norm(value, min, max);
+  if (t < 1 / 3) return 'Low';
+  if (t < 2 / 3) return 'Mid';
+  return 'High';
+}
+
+function classifyPlaystyleGame(
+  game: JamGame,
+  todaySorted: number[],
+  votesSorted: number[],
+  playsSorted: number[],
+): PlaystyleCluster {
+  const todayT = tertileTier(game.votesToday ?? 0, todaySorted);
+  const votesT = tertileTier(game.votes, votesSorted);
+  const playsT = tertileTier(game.totalPlays, playsSorted);
+  if (todayT === 'High') return 'rusher';
+  if (playsT === 'High' && (votesT === 'Low' || game.totalPlays > game.votes * 1.15)) {
+    return 'survivor';
+  }
+  return 'tactician';
+}
+
+/** Normalized points for the Nebula 3D view (filtered library set). */
+export function buildChartPoints(games: JamGame[]): ChartGamePoint[] {
+  if (games.length === 0) return [];
+  const votes = games.map((g) => g.votes);
+  const plays = games.map((g) => g.totalPlays);
+  const today = games.map((g) => g.votesToday ?? 0);
+  const votesSorted = [...votes].sort((a, b) => a - b);
+  const playsSorted = [...plays].sort((a, b) => a - b);
+  const todaySorted = [...today].sort((a, b) => a - b);
+  const vMm = minMax(votes);
+  const pMm = minMax(plays);
+  const tMm = minMax(today);
+
+  return games.map((game) => ({
+    game,
+    votesNorm: norm(game.votes, vMm.min, vMm.max),
+    playsNorm: norm(game.totalPlays, pMm.min, pMm.max),
+    todayNorm: norm(game.votesToday ?? 0, tMm.min, tMm.max),
+    cluster: classifyPlaystyleGame(game, todaySorted, votesSorted, playsSorted),
+  }));
 }
 
 export function buildPlaystylePoints(games: JamGame[]): PlaystylePoint[] {

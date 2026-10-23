@@ -21,6 +21,7 @@ export interface PosterGridTileProps {
   showStar: boolean;
   onOpen: (item: PosterGridItem) => void;
   onToggleFavorite?: (gameId: string) => void;
+  onVotePress?: (item: PosterGridItem) => void;
 }
 
 export const PosterGridTile = memo(function PosterGridTile({
@@ -31,6 +32,7 @@ export const PosterGridTile = memo(function PosterGridTile({
   showStar,
   onOpen,
   onToggleFavorite,
+  onVotePress,
 }: PosterGridTileProps) {
   return (
     <li data-poster-tile className="poster-tile min-w-0">
@@ -55,6 +57,7 @@ export const PosterGridTile = memo(function PosterGridTile({
             favorited={favorited}
             showFavorite={showStar}
             onToggleFavorite={() => onToggleFavorite?.(item.gameId)}
+            onVotePress={onVotePress ? () => onVotePress(item) : undefined}
           />
           <CoverStatsRow gameId={item.gameId} totalPlays={item.totalPlays} density="compact" />
         </div>

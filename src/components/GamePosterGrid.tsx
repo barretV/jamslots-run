@@ -23,6 +23,7 @@ interface GamePosterGridProps {
   jamSlug?: string;
   isFavorite?: (gameId: string) => boolean;
   onToggleFavorite?: (gameId: string) => void;
+  onVotePress?: (item: PosterGridItem) => void;
 }
 
 export function GamePosterGrid({
@@ -33,6 +34,7 @@ export function GamePosterGrid({
   jamSlug = 'octoberjam',
   isFavorite,
   onToggleFavorite,
+  onVotePress,
 }: GamePosterGridProps) {
   const scrollRef = usePosterGridScrollMotion();
   const onGridKeyDown = usePosterGridKeyboard(scrollRef, items.length, items.length > 0);
@@ -64,6 +66,7 @@ export function GamePosterGrid({
             showStar={showStar}
             onOpen={onOpen}
             onToggleFavorite={onToggleFavorite}
+            onVotePress={onVotePress}
           />
         ))}
       </ul>

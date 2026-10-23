@@ -67,5 +67,46 @@ export function applyVoteDailyTracking(root, games, prevTotals = {}) {
     writeFileSync(historyPath, `${JSON.stringify({ snapshots })}\n`);
   }
 
+  const dailyPath = join(root, 'src/data/vote-daily-history.json');
+  const dailyPublic = join(root, 'public/vote-daily-history.json');
+  const daily = buildDailyHistoryFromSnapshots(snapshots);
+  daily.updatedAt = syncedAt;
+  const dailyJson = `${JSON.stringify(daily)}\n`;
+  writeFileSync(dailyPath, dailyJson);
+  writeFileSync(dailyPublic, dailyJson);
+
   return { votesDayUtc: today, syncedAt, historyChanged: changed };
+}
+
+/** Last totals per UTC day, then day-over-day deltas per game (for charts). */
+export function buildDailyHistoryFromSnapshots(snapshots) {
+  if (!Array.isArray(snapshots) || snapshots.length === 0) {
+    return { daysUtc: [], games: {} };
+  }
+  const byDay = new Map();
+  for (const s of snapshots) {
+    if (!s?.dayUtc || !s.totals) continue;
+    byDay.set(s.dayUtc, s.totals);
+  }
+  const daysUtc = [...byDay.keys()].sort();
+  if (daysUtc.length === 0) return { daysUtc: [], games: {} };
+
+  const allIds = new Set();
+  for (const totals of byDay.values()) {
+    for (const id of Object.keys(totals)) allIds.add(id);
+  }
+
+  const games = {};
+  for (const gameId of allIds) {
+    const values = [];
+    let prevTotal = 0;
+    for (const day of daysUtc) {
+      const total = Number(byDay.get(day)[gameId] ?? prevTotal);
+      values.push(Math.max(0, total - prevTotal));
+      prevTotal = total;
+    }
+    if (values.some((v) => v > 0)) games[gameId] = values;
+  }
+
+  return { daysUtc, games };
 }

@@ -8,6 +8,8 @@ interface PosterMetaChipProps {
   favorited?: boolean;
   showFavorite?: boolean;
   onToggleFavorite?: () => void;
+  /** When set, vote chip opens stats instead of navigating away. */
+  onVotePress?: () => void;
 }
 
 export function PosterMetaChip({
@@ -18,6 +20,7 @@ export function PosterMetaChip({
   favorited = false,
   showFavorite = false,
   onToggleFavorite,
+  onVotePress,
 }: PosterMetaChipProps) {
   const count = votes ?? 0;
   const todayGain = votesToday != null && votesToday > 0 ? votesToday : 0;
@@ -71,7 +74,20 @@ export function PosterMetaChip({
       </div>
       <div className="poster-meta-chip__side poster-meta-chip__side--end">
         <div className="poster-meta-chip__votes-stack">
-          {linked ? (
+          {linked && onVotePress ? (
+            <button
+              type="button"
+              className="poster-meta-chip__votes poster-meta-chip__votes--link poster-meta-chip__votes--btn"
+              title={`Jam vote stats (${voteLabel})`}
+              aria-label={`Jam vote stats (${voteLabel})`}
+              onClick={(e) => {
+                e.stopPropagation();
+                onVotePress();
+              }}
+            >
+              {voteTotal}
+            </button>
+          ) : linked ? (
             <a
               href={href}
               target="_blank"

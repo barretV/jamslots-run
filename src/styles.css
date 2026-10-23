@@ -2538,3 +2538,90 @@ body {
     transform: none !important;
   }
 }
+
+.poster-meta-chip__votes--btn {
+  margin: 0;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  font: inherit;
+}
+
+.vote-stats-btn {
+  display: block;
+  width: 100%;
+  padding: 0.75rem 1rem;
+  border-radius: 0.65rem;
+  font-size: 1.1rem;
+  font-weight: 700;
+  line-height: 1.2;
+  text-decoration: none;
+  cursor: pointer;
+  border: 1px solid transparent;
+}
+
+.vote-stats-btn--primary {
+  color: #042f2e;
+  background: linear-gradient(135deg, #67e8f9, #22d3ee);
+  border-color: rgba(34, 211, 238, 0.5);
+}
+
+.vote-stats-btn--primary:hover {
+  filter: brightness(1.06);
+}
+
+.vote-stats-btn--secondary {
+  color: #e4e4e7;
+  background: rgba(88, 28, 135, 0.45);
+  border-color: rgba(192, 132, 252, 0.35);
+}
+
+.vote-stats-btn--ghost {
+  color: #a1a1aa;
+  background: rgba(255, 255, 255, 0.04);
+  border-color: rgba(255, 255, 255, 0.1);
+}
+
+.vote-daily-chart {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+}
+
+.vote-daily-chart__row {
+  display: grid;
+  grid-template-columns: 2.5rem 1fr 2.5rem;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.vote-daily-chart__label {
+  font-size: 1.05rem;
+  color: #71717a;
+  font-variant-numeric: tabular-nums;
+}
+
+.vote-daily-chart__track {
+  height: 0.65rem;
+  border-radius: 9999px;
+  background: rgba(255, 255, 255, 0.06);
+  overflow: hidden;
+}
+
+.vote-daily-chart__bar {
+  height: 100%;
+  border-radius: 9999px;
+  background: linear-gradient(90deg, #22d3ee, #67e8f9);
+  min-width: 0;
+}
+
+.vote-daily-chart__value {
+  text-align: right;
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: #86efac;
+  font-variant-numeric: tabular-nums;
+}

@@ -11,13 +11,20 @@
     "backfill-votes-baseline": "node scripts/backfill-votes-baseline-from-git.mjs"
   },
   "dependencies": {
+    "@react-three/drei": "^10.7.9",
+    "@react-three/fiber": "^9.8.2",
     "@vercel/kv": "^3.0.0",
     "@vercel/og": "^0.6.8",
+    "d3-sankey": "^0.12.3",
+    "d3-scale": "^4.0.2",
     "react": "19.2.4",
-    "react-dom": "19.2.4"
+    "react-dom": "19.2.4",
+    "recharts": "^3.10.1",
+    "three": "^0.186.1"
   },
   "devDependencies": {
     "@tailwindcss/vite": "^4.1.5",
+    "@types/d3-sankey": "^0.12.5",
     "@types/react": "^19.0.0",
     "@types/react-dom": "^19.0.0",
     "@vitejs/plugin-react": "^4.4.1",

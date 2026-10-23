@@ -1,8 +1,12 @@
-import { useEffect, useMemo, useState } from 'react';
+import { lazy, Suspense, useEffect, useMemo, useState } from 'react';
 import type { JamGame } from '../types';
 import { useFavoriteCounts } from './FavoriteCountsProvider';
 import { GamePosterGrid } from './GamePosterGrid';
 import { LibrarySortSelect, sortHintPhrase, type LibrarySortMode } from './LibrarySortSelect';
+
+const LibraryChartsModal = lazy(() =>
+  import('./LibraryChartsModal').then((m) => ({ default: m.LibraryChartsModal })),
+);
 
 interface LibraryListProps {
   games: JamGame[];
@@ -118,6 +122,7 @@ export function LibraryList({
   const [query, setQuery] = useState('');
   const [debouncedQuery, setDebouncedQuery] = useState('');
   const [sortMode, setSortMode] = useState<LibrarySortMode>('title-asc');
+  const [chartsOpen, setChartsOpen] = useState(false);
   useEffect(() => {
     const id = window.setTimeout(() => setDebouncedQuery(query.trim()), 200);
     return () => window.clearTimeout(id);
@@ -201,7 +206,17 @@ export function LibraryList({
           <span className="library-search-label">Sort library</span>
           <LibrarySortSelect value={sortMode} onChange={setSortMode} />
         </div>
-        <p className="library-search-hint" aria-live="polite">{hint}</p>
+        <div className="library-hint-row">
+          <p className="library-search-hint" aria-live="polite">{hint}</p>
+          <button
+            type="button"
+            className="library-charts-btn"
+            onClick={() => setChartsOpen(true)}
+            disabled={visibleGames.length === 0}
+          >
+            Charts
+          </button>
+        </div>
       </div>
       <GamePosterGrid
         items={items}
@@ -225,6 +240,16 @@ export function LibraryList({
         isFavorite={isFavorite}
         onToggleFavorite={onToggleFavorite}
       />
+      {chartsOpen ? (
+        <Suspense fallback={null}>
+          <LibraryChartsModal
+            games={visibleGames}
+            open={chartsOpen}
+            onClose={() => setChartsOpen(false)}
+            filterLabel={debouncedQuery ? `search “${debouncedQuery}”` : sortPhrase}
+          />
+        </Suspense>
+      ) : null}
     </section>
   );
 }

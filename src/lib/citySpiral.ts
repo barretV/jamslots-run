@@ -45,9 +45,9 @@ function hashSeed(id: string): number {
 function tierScalesForSeed(seed: number, tiers: number): number[] {
   const out: number[] = [];
   for (let t = 0; t < tiers; t++) {
-    const bite = (seed >> (t * 3)) % 11;
-    const taper = 1 - t * 0.055;
-    out.push(taper * (0.82 + bite * 0.028));
+    const bite = (seed >> (t * 3)) % 9;
+    const taper = 1 - t * 0.038;
+    out.push(taper * (0.94 + bite * 0.018));
   }
   return out;
 }
@@ -62,9 +62,9 @@ export function buildCityLayout(
   games: JamGame[],
   options?: { radiusStep?: number; roadInset?: number; buildingOutset?: number },
 ): { buildings: CityBuildingSlot[]; roadPoints: { x: number; z: number }[] } {
-  const radiusStep = options?.radiusStep ?? 13.2;
-  const roadInset = options?.roadInset ?? 0.62;
-  const buildingOutset = options?.buildingOutset ?? 13.5;
+  const radiusStep = options?.radiusStep ?? 11.2;
+  const roadInset = options?.roadInset ?? 0.64;
+  const buildingOutset = options?.buildingOutset ?? 11.4;
 
   const sorted = sortGamesForCity(games);
   const maxVotes = Math.max(1, ...sorted.map((g) => g.votes));
@@ -93,19 +93,22 @@ export function buildCityLayout(
 
     const topVotes = topVoteIds.has(game.gameId);
     const topToday = topTodayIds.has(game.gameId);
-    const voteT = Math.pow(game.votes / maxVotes, 0.52);
-    const coreShrink = Math.min(1, 0.2 + radial * 0.011);
+    const voteT = Math.pow(game.votes / maxVotes, 0.56);
+    const coreShrink = Math.min(1, 0.88 + radial * 0.0018);
 
-    const height =
-      5 +
-      voteT * 34 +
-      (topVotes ? 8 : 0) +
-      (topToday ? 3 : 0) +
-      (seed % 9) * 0.45;
-    const width =
-      Math.max(2.6, (2.4 + voteT * 4 + (topVotes ? 1.4 : 0) + (seed % 6) * 0.24) * coreShrink);
-    const depth =
-      Math.max(2.4, (2.1 + voteT * 3.5 + (topToday ? 0.8 : 0) + ((seed >> 3) % 6) * 0.2) * coreShrink);
+    let width =
+      Math.max(5.4, (5 + voteT * 8.6 + (topVotes ? 2.6 : 0) + (seed % 4) * 0.42) * coreShrink);
+    let depth =
+      Math.max(5, (4.6 + voteT * 7.4 + (topToday ? 1.5 : 0) + ((seed >> 3) % 4) * 0.38) * coreShrink);
+    let height =
+      8 +
+      voteT * 26 +
+      (topVotes ? 7 : 0) +
+      (topToday ? 2.5 : 0) +
+      (seed % 6) * 0.5;
+    const footprint = Math.max(width, depth);
+    const maxAspect = 3.1;
+    if (height / footprint > maxAspect) height = footprint * maxAspect;
     const faceYaw = Math.atan2(x, z);
     const posterSize = 5.12;
 
@@ -123,7 +126,7 @@ export function buildCityLayout(
       posterSize,
       topVotes,
       topToday,
-      tierScales: tierScalesForSeed(seed, 5),
+      tierScales: tierScalesForSeed(seed, 9),
     });
   }
 

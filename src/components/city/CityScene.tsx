@@ -43,8 +43,8 @@ export function CityScene({
 
   useEffect(() => {
     const urls = buildings
-      .filter((b) => b.topVotes || b.topToday || b.index < 120)
-      .slice(0, 96)
+      .filter((b) => b.topVotes || b.topToday || b.index < 160)
+      .slice(0, 120)
       .map((b) => b.game.thumbnailUrl);
     preloadCityThumbnails(urls);
   }, [buildings]);

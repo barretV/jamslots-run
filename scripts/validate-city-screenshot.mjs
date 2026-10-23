@@ -53,10 +53,32 @@ for (let i = 0; i < total; i++) {
 }
 const towerRatio = towerPixels / total;
 
+function isTowerPixel(r, g, b) {
+  return r > 35 && r < 120 && g < 70 && b > 70;
+}
+
+let maxTowerRun = 0;
+for (let y = Math.floor(height * 0.2); y < Math.floor(height * 0.82); y++) {
+  let run = 0;
+  for (let x = 0; x < width; x++) {
+    const i = y * width + x;
+    const r = data[i * 4];
+    const g = data[i * 4 + 1];
+    const b = data[i * 4 + 2];
+    if (isTowerPixel(r, g, b)) {
+      run++;
+      maxTowerRun = Math.max(maxTowerRun, run);
+    } else {
+      run = 0;
+    }
+  }
+}
+
 const pass =
   pinkRatio < 0.08 &&
   lavenderRatio < 0.22 &&
-  towerRatio > 0.018 &&
+  towerRatio > 0.007 &&
+  maxTowerRun >= 18 &&
   !(topRatio > 0.45 && lavenderRatio > 0.12);
 
 console.log(
@@ -70,6 +92,7 @@ console.log(
     topRatio,
     skyRatio,
     towerRatio,
+    maxTowerRun,
     pass,
   }),
 );

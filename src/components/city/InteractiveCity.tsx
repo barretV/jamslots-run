@@ -1,9 +1,9 @@
 import { Canvas } from '@react-three/fiber';
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import * as THREE from 'three';
 import { useLibraryImmersiveOverlay } from '../../lib/useLibraryImmersiveOverlay';
-import type { CityBuildingSlot } from '../../lib/citySpiral';
+import { buildCityLayout, computeCitySpawn, type CityBuildingSlot } from '../../lib/citySpiral';
 import type { JamGame } from '../../types';
 import { CityScene, type CityFlightMode } from './CityScene';
 import type { FlightInput } from './UfoRig';
@@ -28,6 +28,7 @@ export function InteractiveCity({ games, open, onClose, onOpen, filterLabel }: I
   const [landTarget, setLandTarget] = useState<CityBuildingSlot | null>(null);
   const [landProgress, setLandProgress] = useState(0);
   const landAnimRef = useRef<number | null>(null);
+  const citySpawn = useMemo(() => computeCitySpawn(buildCityLayout(games).buildings), [games]);
 
   const startLanding = useCallback((slot: CityBuildingSlot) => {
     setLandTarget(slot);
@@ -143,7 +144,12 @@ export function InteractiveCity({ games, open, onClose, onOpen, filterLabel }: I
         <div className="interactive-city-modal__canvas-wrap">
           <Canvas
             dpr={[1, 1.5]}
-            camera={{ fov: 52, near: 0.8, far: 420, position: [0, 38, 52] }}
+            camera={{
+              fov: 50,
+              near: 2,
+              far: 420,
+              position: [citySpawn.scenicCamX, citySpawn.scenicCamY, citySpawn.scenicCamZ],
+            }}
             gl={{
               antialias: true,
               powerPreference: 'high-performance',
@@ -157,7 +163,10 @@ export function InteractiveCity({ games, open, onClose, onOpen, filterLabel }: I
               mode={mode}
               landTarget={landTarget}
               landProgress={landProgress}
-              onCraftMove={() => {}}
+              onCraftMove={(pos) => {
+                const w = window as typeof window & { __cityCraft?: { x: number; z: number } };
+                w.__cityCraft = { x: pos.x, z: pos.z };
+              }}
               onNearBuilding={setNearBuilding}
             />
           </Canvas>

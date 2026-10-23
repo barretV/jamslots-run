@@ -1,8 +1,9 @@
 import { Stars } from '@react-three/drei';
 import { useFrame } from '@react-three/fiber';
 import type { MutableRefObject } from 'react';
-import { useMemo, useRef } from 'react';
+import { useEffect, useMemo, useRef } from 'react';
 import * as THREE from 'three';
+import { preloadCityThumbnails } from '../../lib/cityTextureCache';
 import { buildCityLayout, computeCitySpawn, type CityBuildingSlot } from '../../lib/citySpiral';
 import type { JamGame } from '../../types';
 import { CityBuildings } from './CityBuildings';
@@ -37,6 +38,19 @@ export function CityScene({
   const spawn = useMemo(() => computeCitySpawn(buildings), [buildings]);
   const craftPos = useRef(new THREE.Vector3(spawn.x, spawn.y, spawn.z));
 
+  useEffect(() => {
+    const w = window as typeof window & { __cityFocus?: { x: number; z: number } };
+    w.__cityFocus = { x: spawn.focusX, z: spawn.focusZ };
+  }, [spawn]);
+
+  useEffect(() => {
+    const urls = buildings
+      .filter((b) => b.topVotes || b.index < 48)
+      .slice(0, 48)
+      .map((b) => b.game.thumbnailUrl);
+    preloadCityThumbnails(urls);
+  }, [buildings]);
+
   useFrame(() => {
     if (mode === 'fly') {
       let best: CityBuildingSlot | null = null;
@@ -62,7 +76,7 @@ export function CityScene({
   return (
     <>
       <color attach="background" args={['#07020f']} />
-      <fog attach="fog" args={['#2d1b69', 95, 380]} />
+      <fog attach="fog" args={['#12061f', 120, 420]} />
       <hemisphereLight color="#c4b5fd" groundColor="#1a0a2e" intensity={0.72} />
       <ambientLight intensity={0.28} color="#4c1d95" />
       <directionalLight position={[60, 90, 40]} intensity={0.95} color="#e9d5ff" />
@@ -82,20 +96,21 @@ export function CityScene({
         <planeGeometry args={[600, 600]} />
         <meshStandardMaterial
           color="#080612"
-          emissive="#1e1b4b"
-          emissiveIntensity={0.35}
-          metalness={0.88}
-          roughness={0.32}
+          emissive="#120a22"
+          emissiveIntensity={0.12}
+          metalness={0.35}
+          roughness={0.82}
         />
       </mesh>
       <CityRoad points={roadPoints} />
       <CityTraffic points={roadPoints} />
       <CityGreenery buildings={buildings} />
-      <CityBuildings buildings={buildings} craftPos={craftPos.current} />
+      <CityBuildings buildings={buildings} craftPos={craftPos.current} spawn={spawn} />
       <UfoRig
         inputRef={inputRef}
         mode={mode}
         spawn={spawn}
+        buildings={buildings}
         landTarget={landTarget ? { x: landTarget.x, z: landTarget.z, roofY: landTarget.roofY } : null}
         landProgress={landProgress}
         onPosition={(pos) => {

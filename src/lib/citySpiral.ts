@@ -1,3 +1,4 @@
+import * as THREE from 'three';
 import type { JamGame } from '../types';
 
 /** Golden angle in radians (~137.507764°). */
@@ -17,6 +18,8 @@ export interface CityBuildingSlot {
   posterSize: number;
   topVotes: boolean;
   topToday: boolean;
+  /** Per-floor width scale factors (setbacks). */
+  tierScales: number[];
 }
 
 export function sortGamesForCity(games: JamGame[]): JamGame[] {
@@ -38,6 +41,16 @@ function hashSeed(id: string): number {
   return Math.abs(h >>> 0);
 }
 
+function tierScalesForSeed(seed: number, tiers: number): number[] {
+  const out: number[] = [];
+  for (let t = 0; t < tiers; t++) {
+    const bite = (seed >> (t * 3)) % 11;
+    const taper = 1 - t * 0.055;
+    out.push(taper * (0.82 + bite * 0.028));
+  }
+  return out;
+}
+
 export function spiralXZ(index: number, radiusStep: number): { x: number; z: number; angle: number } {
   const angle = index * GOLDEN_ANGLE;
   const r = radiusStep * Math.sqrt(Math.max(0, index));
@@ -48,9 +61,9 @@ export function buildCityLayout(
   games: JamGame[],
   options?: { radiusStep?: number; roadInset?: number; buildingOutset?: number },
 ): { buildings: CityBuildingSlot[]; roadPoints: { x: number; z: number }[] } {
-  const radiusStep = options?.radiusStep ?? 6.8;
-  const roadInset = options?.roadInset ?? 0.72;
-  const buildingOutset = options?.buildingOutset ?? 4.2;
+  const radiusStep = options?.radiusStep ?? 13.2;
+  const roadInset = options?.roadInset ?? 0.62;
+  const buildingOutset = options?.buildingOutset ?? 13.5;
 
   const sorted = sortGamesForCity(games);
   const maxVotes = Math.max(1, ...sorted.map((g) => g.votes));
@@ -68,22 +81,32 @@ export function buildCityLayout(
   for (let i = 0; i < sorted.length; i++) {
     const game = sorted[i];
     const { x: rx, z: rz, angle } = spiralXZ(i, radiusStep * roadInset);
-    roadPoints.push({ x: rx, z: rz });
+    if (i >= 18) roadPoints.push({ x: rx, z: rz });
 
     const seed = hashSeed(game.gameId);
-    const lane = ((seed % 7) - 3) * 0.35;
+    const lane = ((seed % 7) - 3) * 0.45;
     const rBuild = radiusStep * Math.sqrt(i) + buildingOutset + lane;
     const x = rBuild * Math.cos(angle);
     const z = rBuild * Math.sin(angle);
+    const radial = Math.hypot(x, z);
 
     const topVotes = topVoteIds.has(game.gameId);
     const topToday = topTodayIds.has(game.gameId);
-    const voteT = Math.pow(game.votes / maxVotes, 0.58);
-    const height = 6 + voteT * 48 + (topVotes ? 8 : 0) + (topToday ? 3 : 0);
-    const width = Math.max(4.6, 4.2 + voteT * 8 + (topVotes ? 2.8 : 0) + (seed % 4) * 0.4);
-    const depth = Math.max(4.2, 3.8 + voteT * 6.2 + (topToday ? 1.4 : 0) + ((seed >> 3) % 4) * 0.35);
+    const voteT = Math.pow(game.votes / maxVotes, 0.52);
+    const coreShrink = Math.min(1, 0.2 + radial * 0.011);
+
+    const height =
+      5 +
+      voteT * 34 +
+      (topVotes ? 8 : 0) +
+      (topToday ? 3 : 0) +
+      (seed % 9) * 0.45;
+    const width =
+      Math.max(2.1, (1.9 + voteT * 3.4 + (topVotes ? 1.2 : 0) + (seed % 6) * 0.22) * coreShrink);
+    const depth =
+      Math.max(2, (1.75 + voteT * 3 + (topToday ? 0.7 : 0) + ((seed >> 3) % 6) * 0.18) * coreShrink);
     const faceYaw = Math.atan2(x, z);
-    const posterSize = topVotes ? 5.12 : topToday ? 4.8 : 4.2;
+    const posterSize = 5.12;
 
     buildings.push({
       game,
@@ -99,6 +122,7 @@ export function buildCityLayout(
       posterSize,
       topVotes,
       topToday,
+      tierScales: tierScalesForSeed(seed, 5),
     });
   }
 
@@ -113,56 +137,148 @@ export interface CitySpawn {
   focusX: number;
   focusY: number;
   focusZ: number;
+  scenicCamX: number;
+  scenicCamY: number;
+  scenicCamZ: number;
+  scenicLookX: number;
+  scenicLookY: number;
+  scenicLookZ: number;
 }
 
-/** Spawn just outside the inner vote cluster, facing the skyline (not the outer spiral rim). */
+function spawnHitsBuilding(x: number, y: number, z: number, b: CityBuildingSlot, pad: number): boolean {
+  if (y > b.height + pad + 6) return false;
+  const hr = Math.max(b.width, b.depth) * 0.58 + pad;
+  const dx = x - b.x;
+  const dz = z - b.z;
+  return dx * dx + dz * dz <= hr * hr;
+}
+
+function cameraFromSpawn(sp: Pick<CitySpawn, 'x' | 'y' | 'z' | 'yaw'>): THREE.Vector3 {
+  const forward = new THREE.Vector3(0, 0, -1).applyAxisAngle(new THREE.Vector3(0, 1, 0), sp.yaw);
+  return new THREE.Vector3(sp.x, sp.y, sp.z)
+    .addScaledVector(forward, -42)
+    .add(new THREE.Vector3(0, 26, 0));
+}
+
+function spawnIsClear(x: number, y: number, z: number, yaw: number, buildings: CityBuildingSlot[]): boolean {
+  for (const b of buildings) {
+    if (spawnHitsBuilding(x, y, z, b, 14)) return false;
+  }
+  const cam = cameraFromSpawn({ x, y, z, yaw });
+  for (const b of buildings) {
+    if (spawnHitsBuilding(cam.x, cam.y, cam.z, b, 16)) return false;
+    const posterPad = 6;
+    const px = b.x + Math.sin(b.faceYaw) * (b.depth / 2 + posterPad);
+    const pz = b.z + Math.cos(b.faceYaw) * (b.depth / 2 + posterPad);
+    if (spawnHitsBuilding(cam.x, cam.y, cam.z, { ...b, x: px, z: pz, width: b.posterSize, depth: 1.2 }, 2)) {
+      return false;
+    }
+  }
+  return true;
+}
+
+function minHorizontalClearance(
+  x: number,
+  z: number,
+  y: number,
+  buildings: CityBuildingSlot[],
+  pad: number,
+): number {
+  let min = Infinity;
+  for (const b of buildings) {
+    if (y > b.height + pad + 10) continue;
+    const hr = Math.max(b.width, b.depth) * 0.58 + pad;
+    const d = Math.hypot(x - b.x, z - b.z) - hr;
+    min = Math.min(min, d);
+  }
+  return min;
+}
+
+/** Exterior spawn with clearance from all building AABBs; faces the inner skyline. */
 export function computeCitySpawn(buildings: CityBuildingSlot[]): CitySpawn {
   const fallback: CitySpawn = {
-    x: 34,
-    y: 30,
-    z: 44,
-    yaw: -0.7,
+    x: 52,
+    y: 34,
+    z: 58,
+    yaw: -0.85,
     focusX: 0,
-    focusY: 20,
+    focusY: 16,
     focusZ: 0,
+    scenicCamX: 88,
+    scenicCamY: 48,
+    scenicCamZ: 92,
+    scenicLookX: 0,
+    scenicLookY: 14,
+    scenicLookZ: 0,
   };
   if (buildings.length === 0) return fallback;
 
-  const innerRadius = 42;
+  const innerRadius = 48;
   const inner = buildings.filter((b) => Math.hypot(b.x, b.z) <= innerRadius);
-  const sample = inner.length >= 10 ? inner : buildings.slice(0, Math.min(28, buildings.length));
+  const sample = inner.length >= 12 ? inner : buildings.slice(0, Math.min(32, buildings.length));
 
   let focusX = 0;
   let focusZ = 0;
   let weightSum = 0;
-  let peakRoof = 12;
-  let extent = 14;
+  let peakRoof = 10;
 
   for (const b of sample) {
-    const w = b.topVotes ? 2.5 : b.topToday ? 1.5 : 1;
+    const w = b.topVotes ? 2.8 : b.topToday ? 1.6 : 1;
     focusX += b.x * w;
     focusZ += b.z * w;
     weightSum += w;
     peakRoof = Math.max(peakRoof, b.roofY);
-    extent = Math.max(extent, Math.hypot(b.x, b.z) + Math.max(b.width, b.depth) * 0.45);
   }
   focusX /= weightSum;
   focusZ /= weightSum;
 
-  const spawnR = extent + 10;
-  const spawnAngle = 0.68;
-  const x = focusX + Math.sin(spawnAngle) * spawnR;
-  const z = focusZ + Math.cos(spawnAngle) * spawnR;
-  const yaw = Math.atan2(focusX - x, focusZ - z);
-  const y = peakRoof + 9;
+  const focusY = peakRoof * 0.32;
+  const flyY = peakRoof + 14;
+
+  let spawnAngle = 0.62;
+  let spawnR = 58;
+  let x = focusX;
+  let z = focusZ;
+  let yaw = 0;
+  let bestScenicClear = -Infinity;
+  let scenicCam = new THREE.Vector3(fallback.scenicCamX, fallback.scenicCamY, fallback.scenicCamZ);
+  const scenicLook = new THREE.Vector3(focusX, focusY + peakRoof * 0.38, focusZ);
+
+  for (let attempt = 0; attempt < 72; attempt++) {
+    const angle = spawnAngle + attempt * 0.11;
+    const r = spawnR + (attempt % 10) * 3.5;
+    const sx = focusX + Math.sin(angle) * r;
+    const sz = focusZ + Math.cos(angle) * r;
+    const syaw = Math.atan2(focusX - sx, focusZ - sz);
+    if (!spawnIsClear(sx, flyY, sz, syaw, buildings)) continue;
+
+    const outward = new THREE.Vector3(sx - focusX, 0, sz - focusZ).normalize();
+    const cam = new THREE.Vector3(focusX, flyY + 38, focusZ).addScaledVector(outward, r + 92);
+    const scenicClear = minHorizontalClearance(cam.x, cam.z, cam.y, buildings, 14);
+    if (scenicClear > bestScenicClear) {
+      bestScenicClear = scenicClear;
+      x = sx;
+      z = sz;
+      yaw = syaw;
+      spawnAngle = angle;
+      spawnR = r;
+      scenicCam = cam;
+    }
+  }
 
   return {
     x,
-    y,
+    y: flyY,
     z,
     yaw,
     focusX,
-    focusY: peakRoof * 0.38,
+    focusY,
     focusZ,
+    scenicCamX: scenicCam.x,
+    scenicCamY: scenicCam.y,
+    scenicCamZ: scenicCam.z,
+    scenicLookX: scenicLook.x,
+    scenicLookY: scenicLook.y,
+    scenicLookZ: scenicLook.z,
   };
 }

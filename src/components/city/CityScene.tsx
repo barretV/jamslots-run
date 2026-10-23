@@ -1,4 +1,3 @@
-import { Stars } from '@react-three/drei';
 import { useFrame } from '@react-three/fiber';
 import type { MutableRefObject } from 'react';
 import { useEffect, useMemo, useRef } from 'react';
@@ -7,7 +6,6 @@ import { preloadCityThumbnails } from '../../lib/cityTextureCache';
 import { buildCityLayout, computeCitySpawn, type CityBuildingSlot } from '../../lib/citySpiral';
 import type { JamGame } from '../../types';
 import { CityBuildings } from './CityBuildings';
-import { CityGreenery } from './CityGreenery';
 import { CityRoad } from './CityRoad';
 import { CityTraffic } from './CityTraffic';
 import { UfoRig, type FlightInput } from './UfoRig';
@@ -45,8 +43,8 @@ export function CityScene({
 
   useEffect(() => {
     const urls = buildings
-      .filter((b) => b.topVotes || b.index < 48)
-      .slice(0, 48)
+      .filter((b) => b.topVotes || b.topToday || b.index < 120)
+      .slice(0, 96)
       .map((b) => b.game.thumbnailUrl);
     preloadCityThumbnails(urls);
   }, [buildings]);
@@ -75,13 +73,13 @@ export function CityScene({
 
   return (
     <>
-      <color attach="background" args={['#07020f']} />
+      <color attach="background" args={['#12061f']} />
       <fog attach="fog" args={['#12061f', 120, 420]} />
-      <hemisphereLight color="#c4b5fd" groundColor="#1a0a2e" intensity={0.72} />
+      <hemisphereLight color="#a78bfa" groundColor="#0a0614" intensity={0.38} />
       <ambientLight intensity={0.28} color="#4c1d95" />
       <directionalLight position={[60, 90, 40]} intensity={0.95} color="#e9d5ff" />
       <pointLight position={[spawn.focusX, spawn.focusY + 18, spawn.focusZ]} intensity={1.35} color="#c084fc" distance={320} decay={1.6} />
-      <pointLight position={[-80, 30, 60]} intensity={1.05} color="#f472b6" distance={170} decay={2} />
+      <pointLight position={[-80, 30, 60]} intensity={0.75} color="#c084fc" distance={170} decay={2} />
       <pointLight position={[90, 25, -50]} intensity={0.85} color="#22d3ee" distance={160} decay={2} />
       <spotLight
         position={[0, 120, 0]}
@@ -91,20 +89,8 @@ export function CityScene({
         color="#c4b5fd"
         distance={280}
       />
-      <Stars radius={220} depth={80} count={900} factor={4} saturation={0.2} fade speed={0.15} />
-      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.02, 0]} receiveShadow>
-        <planeGeometry args={[600, 600]} />
-        <meshStandardMaterial
-          color="#080612"
-          emissive="#120a22"
-          emissiveIntensity={0.12}
-          metalness={0.35}
-          roughness={0.82}
-        />
-      </mesh>
       <CityRoad points={roadPoints} />
       <CityTraffic points={roadPoints} />
-      <CityGreenery buildings={buildings} />
       <CityBuildings buildings={buildings} craftPos={craftPos.current} spawn={spawn} />
       <UfoRig
         inputRef={inputRef}

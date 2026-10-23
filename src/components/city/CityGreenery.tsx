@@ -46,8 +46,8 @@ export function CityGreenery({ buildings }: CityGreeneryProps) {
     () =>
       new THREE.MeshStandardMaterial({
         color: '#0f172a',
-        emissive: '#f472b6',
-        emissiveIntensity: 1.15,
+        emissive: '#a78bfa',
+        emissiveIntensity: 0.85,
         metalness: 0.15,
         roughness: 0.4,
         vertexColors: true,
@@ -119,7 +119,11 @@ export function CityGreenery({ buildings }: CityGreeneryProps) {
 
       if ((b.topToday || b.topVotes) && bi < MAX_PROPS) {
         dummy.position.set(b.x, b.height + 1.1, b.z);
-        dummy.scale.set(b.width * 0.55, 0.45, b.depth * 0.55);
+        dummy.scale.set(
+          Math.min(2.2, b.width * 0.42),
+          0.38,
+          Math.min(2.2, b.depth * 0.42),
+        );
         dummy.rotation.y = b.faceYaw;
         dummy.updateMatrix();
         blooms.setMatrixAt(bi, dummy.matrix);

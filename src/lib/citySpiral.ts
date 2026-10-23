@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { chaseCameraFromUfo, pushCameraOutOfColumns, skylineLookAt } from './cityCamera';
 import type { JamGame } from '../types';
 
 /** Golden angle in radians (~137.507764°). */
@@ -102,9 +103,9 @@ export function buildCityLayout(
       (topToday ? 3 : 0) +
       (seed % 9) * 0.45;
     const width =
-      Math.max(2.1, (1.9 + voteT * 3.4 + (topVotes ? 1.2 : 0) + (seed % 6) * 0.22) * coreShrink);
+      Math.max(2.6, (2.4 + voteT * 4 + (topVotes ? 1.4 : 0) + (seed % 6) * 0.24) * coreShrink);
     const depth =
-      Math.max(2, (1.75 + voteT * 3 + (topToday ? 0.7 : 0) + ((seed >> 3) % 6) * 0.18) * coreShrink);
+      Math.max(2.4, (2.1 + voteT * 3.5 + (topToday ? 0.8 : 0) + ((seed >> 3) % 6) * 0.2) * coreShrink);
     const faceYaw = Math.atan2(x, z);
     const posterSize = 5.12;
 
@@ -237,32 +238,35 @@ export function computeCitySpawn(buildings: CityBuildingSlot[]): CitySpawn {
 
   let spawnAngle = 0.62;
   let spawnR = 58;
-  let x = focusX;
-  let z = focusZ;
-  let yaw = 0;
-  let bestScenicClear = -Infinity;
+  let x = fallback.x;
+  let z = fallback.z;
+  let yaw = fallback.yaw;
+  let bestScore = -Infinity;
+  const scenicLook = skylineLookAt(focusX, focusZ, peakRoof, new THREE.Vector3());
+  const ufoPt = new THREE.Vector3();
+  const camScratch = new THREE.Vector3();
   let scenicCam = new THREE.Vector3(fallback.scenicCamX, fallback.scenicCamY, fallback.scenicCamZ);
-  const scenicLook = new THREE.Vector3(focusX, focusY + peakRoof * 0.38, focusZ);
 
-  for (let attempt = 0; attempt < 72; attempt++) {
-    const angle = spawnAngle + attempt * 0.11;
-    const r = spawnR + (attempt % 10) * 3.5;
+  for (let attempt = 0; attempt < 96; attempt++) {
+    const angle = spawnAngle + attempt * 0.1;
+    const r = spawnR + (attempt % 12) * 3.2;
     const sx = focusX + Math.sin(angle) * r;
     const sz = focusZ + Math.cos(angle) * r;
     const syaw = Math.atan2(focusX - sx, focusZ - sz);
     if (!spawnIsClear(sx, flyY, sz, syaw, buildings)) continue;
 
-    const outward = new THREE.Vector3(sx - focusX, 0, sz - focusZ).normalize();
-    const cam = new THREE.Vector3(focusX, flyY + 38, focusZ).addScaledVector(outward, r + 92);
-    const scenicClear = minHorizontalClearance(cam.x, cam.z, cam.y, buildings, 14);
-    if (scenicClear > bestScenicClear) {
-      bestScenicClear = scenicClear;
+    ufoPt.set(sx, flyY, sz);
+    chaseCameraFromUfo(ufoPt, scenicLook, buildings, camScratch);
+    const ufoClear = minHorizontalClearance(sx, sz, flyY, buildings, 12);
+    pushCameraOutOfColumns(camScratch, buildings, 18);
+    const camClear = minHorizontalClearance(camScratch.x, camScratch.z, camScratch.y, buildings, 16);
+    const score = Math.min(ufoClear, camClear) + r * 0.04;
+    if (score > bestScore) {
+      bestScore = score;
       x = sx;
       z = sz;
       yaw = syaw;
-      spawnAngle = angle;
-      spawnR = r;
-      scenicCam = cam;
+      scenicCam.copy(camScratch);
     }
   }
 

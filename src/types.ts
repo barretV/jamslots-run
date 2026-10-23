@@ -38,4 +38,6 @@ export interface PickerStats {
   playCounts: Record<string, number>;
   favorites: string[];
   history: HistoryEntry[];
+  /** Game IDs that have appeared on slot reels this jam cycle. */
+  rollSeenIds?: string[];
 }

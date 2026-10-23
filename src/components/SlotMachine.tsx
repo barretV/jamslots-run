@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { pickRandom } from '../lib/games';
+import { pickRollGames } from '../lib/games';
 import { getPlayUrl } from '../lib/playUrl';
 import {
   parseLegacyFavoritesFromLocation,
@@ -8,10 +8,13 @@ import {
 } from '../lib/shareFavoritesUrl';
 import { useReducedMotion } from '../lib/useReducedMotion';
 import {
+  getRollSeenIds,
   getStats,
   isFavorite,
+  noteRollExposure,
   pruneStatsToJamPool,
   recordPlay,
+  resetRollSeenIds,
   toggleFavorite,
 } from '../state/persistence';
 import type { HistoryEntry, JamGame } from '../types';
@@ -45,7 +48,7 @@ interface SlotMachineProps {
 export function SlotMachine({ pool, jamName, jamSlug, syncedAt, votingCloseAt }: SlotMachineProps) {
   const { applyDelta } = useFavoriteCounts();
   const reducedMotion = useReducedMotion();
-  const [triplet, setTriplet] = useState<JamGame[]>(() => pickRandom(pool, 3));
+  const [triplet, setTriplet] = useState<JamGame[]>([]);
   const [reelSpinning, setReelSpinning] = useState<[boolean, boolean, boolean]>([
     false,
     false,
@@ -139,14 +142,6 @@ export function SlotMachine({ pool, jamName, jamSlug, syncedAt, votingCloseAt }:
     if (pruneStatsToJamPool(poolIds)) refreshStats();
   }, [poolSignature, poolIds]);
 
-  useEffect(() => {
-    if (pool.length < 3) return;
-    setTriplet((prev) => {
-      if (prev.length === 3 && prev.every((g) => poolIds.has(g.gameId))) return prev;
-      return pickRandom(pool, 3);
-    });
-  }, [poolSignature, pool, poolIds]);
-
   const playedIds = useMemo(
     () => new Set(stats.history.map((h) => h.gameId)),
     [stats.history],
@@ -177,8 +172,27 @@ export function SlotMachine({ pool, jamName, jamSlug, syncedAt, votingCloseAt }:
     return onlyUnplayed ? playedIds : new Set<string>();
   }, [onlyUnplayed, playedIds]);
 
+  const noteTripletExposure = useCallback((games: JamGame[], cycled: boolean) => {
+    if (cycled) resetRollSeenIds();
+    noteRollExposure(games.map((g) => g.gameId));
+  }, []);
+
+  useEffect(() => {
+    if (pool.length < 3) return;
+    setTriplet((prev) => {
+      if (prev.length === 3 && prev.every((g) => poolIds.has(g.gameId))) return prev;
+      const pickPool = onlyUnplayed ? stripPool : pool;
+      const { games, cycled } = pickRollGames(pickPool, 3, pickExclude, getRollSeenIds());
+      noteTripletExposure(games, cycled);
+      return games;
+    });
+  }, [poolSignature, pool, poolIds, onlyUnplayed, stripPool, pickExclude, noteTripletExposure]);
+
   const buildRollResult = useCallback(
-    (current: JamGame[], locks: [boolean, boolean, boolean]): JamGame[] | null => {
+    (
+      current: JamGame[],
+      locks: [boolean, boolean, boolean],
+    ): { next: JamGame[]; cycled: boolean } | null => {
       const unlocked = ([0, 1, 2] as const).filter((i) => !locks[i]);
       if (unlocked.length === 0) return null;
 
@@ -187,14 +201,20 @@ export function SlotMachine({ pool, jamName, jamSlug, syncedAt, votingCloseAt }:
         if (locks[i]) exclude.add(current[i].gameId);
       }
 
-      const picks = pickRandom(pool, unlocked.length, exclude);
+      const pickPool = onlyUnplayed ? stripPool : pool;
+      const { games: picks, cycled } = pickRollGames(
+        pickPool,
+        unlocked.length,
+        exclude,
+        getRollSeenIds(),
+      );
       const next = [...current] as JamGame[];
       unlocked.forEach((reelIndex, pickIndex) => {
         next[reelIndex] = picks[pickIndex];
       });
-      return next;
+      return { next, cycled };
     },
-    [pool, pickExclude],
+    [pool, stripPool, onlyUnplayed, pickExclude],
   );
 
   const lockedCount = lockedReels.filter(Boolean).length;
@@ -220,8 +240,9 @@ export function SlotMachine({ pool, jamName, jamSlug, syncedAt, votingCloseAt }:
     if (spinning || pool.length < 3) return;
     clearTimers();
 
-    const next = buildRollResult(triplet, lockedReels);
-    if (!next) return;
+    const built = buildRollResult(triplet, lockedReels);
+    if (!built) return;
+    const { next, cycled } = built;
 
     const spinMask: [boolean, boolean, boolean] = [
       !lockedReels[0],
@@ -232,6 +253,7 @@ export function SlotMachine({ pool, jamName, jamSlug, syncedAt, votingCloseAt }:
     if (reducedMotion) {
       setSpinTargets(null);
       setTriplet(next);
+      noteTripletExposure(next, cycled);
       setReelSpinning([false, false, false]);
       setLandedReels([false, false, false]);
       return;
@@ -275,6 +297,7 @@ export function SlotMachine({ pool, jamName, jamSlug, syncedAt, votingCloseAt }:
         }, 520);
 
         if (reelIndex === lastToLand) {
+          noteTripletExposure(next, cycled);
           setSpinning(false);
           setJackpotFlash(true);
           setFrameShake(true);
@@ -293,13 +316,17 @@ export function SlotMachine({ pool, jamName, jamSlug, syncedAt, votingCloseAt }:
     triplet,
     lockedReels,
     buildRollResult,
+    noteTripletExposure,
   ]);
 
   useEffect(() => {
-    if (triplet.length === 0 && pool.length > 0) {
-      setTriplet(pickRandom(pool, 3));
+    if (triplet.length === 0 && pool.length >= 3) {
+      const pickPool = onlyUnplayed ? stripPool : pool;
+      const { games, cycled } = pickRollGames(pickPool, 3, pickExclude, getRollSeenIds());
+      noteTripletExposure(games, cycled);
+      setTriplet(games);
     }
-  }, [pool, triplet.length]);
+  }, [pool, triplet.length, onlyUnplayed, stripPool, pickExclude, noteTripletExposure]);
 
   useEffect(() => {
     if (introRollFired || pool.length < 3) return;

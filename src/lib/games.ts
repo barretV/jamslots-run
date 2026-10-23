@@ -82,3 +82,54 @@ export function pickRandom(pool: JamGame[], count: number, excludeIds: Set<strin
   }
   return out;
 }
+
+export interface PickRollGamesResult {
+  games: JamGame[];
+  /** True when every game in the pick pool was already on reels and the seen set was cycled. */
+  cycled: boolean;
+}
+
+/**
+ * Pick distinct roll games, preferring IDs not yet shown on reels.
+ * Guarantees at least one never-seen pick when count > 0 and unseen remain.
+ */
+export function pickRollGames(
+  pool: JamGame[],
+  count: number,
+  excludeIds: Set<string> = new Set(),
+  rollSeenIds: ReadonlySet<string> = new Set(),
+): PickRollGamesResult {
+  if (count <= 0 || pool.length === 0) {
+    return { games: [], cycled: false };
+  }
+
+  const candidates = pool.filter((g) => !excludeIds.has(g.gameId));
+  const source = candidates.length >= count ? candidates : pool;
+
+  let seen = rollSeenIds;
+  let cycled = false;
+  if (source.length > 0 && source.every((g) => seen.has(g.gameId))) {
+    cycled = true;
+    seen = new Set();
+  }
+
+  const bag = [...source];
+  const unseen = bag.filter((g) => !seen.has(g.gameId));
+  const out: JamGame[] = [];
+
+  if (unseen.length > 0) {
+    const i = Math.floor(Math.random() * unseen.length);
+    const pick = unseen[i];
+    out.push(pick);
+    const bagIndex = bag.findIndex((g) => g.gameId === pick.gameId);
+    if (bagIndex >= 0) bag.splice(bagIndex, 1);
+  }
+
+  while (out.length < count && bag.length > 0) {
+    const i = Math.floor(Math.random() * bag.length);
+    out.push(bag[i]);
+    bag.splice(i, 1);
+  }
+
+  return { games: out, cycled };
+}

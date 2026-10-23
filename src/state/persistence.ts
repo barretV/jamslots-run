@@ -9,6 +9,7 @@ const DEFAULTS: PickerStats = {
   playCounts: {},
   favorites: [],
   history: [],
+  rollSeenIds: [],
 };
 
 function loadRaw(): PickerStats {
@@ -20,6 +21,7 @@ function loadRaw(): PickerStats {
       playCounts: parsed.playCounts ?? {},
       favorites: Array.isArray(parsed.favorites) ? parsed.favorites : [],
       history: Array.isArray(parsed.history) ? parsed.history : [],
+      rollSeenIds: Array.isArray(parsed.rollSeenIds) ? parsed.rollSeenIds : [],
     };
   } catch {
     return { ...DEFAULTS };
@@ -105,9 +107,30 @@ export function syncLocalSessionWithJamBundle(
 }
 
 /** Drop local stars/plays/history for games no longer in the synced jam list. */
+export function getRollSeenIds(): Set<string> {
+  return new Set(cache.rollSeenIds ?? []);
+}
+
+export function noteRollExposure(gameIds: string[]): void {
+  if (gameIds.length === 0) return;
+  const set = new Set(cache.rollSeenIds ?? []);
+  for (const id of gameIds) {
+    if (id) set.add(id);
+  }
+  cache = { ...cache, rollSeenIds: [...set] };
+  flush();
+}
+
+export function resetRollSeenIds(): void {
+  if (!cache.rollSeenIds?.length) return;
+  cache = { ...cache, rollSeenIds: [] };
+  flush();
+}
+
 export function pruneStatsToJamPool(validGameIds: ReadonlySet<string>): boolean {
   const favorites = cache.favorites.filter((id) => validGameIds.has(id));
   const history = cache.history.filter((h) => validGameIds.has(h.gameId));
+  const rollSeenIds = (cache.rollSeenIds ?? []).filter((id) => validGameIds.has(id));
   const playCounts: Record<string, number> = {};
   for (const [id, n] of Object.entries(cache.playCounts)) {
     if (validGameIds.has(id)) playCounts[id] = n;
@@ -115,9 +138,10 @@ export function pruneStatsToJamPool(validGameIds: ReadonlySet<string>): boolean 
   const changed =
     favorites.length !== cache.favorites.length ||
     history.length !== cache.history.length ||
+    rollSeenIds.length !== (cache.rollSeenIds ?? []).length ||
     Object.keys(playCounts).length !== Object.keys(cache.playCounts).length;
   if (!changed) return false;
-  cache = { ...cache, favorites, history, playCounts };
+  cache = { ...cache, favorites, history, playCounts, rollSeenIds };
   flush();
   return true;
 }

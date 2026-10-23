@@ -1,13 +1,8 @@
 import { useEffect, useMemo, useState } from 'react';
 import type { JamGame } from '../types';
-import { runJamVoteGameUrl } from '../lib/runVoteUrl';
 import { useFavoriteCounts } from './FavoriteCountsProvider';
 import { GamePosterGrid } from './GamePosterGrid';
 import { LibrarySortSelect, sortHintPhrase, type LibrarySortMode } from './LibrarySortSelect';
-import {
-  VoteDailyStatsModal,
-  type VoteDailyStatsTarget,
-} from './VoteDailyStatsModal';
 
 interface LibraryListProps {
   games: JamGame[];
@@ -123,8 +118,6 @@ export function LibraryList({
   const [query, setQuery] = useState('');
   const [debouncedQuery, setDebouncedQuery] = useState('');
   const [sortMode, setSortMode] = useState<LibrarySortMode>('title-asc');
-  const [voteStatsTarget, setVoteStatsTarget] = useState<VoteDailyStatsTarget | null>(null);
-
   useEffect(() => {
     const id = window.setTimeout(() => setDebouncedQuery(query.trim()), 200);
     return () => window.clearTimeout(id);
@@ -231,18 +224,7 @@ export function LibraryList({
         jamSlug={jamSlug}
         isFavorite={isFavorite}
         onToggleFavorite={onToggleFavorite}
-        onVotePress={(item) => {
-          const game = games.find((g) => g.gameId === item.gameId);
-          if (!game) return;
-          setVoteStatsTarget({
-            gameId: game.gameId,
-            title: game.title,
-            votes: game.votes,
-            voteUrl: runJamVoteGameUrl(jamSlug ?? 'octoberjam', game.gameId),
-          });
-        }}
       />
-      <VoteDailyStatsModal target={voteStatsTarget} onClose={() => setVoteStatsTarget(null)} />
     </section>
   );
 }

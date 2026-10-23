@@ -10,6 +10,7 @@ import type { JamGame } from '../types';
 import { runJamVoteGameUrl } from '../lib/runVoteUrl';
 import { CoverStatsRow } from './CoverStatsRow';
 import { CoverVoteBadge } from './CoverVoteBadge';
+import { useOpenVoteStats } from './VoteStatsProvider';
 import { GameThumbnail } from './GameThumbnail';
 import { OverflowCrawlText } from './OverflowCrawlText';
 
@@ -85,6 +86,7 @@ export function ReelCard({
   favorited,
   disabled,
 }: ReelCardProps) {
+  const openVoteStats = useOpenVoteStats();
   const windowRef = useRef<HTMLDivElement>(null);
   const [cellHeight, setCellHeight] = useState(0);
   const [strip, setStrip] = useState<JamGame[]>(() => [game]);
@@ -314,6 +316,13 @@ export function ReelCard({
           votes={game.votes}
           votesToday={game.votesToday}
           voteUrl={runJamVoteGameUrl(jamSlug, game.gameId)}
+          onVotePress={() =>
+            openVoteStats({
+              gameId: game.gameId,
+              title: game.title,
+              votes: game.votes,
+            })
+          }
           className="reel-cover-vote-badge"
         />
       )}

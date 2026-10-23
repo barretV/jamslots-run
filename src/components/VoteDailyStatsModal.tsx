@@ -11,15 +11,17 @@ export interface VoteDailyStatsTarget {
 interface VoteDailyHistory {
   daysUtc: string[];
   games: Record<string, number[]>;
+  gameTotals?: Record<string, number[]>;
   updatedAt?: number;
 }
 
 type ModalView = 'menu' | 'chart';
+type ChartStyle = 'bars' | 'histogram' | 'trend';
 
 function utcDayLabel(dayUtc: string): string {
   const parts = dayUtc.split('-');
   if (parts.length !== 3) return dayUtc;
-  return `${parts[1]}/${parts[2]}`;
+  return `${Number(parts[1])}/${Number(parts[2])}`;
 }
 
 interface VoteDailyStatsModalProps {
@@ -27,15 +29,23 @@ interface VoteDailyStatsModalProps {
   onClose: () => void;
 }
 
+const CHART_TABS: { id: ChartStyle; label: string }[] = [
+  { id: 'bars', label: 'Bars' },
+  { id: 'histogram', label: 'Histogram' },
+  { id: 'trend', label: 'Total trend' },
+];
+
 export function VoteDailyStatsModal({ target, onClose }: VoteDailyStatsModalProps) {
   const closeRef = useRef<HTMLButtonElement>(null);
   const [view, setView] = useState<ModalView>('menu');
+  const [chartStyle, setChartStyle] = useState<ChartStyle>('bars');
   const [history, setHistory] = useState<VoteDailyHistory | null>(null);
   const [historyError, setHistoryError] = useState(false);
 
   useEffect(() => {
     if (!target) {
       setView('menu');
+      setChartStyle('bars');
       setHistory(null);
       setHistoryError(false);
       return;
@@ -46,7 +56,10 @@ export function VoteDailyStatsModal({ target, onClose }: VoteDailyStatsModalProp
     let cancelled = false;
     void (async () => {
       try {
-        const res = await fetch('/vote-daily-history.json', { cache: 'no-cache' });
+        const base = import.meta.env.BASE_URL ?? '/';
+        const res = await fetch(`${base}vote-daily-history.json?t=${Date.now()}`, {
+          cache: 'no-store',
+        });
         if (!res.ok) throw new Error('fetch failed');
         const data = (await res.json()) as VoteDailyHistory;
         if (!cancelled) setHistory(data);
@@ -74,15 +87,30 @@ export function VoteDailyStatsModal({ target, onClose }: VoteDailyStatsModalProp
   const chartRows = useMemo(() => {
     if (!target || !history?.daysUtc?.length) return [];
     const series = history.games[target.gameId];
+    const totals = history.gameTotals?.[target.gameId];
     if (!series) return [];
-    return history.daysUtc.map((day, i) => ({
-      day,
-      value: Math.max(0, series[i] ?? 0),
-    }));
+    let running = 0;
+    return history.daysUtc.map((day, i) => {
+      const delta = Math.max(0, series[i] ?? 0);
+      const endTotal = totals?.[i];
+      const after =
+        endTotal != null && Number.isFinite(endTotal) ? endTotal : running + delta;
+      const before =
+        endTotal != null && Number.isFinite(endTotal)
+          ? Math.max(0, endTotal - delta)
+          : running;
+      running = after;
+      return { day, delta, before, after };
+    });
   }, [target, history]);
 
   const chartMax = useMemo(
-    () => chartRows.reduce((m, r) => Math.max(m, r.value), 0),
+    () => chartRows.reduce((m, r) => Math.max(m, r.delta), 0),
+    [chartRows],
+  );
+
+  const trendMax = useMemo(
+    () => chartRows.reduce((m, r) => Math.max(m, r.after), 0),
     [chartRows],
   );
 
@@ -105,7 +133,7 @@ export function VoteDailyStatsModal({ target, onClose }: VoteDailyStatsModalProp
         role="dialog"
         aria-modal="true"
         aria-labelledby="vote-stats-title"
-        className="relative z-10 flex max-h-[min(85dvh,32rem)] w-full max-w-lg flex-col overflow-hidden rounded-2xl border border-violet-500/40 bg-zinc-950 shadow-2xl"
+        className="relative z-10 flex max-h-[min(88dvh,36rem)] w-full max-w-lg flex-col overflow-hidden rounded-2xl border border-violet-500/40 bg-zinc-950 shadow-2xl"
       >
         <div className="flex items-start justify-between gap-3 border-b border-white/10 px-4 py-3">
           <div className="min-w-0">
@@ -149,7 +177,7 @@ export function VoteDailyStatsModal({ target, onClose }: VoteDailyStatsModalProp
                 Vote on RUN
               </a>
               <p className="text-center text-[1rem] leading-snug text-zinc-500">
-                Daily chart covers UTC days since JamSlots started syncing vote totals.
+                Charts use UTC days since JamSlots started syncing vote totals.
               </p>
             </div>
           ) : (
@@ -169,27 +197,136 @@ export function VoteDailyStatsModal({ target, onClose }: VoteDailyStatsModalProp
                 </p>
               ) : (
                 <>
-                  <p className="mb-3 text-[1rem] text-zinc-500">
-                    New votes per UTC day (tracking period only).
-                  </p>
-                  <ul className="vote-daily-chart" aria-label="Daily jam votes">
-                    {chartRows.map((row) => (
-                      <li key={row.day} className="vote-daily-chart__row">
-                        <span className="vote-daily-chart__label">{utcDayLabel(row.day)}</span>
-                        <div className="vote-daily-chart__track">
-                          <div
-                            className="vote-daily-chart__bar"
-                            style={{
-                              width: chartMax > 0 ? `${(row.value / chartMax) * 100}%` : '0%',
-                            }}
-                          />
-                        </div>
-                        <span className="vote-daily-chart__value">
-                          {row.value > 0 ? `+${formatPlays(row.value)}` : '0'}
-                        </span>
-                      </li>
+                  <div
+                    className="vote-chart-tabs"
+                    role="tablist"
+                    aria-label="Chart style"
+                  >
+                    {CHART_TABS.map((tab) => (
+                      <button
+                        key={tab.id}
+                        type="button"
+                        role="tab"
+                        aria-selected={chartStyle === tab.id}
+                        className={`vote-chart-tabs__tab ${chartStyle === tab.id ? 'vote-chart-tabs__tab--on' : ''}`}
+                        onClick={() => setChartStyle(tab.id)}
+                      >
+                        {tab.label}
+                      </button>
                     ))}
-                  </ul>
+                  </div>
+
+                  {chartStyle === 'bars' ? (
+                    <ul className="vote-daily-chart vote-daily-chart--bars" aria-label="Daily jam votes bars">
+                      {chartRows.map((row) => {
+                        const pct = chartMax > 0 ? (row.delta / chartMax) * 100 : 0;
+                        return (
+                          <li key={row.day} className="vote-daily-day">
+                            <div className="vote-daily-day__head">
+                              <span className="vote-daily-day__date">{utcDayLabel(row.day)}</span>
+                              <span className="vote-daily-day__delta-chip">
+                                {row.delta > 0 ? `+${formatPlays(row.delta)}` : '0'}
+                              </span>
+                            </div>
+                            <div className="vote-daily-chart__track vote-daily-day__track">
+                              <div
+                                className="vote-daily-chart__bar"
+                                style={{ width: `${Math.max(row.delta > 0 ? 6 : 0, pct)}%` }}
+                              />
+                            </div>
+                            <p
+                              className="vote-daily-chart__range"
+                              aria-label={`Votes ${formatPlays(row.before)} to ${formatPlays(row.after)}`}
+                            >
+                              <span className="vote-daily-chart__before">{formatPlays(row.before)}</span>
+                              <span className="vote-daily-chart__arrow" aria-hidden>→</span>
+                              <span className="vote-daily-chart__after">{formatPlays(row.after)}</span>
+                              {row.delta > 0 ? (
+                                <span className="vote-daily-chart__delta">(+{formatPlays(row.delta)})</span>
+                              ) : null}
+                            </p>
+                          </li>
+                        );
+                      })}
+                    </ul>
+                  ) : null}
+
+                  {chartStyle === 'histogram' ? (
+                    <div className="vote-histogram" aria-label="Daily votes histogram">
+                      <div className="vote-histogram__plot">
+                        {chartRows.map((row) => {
+                          const h = chartMax > 0 ? (row.delta / chartMax) * 100 : 0;
+                          return (
+                            <div key={row.day} className="vote-histogram__col">
+                              <span className="vote-histogram__value">
+                                {row.delta > 0 ? `+${formatPlays(row.delta)}` : '0'}
+                              </span>
+                              <div
+                                className="vote-histogram__bar"
+                                style={{ height: `${Math.max(row.delta > 0 ? 4 : 0, h)}%` }}
+                                title={`${utcDayLabel(row.day)}: ${formatPlays(row.before)} → ${formatPlays(row.after)}`}
+                              />
+                              <span className="vote-histogram__label">{utcDayLabel(row.day)}</span>
+                            </div>
+                          );
+                        })}
+                      </div>
+                      <p className="vote-histogram__hint text-[1rem] text-zinc-500">
+                        Tap a column: before → after totals for that UTC day.
+                      </p>
+                      <ul className="vote-histogram__legend">
+                        {chartRows.map((row) => (
+                          <li key={`leg-${row.day}`} className="vote-histogram__legend-row">
+                            <span>{utcDayLabel(row.day)}</span>
+                            <span>
+                              {formatPlays(row.before)} → {formatPlays(row.after)}
+                              {row.delta > 0 ? ` (+${formatPlays(row.delta)})` : ''}
+                            </span>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  ) : null}
+
+                  {chartStyle === 'trend' ? (
+                    <div className="vote-trend" aria-label="Cumulative vote total trend">
+                      <svg
+                        className="vote-trend__svg"
+                        viewBox={`0 0 ${Math.max(chartRows.length - 1, 1) * 40} 100`}
+                        preserveAspectRatio="none"
+                        role="img"
+                        aria-hidden
+                      >
+                        <polyline
+                          className="vote-trend__line"
+                          fill="none"
+                          points={chartRows
+                            .map((row, i) => {
+                              const x = i * 40;
+                              const y = trendMax > 0 ? 100 - (row.after / trendMax) * 92 : 100;
+                              return `${x},${y}`;
+                            })
+                            .join(' ')}
+                        />
+                        {chartRows.map((row, i) => {
+                          const x = i * 40;
+                          const y = trendMax > 0 ? 100 - (row.after / trendMax) * 92 : 100;
+                          return <circle key={row.day} className="vote-trend__dot" cx={x} cy={y} r={3} />;
+                        })}
+                      </svg>
+                      <ul className="vote-trend__days">
+                        {chartRows.map((row) => (
+                          <li key={row.day}>
+                            <span className="vote-trend__day">{utcDayLabel(row.day)}</span>
+                            <span className="vote-trend__total">▲ {formatPlays(row.after)}</span>
+                            {row.delta > 0 ? (
+                              <span className="vote-trend__delta">+{formatPlays(row.delta)}</span>
+                            ) : null}
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  ) : null}
                 </>
               )}
               <a

@@ -4,13 +4,21 @@ interface CoverVoteBadgeProps {
   votes?: number;
   /** Votes gained since UTC midnight (from jam sync snapshots). */
   votesToday?: number;
-  /** When set, badge opens RUN jam vote UI for this game. */
+  /** When set, badge can open RUN jam vote UI for this game. */
   voteUrl?: string;
+  /** When set with voteUrl, opens vote stats menu instead of navigating away. */
+  onVotePress?: () => void;
   className?: string;
 }
 
 /** Official RUN jam vote count; optional deep link to vote for this game. */
-export function CoverVoteBadge({ votes, votesToday, voteUrl, className }: CoverVoteBadgeProps) {
+export function CoverVoteBadge({
+  votes,
+  votesToday,
+  voteUrl,
+  onVotePress,
+  className,
+}: CoverVoteBadgeProps) {
   const count = votes ?? 0;
   const todayGain = votesToday != null && votesToday > 0 ? votesToday : 0;
   const href = voteUrl?.trim() ?? '';
@@ -36,6 +44,26 @@ export function CoverVoteBadge({ votes, votesToday, voteUrl, className }: CoverV
         +{formatPlays(todayGain)}
       </span>
     ) : null;
+
+  if (linked && onVotePress) {
+    return (
+      <div className="cover-vote-stack">
+        <button
+          type="button"
+          className={`${classNames} cover-vote-badge--btn`}
+          aria-label={`Jam vote stats (${countLabel}${todayLabel})`}
+          title={`Jam vote stats (${countLabel}${todayLabel})`}
+          onClick={(e) => {
+            e.stopPropagation();
+            onVotePress();
+          }}
+        >
+          {content}
+        </button>
+        {todayChip}
+      </div>
+    );
+  }
 
   if (linked) {
     return (

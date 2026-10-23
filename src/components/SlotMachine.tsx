@@ -26,6 +26,7 @@ import { PickerSidePanel } from './PickerSidePanel';
 import { ShareFavoritesButton } from './ShareFavoritesButton';
 import { SharedFavoritesBanner } from './SharedFavoritesBanner';
 import { TabBar, type PickerTab } from './TabBar';
+import { VoteStatsProvider } from './VoteStatsProvider';
 
 const BASE_SPIN_MS = 1200;
 const REEL_STAGGER_MS = [0, 250, 500];
@@ -360,6 +361,7 @@ export function SlotMachine({ pool, jamName, jamSlug, syncedAt, votingCloseAt }:
   }, []);
 
   return (
+    <VoteStatsProvider jamSlug={jamSlug}>
     <div className="app-layout">
       <PickerSidePanel jamSlug={jamSlug} />
       <div className="app-layout__main">
@@ -555,5 +557,6 @@ export function SlotMachine({ pool, jamName, jamSlug, syncedAt, votingCloseAt }:
       </div>
       <div className="app-layout__balance" aria-hidden="true" />
     </div>
+    </VoteStatsProvider>
   );
 }

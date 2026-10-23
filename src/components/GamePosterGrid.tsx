@@ -2,6 +2,7 @@ import type { ReactNode } from 'react';
 import { usePosterGridKeyboard } from '../lib/usePosterGridKeyboard';
 import { usePosterGridScrollMotion } from '../lib/usePosterGridScrollMotion';
 import { PosterGridTile } from './PosterGridTile';
+import { useOpenVoteStats } from './VoteStatsProvider';
 
 export interface PosterGridItem {
   key: string;
@@ -36,8 +37,19 @@ export function GamePosterGrid({
   onToggleFavorite,
   onVotePress,
 }: GamePosterGridProps) {
+  const openVoteStats = useOpenVoteStats();
   const scrollRef = usePosterGridScrollMotion();
   const onGridKeyDown = usePosterGridKeyboard(scrollRef, items.length, items.length > 0);
+
+  const handleVotePress =
+    onVotePress ??
+    ((item: PosterGridItem) => {
+      openVoteStats({
+        gameId: item.gameId,
+        title: item.title,
+        votes: item.votes,
+      });
+    });
 
   const scrollWrapClass = embedded
     ? 'poster-grid-scroll min-h-0 flex-1'
@@ -66,7 +78,7 @@ export function GamePosterGrid({
             showStar={showStar}
             onOpen={onOpen}
             onToggleFavorite={onToggleFavorite}
-            onVotePress={onVotePress}
+            onVotePress={handleVotePress}
           />
         ))}
       </ul>

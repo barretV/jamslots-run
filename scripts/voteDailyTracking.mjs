@@ -97,16 +97,22 @@ export function buildDailyHistoryFromSnapshots(snapshots) {
   }
 
   const games = {};
+  const gameTotals = {};
   for (const gameId of allIds) {
     const values = [];
+    const totals = [];
     let prevTotal = 0;
     for (const day of daysUtc) {
       const total = Number(byDay.get(day)[gameId] ?? prevTotal);
+      totals.push(total);
       values.push(Math.max(0, total - prevTotal));
       prevTotal = total;
     }
-    if (values.some((v) => v > 0)) games[gameId] = values;
+    if (values.some((v) => v > 0)) {
+      games[gameId] = values;
+      gameTotals[gameId] = totals;
+    }
   }
 
-  return { daysUtc, games };
+  return { daysUtc, games, gameTotals };
 }

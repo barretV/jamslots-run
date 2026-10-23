@@ -79,12 +79,18 @@ function nebulaPosition(p: ChartGamePoint): [number, number, number] {
   const j = hashId(p.game.gameId);
   const j2 = hashId(p.game.gameId, 'b');
   const j3 = hashId(p.game.gameId, 'c');
-  const spread = 0.18;
-  const scale = 2.8;
+  const j4 = hashId(p.game.gameId, 'd');
+  const spread = 0.46;
+  const scale = 2.82;
+  const cx = (p.votesNorm - 0.5) * scale;
+  const cy = (p.playsNorm - 0.5) * scale;
+  const cz = (p.todayNorm - 0.5) * scale;
+  const core = Math.exp(-(cx * cx + cy * cy + cz * cz) * 0.32);
+  const bloom = (0.28 + core * 0.24) * (j4 - 0.5);
   return [
-    (p.votesNorm - 0.5) * scale + (j - 0.5) * spread,
-    (p.playsNorm - 0.5) * scale + (j2 - 0.5) * spread,
-    (p.todayNorm - 0.5) * scale + (j3 - 0.5) * spread,
+    cx + (j - 0.5) * spread + bloom,
+    cy + (j2 - 0.5) * spread - bloom * 0.6,
+    cz + (j3 - 0.5) * spread + bloom * 0.45,
   ];
 }
 
@@ -158,32 +164,56 @@ function hslColor(h: number, s: number, l: number): string {
   return `hsl(${h}, ${s}%, ${l}%)`;
 }
 
-export function nebulaDistinctColor(p: ChartGamePoint, mode: NebulaColorMode): string {
-  const idHue = hashId(p.game.gameId) * 360;
-  const mix = hashId(p.game.gameId, 'm');
-  if (mode === 'playstyle') {
-    const clusterHue =
-      p.cluster === 'rusher' ? 42 : p.cluster === 'survivor' ? 305 : 192;
-    const h = clusterHue * 0.45 + idHue * 0.55;
-    return hslColor(h, 78, 56);
-  }
-  if (mode === 'votes') {
-    const h = 210 - p.votesNorm * 175 + mix * 28;
-    return hslColor(h, 82, 52 + p.votesNorm * 10);
-  }
-  if (mode === 'plays') {
-    const h = 265 + p.playsNorm * 55 + mix * 22;
-    return hslColor(h, 75, 50 + p.playsNorm * 12);
-  }
-  const h = 220 + p.todayNorm * 95 + mix * 30;
-  return hslColor(h, 88, 48 + p.todayNorm * 14);
+const JEWEL_HUE_ANCHORS = [188, 42, 312, 268, 158, 18, 332, 218, 95, 278];
+
+function jewelHue(gameId: string, metricT: number, mode: NebulaColorMode): number {
+  const h0 = hashId(gameId);
+  const h1 = hashId(gameId, 'hue');
+  const anchor = JEWEL_HUE_ANCHORS[Math.floor(h0 * JEWEL_HUE_ANCHORS.length)];
+  const spread = mode === 'playstyle' ? 48 : 36;
+  const metricSkew =
+    mode === 'votes'
+      ? (0.5 - metricT) * 22
+      : mode === 'plays'
+        ? metricT * 18
+        : mode === 'today'
+          ? metricT * 26
+          : 0;
+  return anchor + (h1 - 0.5) * spread + metricSkew;
 }
 
-export function nebulaPointSize(p: ChartGamePoint): number {
-  const base = 0.038;
-  const voteBoost = 0.02 + p.votesNorm * 0.045;
-  const todayBoost = p.todayNorm * 0.035;
-  return base + voteBoost + todayBoost;
+export function nebulaDistinctColor(p: ChartGamePoint, mode: NebulaColorMode): string {
+  const mix = hashId(p.game.gameId, 'm');
+  if (mode === 'playstyle') {
+    const clusterHue = p.cluster === 'rusher' ? 38 : p.cluster === 'survivor' ? 308 : 196;
+    const h = jewelHue(p.game.gameId, p.votesNorm, mode) * 0.55 + clusterHue * 0.45;
+    return hslColor(h, 84, 50 + mix * 4);
+  }
+  if (mode === 'votes') {
+    const h = jewelHue(p.game.gameId, p.votesNorm, mode);
+    return hslColor(h, 86, 48 + mix * 5);
+  }
+  if (mode === 'plays') {
+    const h = jewelHue(p.game.gameId, p.playsNorm, mode);
+    return hslColor(h, 82, 47 + mix * 5);
+  }
+  const h = jewelHue(p.game.gameId, p.todayNorm, mode);
+  return hslColor(h, 88, 46 + mix * 6);
+}
+
+/** Smaller in the dense core; larger only for vote/today outliers. */
+export function nebulaPointSize(
+  p: ChartGamePoint,
+  distFromCenter: number,
+  cloudRadius: number,
+): number {
+  const r = Math.max(cloudRadius, 0.35);
+  const coreT = 1 - Math.min(1, Math.max(0, distFromCenter / (r * 0.92)));
+  const base = 0.028 - coreT * 0.011;
+  const outlier =
+    p.votesNorm >= 0.94 || p.todayNorm >= 0.94 || p.game.votes >= 200 || (p.game.votesToday ?? 0) >= 40;
+  const outlierBoost = outlier ? 0.022 + p.votesNorm * 0.018 : 0;
+  return base + outlierBoost;
 }
 
 export function colorForPoint(p: ChartGamePoint, mode: NebulaColorMode): string {

@@ -75,6 +75,59 @@ function classifyPlaystyleGame(
   return 'tactician';
 }
 
+/** Pull a box-shaped metric cloud into a lumpy, organic blob (metrics still drive X/Y/Z). */
+function warpNebulaToBlob(
+  bx: number,
+  by: number,
+  bz: number,
+  gameId: string,
+  layout: number,
+): [number, number, number] {
+  const len = Math.hypot(bx, by, bz);
+  const jw = hashId(gameId, 'w');
+  const jc = hashId(gameId, 'curl');
+  const jl = hashId(gameId, 'lump');
+
+  if (len < 1e-5) {
+    const a = jw * Math.PI * 2;
+    const b = jc * Math.PI;
+    const s = 0.07 * layout;
+    return [Math.cos(a) * Math.cos(b) * s, Math.sin(a) * Math.cos(b) * s, Math.sin(b) * s];
+  }
+
+  const ux = bx / len;
+  const uy = by / len;
+  const uz = bz / len;
+
+  const e = 0.58;
+  const ax = Math.abs(bx);
+  const ay = Math.abs(by);
+  const az = Math.abs(bz);
+  const roundedR =
+    Math.pow(Math.pow(ax, 2 / e) + Math.pow(ay, 2 / e) + Math.pow(az, 2 / e), e / 2) || len;
+
+  const lump =
+    1 +
+    0.13 *
+      Math.sin(ux * 2.55 + jw * 6.28) *
+      Math.cos(uy * 2.05 + jc * 6.28) *
+      Math.sin(uz * 2.3 + jl * 6.28);
+  const rad = roundedR * lump;
+
+  const curl = 0.12;
+  const t = jl * Math.PI * 2;
+  const ox = curl * Math.sin(t + by * 0.42) * Math.cos(bz * 0.36);
+  const oy = curl * Math.cos(t * 1.05 + bz * 0.4) * Math.sin(bx * 0.35);
+  const oz = curl * Math.sin(t * 0.92 + bx * 0.38) * Math.cos(by * 0.37);
+
+  const extent = 1.14;
+  return [
+    (ux * rad + ox) * layout * extent,
+    (uy * rad + oy) * layout * extent,
+    (uz * rad + oz) * layout * extent,
+  ];
+}
+
 function nebulaPosition(p: ChartGamePoint): [number, number, number] {
   const j = hashId(p.game.gameId);
   const j2 = hashId(p.game.gameId, 'b');
@@ -82,11 +135,10 @@ function nebulaPosition(p: ChartGamePoint): [number, number, number] {
   const spread = 0.22;
   const scale = 2.8;
   const layout = 1.2;
-  return [
-    ((p.votesNorm - 0.5) * scale + (j - 0.5) * spread) * layout,
-    ((p.playsNorm - 0.5) * scale + (j2 - 0.5) * spread) * layout,
-    ((p.todayNorm - 0.5) * scale + (j3 - 0.5) * spread) * layout,
-  ];
+  const bx = (p.votesNorm - 0.5) * scale + (j - 0.5) * spread;
+  const by = (p.playsNorm - 0.5) * scale + (j2 - 0.5) * spread;
+  const bz = (p.todayNorm - 0.5) * scale + (j3 - 0.5) * spread;
+  return warpNebulaToBlob(bx, by, bz, p.game.gameId, layout);
 }
 
 export function buildChartPoints(games: JamGame[]): ChartGamePoint[] {

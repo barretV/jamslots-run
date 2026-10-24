@@ -91,6 +91,7 @@ function NebulaScene({
   onSelect: (p: ChartGamePoint) => void;
 }) {
   const ref = useRef<THREE.Points>(null);
+  const cloudRef = useRef<THREE.Group>(null);
   const controlsRef = useRef<OrbitControlsImpl>(null);
   const fitFrames = useRef(0);
   const { camera } = useThree();
@@ -134,7 +135,7 @@ function NebulaScene({
     applyNebulaCameraFit(camera, viewSphere, controlsRef.current, orbitTarget, captureMode);
   }, [camera, viewSphere, orbitTarget, captureMode]);
 
-  useFrame(() => {
+  useFrame((state) => {
     const ctrl = controlsRef.current;
     if (fitFrames.current < 90) {
       fitFrames.current += 1;
@@ -142,28 +143,41 @@ function NebulaScene({
     }
     if (ctrl) {
       ctrl.autoRotate = !captureMode;
-      ctrl.autoRotateSpeed = 0.28;
+      ctrl.autoRotateSpeed = 0.12;
+    }
+    const cloud = cloudRef.current;
+    if (cloud && !captureMode) {
+      const t = state.clock.elapsedTime;
+      const breathe = 1 + Math.sin(t * 0.38) * 0.022;
+      cloud.scale.setScalar(breathe);
+      cloud.rotation.y = Math.sin(t * 0.11) * 0.06;
+      cloud.rotation.x = Math.cos(t * 0.09) * 0.035;
+    } else if (cloud) {
+      cloud.scale.setScalar(1);
+      cloud.rotation.set(0, 0, 0);
     }
   });
 
   return (
     <>
       <Stars radius={40} depth={24} count={500} factor={2} saturation={0.1} fade speed={0.25} />
-      <points
-        ref={ref}
-        geometry={geometry}
-        material={nebulaPointMaterial}
-        onPointerMove={(e) => {
-          const idx = e.index;
-          if (idx != null && idx >= 0 && idx < points.length) onHover(points[idx]);
-        }}
-        onPointerOut={() => onHover(null)}
-        onClick={(e) => {
-          e.stopPropagation();
-          const idx = e.index;
-          if (idx != null && idx >= 0 && idx < points.length) onSelect(points[idx]);
-        }}
-      />
+      <group ref={cloudRef}>
+        <points
+          ref={ref}
+          geometry={geometry}
+          material={nebulaPointMaterial}
+          onPointerMove={(e) => {
+            const idx = e.index;
+            if (idx != null && idx >= 0 && idx < points.length) onHover(points[idx]);
+          }}
+          onPointerOut={() => onHover(null)}
+          onClick={(e) => {
+            e.stopPropagation();
+            const idx = e.index;
+            if (idx != null && idx >= 0 && idx < points.length) onSelect(points[idx]);
+          }}
+        />
+      </group>
       <OrbitControls
         ref={controlsRef}
         target={orbitTarget}
@@ -171,7 +185,7 @@ function NebulaScene({
         enableZoom
         makeDefault
         autoRotate
-        autoRotateSpeed={0.28}
+        autoRotateSpeed={0.12}
       />
     </>
   );

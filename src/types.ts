@@ -40,4 +40,9 @@ export interface PickerStats {
   history: HistoryEntry[];
   /** Game IDs that have appeared on slot reels this jam cycle. */
   rollSeenIds?: string[];
+  /**
+   * Game ids present the last time this browser loaded the site.
+   * Missing means this profile has never saved a visit.
+   */
+  seenGameIds?: string[];
 }

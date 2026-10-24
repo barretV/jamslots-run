@@ -5,18 +5,22 @@ import * as THREE from 'three';
 import { loadGameThumbnail, preloadCityThumbnails } from '../../lib/cityTextureCache';
 import { buildCityLayout, computeCitySpawn, type CityBuildingSlot } from '../../lib/citySpiral';
 import type { JamGame } from '../../types';
+import { CityAirTraffic } from './CityAirTraffic';
 import { CityBuildings } from './CityBuildings';
 import { CityPostFX } from './CityPostFX';
+import { CityRain } from './CityRain';
 import { CityRoad } from './CityRoad';
+import { CitySearchlights } from './CitySearchlights';
 import { CitySky } from './CitySky';
 import { CityTraffic } from './CityTraffic';
-import { UfoRig, type FlightInput } from './UfoRig';
+import { UfoRig, type FlightInput, type SteerTarget } from './UfoRig';
 
 export type CityFlightMode = 'fly' | 'landing' | 'landed';
 
 interface CitySceneProps {
   games: JamGame[];
   inputRef: MutableRefObject<FlightInput>;
+  steerRef: MutableRefObject<SteerTarget | null>;
   mode: CityFlightMode;
   landTarget: CityBuildingSlot | null;
   landProgress: number;
@@ -29,6 +33,7 @@ interface CitySceneProps {
 export function CityScene({
   games,
   inputRef,
+  steerRef,
   mode,
   landTarget,
   landProgress,
@@ -43,9 +48,22 @@ export function CityScene({
   const craftPos = useRef(new THREE.Vector3(spawn.x, spawn.y, spawn.z));
 
   useEffect(() => {
-    const w = window as typeof window & { __cityFocus?: { x: number; z: number } };
+    const w = window as typeof window & {
+      __cityFocus?: { x: number; z: number };
+      __citySlots?: { id: string; title: string; x: number; z: number; y: number; width: number; height: number; voteRank: number }[];
+    };
     w.__cityFocus = { x: spawn.focusX, z: spawn.focusZ };
-  }, [spawn]);
+    w.__citySlots = buildings.map((b) => ({
+      id: b.game.gameId,
+      title: b.game.title,
+      x: b.x,
+      z: b.z,
+      y: b.roofY,
+      width: b.width,
+      height: b.height,
+      voteRank: b.voteRank,
+    }));
+  }, [buildings, spawn]);
 
   useEffect(() => {
     preloadCityThumbnails(
@@ -103,7 +121,7 @@ export function CityScene({
   return (
     <>
       <color attach="background" args={['#3a1f57']} />
-      <fog attach="fog" args={[fogColor, 170, 980]} />
+      <fog attach="fog" args={[fogColor, 145, 760]} />
       <CitySky />
 
       <hemisphereLight color="#7a63e8" groundColor="#0a0718" intensity={0.5} />
@@ -128,9 +146,13 @@ export function CityScene({
 
       <CityRoad streets={streets} />
       <CityTraffic streets={streets} />
+      <CityAirTraffic streets={streets} buildings={buildings} />
+      <CitySearchlights buildings={buildings} />
+      {quality !== 'low' ? <CityRain /> : null}
       <CityBuildings buildings={buildings} craftPos={craftPos.current} spawn={spawn} isFavorite={isFavorite} />
       <UfoRig
         inputRef={inputRef}
+        steerRef={steerRef}
         mode={mode}
         spawn={spawn}
         buildings={buildings}
@@ -143,7 +165,7 @@ export function CityScene({
       />
 
       <CityPostFX
-        bloomStrength={quality === 'low' ? 0.28 : 0.42}
+        bloomStrength={quality === 'low' ? 0.28 : 0.7}
         bloomRadius={0.66}
         bloomThreshold={0.85}
         bloomScale={quality === 'low' ? 0.4 : 0.5}

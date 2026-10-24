@@ -1831,7 +1831,7 @@ body {
 
 .library-hint-row {
   display: flex;
-  align-items: flex-start;
+  align-items: center;
   justify-content: space-between;
   gap: 0.65rem;
   margin-top: 0.35rem;
@@ -1856,8 +1856,11 @@ body {
 
 .library-city-btn {
   flex: 0 0 auto;
-  padding: 0.45rem 0.85rem;
-  border-radius: 0.55rem;
+  padding: 0.05rem 0.7rem;
+  min-height: 0;
+  line-height: 1.15;
+  white-space: nowrap;
+  border-radius: 0.4rem;
   border: 1px solid rgba(34, 211, 238, 0.55);
   background: linear-gradient(135deg, rgba(34, 211, 238, 0.28), rgba(59, 130, 246, 0.4));
   color: #e0f2fe;
@@ -1880,8 +1883,11 @@ body {
 
 .library-charts-btn {
   flex: 0 0 auto;
-  padding: 0.45rem 0.85rem;
-  border-radius: 0.55rem;
+  padding: 0.05rem 0.7rem;
+  min-height: 0;
+  line-height: 1.15;
+  white-space: nowrap;
+  border-radius: 0.4rem;
   border: 1px solid rgba(244, 114, 182, 0.55);
   background: linear-gradient(135deg, rgba(244, 114, 182, 0.35), rgba(168, 85, 247, 0.45));
   color: #fce7f3;
@@ -2442,12 +2448,92 @@ body.library-immersive-open {
 .interactive-city-landed__takeoff {
   width: 100%;
   padding: 0.5rem;
-  border: none;
+  border: 1px solid transparent;
+  border-radius: 0.45rem;
   background: transparent;
   color: #a1a1aa;
   font-size: 1.1rem;
   font-weight: 700;
   cursor: pointer;
+}
+
+.interactive-city-landed__play.is-selected {
+  box-shadow: 0 0 0 2px #fde68a, 0 0 16px rgba(34, 211, 238, 0.85);
+  filter: brightness(1.12);
+}
+
+.interactive-city-landed__takeoff.is-selected {
+  color: #fde68a;
+  border-color: rgba(253, 230, 138, 0.85);
+  background: rgba(253, 230, 138, 0.14);
+}
+
+.interactive-city-favs {
+  position: absolute;
+  left: 0.75rem;
+  top: 4.25rem;
+  width: min(16rem, 46vw);
+  max-height: 42%;
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  pointer-events: auto;
+  z-index: 2;
+}
+
+.interactive-city-compass {
+  position: relative;
+  height: 0.7rem;
+  border-radius: 999px;
+  background: rgba(0, 0, 0, 0.45);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+}
+
+.interactive-city-compass__tick {
+  position: absolute;
+  left: 50%;
+  top: 0.05rem;
+  width: 0.28rem;
+  height: 0.55rem;
+  margin-left: -0.14rem;
+  border-radius: 0.1rem;
+  background: #f472b6;
+  opacity: 0;
+}
+
+.interactive-city-favs__label {
+  margin: 0;
+  font-size: 1.1rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #f9a8d4;
+}
+
+.interactive-city-favs__list {
+  overflow: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  max-height: 16rem;
+}
+
+.interactive-city-favs__list button {
+  text-align: left;
+  font-size: 1.1rem;
+  line-height: 1.2;
+  min-height: 2.75rem;
+  padding: 0.35rem 0.55rem;
+  border-radius: 0.4rem;
+  border: 1px solid rgba(244, 114, 182, 0.35);
+  background: rgba(8, 6, 18, 0.82);
+  color: #fce7f3;
+  cursor: pointer;
+}
+
+.interactive-city-favs__list button.is-active {
+  border-color: #f472b6;
+  box-shadow: 0 0 12px rgba(244, 114, 182, 0.45);
 }
 
 .library-charts-panel {

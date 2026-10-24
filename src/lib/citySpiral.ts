@@ -13,7 +13,7 @@ export const CITY_MAX_FOOTPRINT = CITY_CELL - CITY_STREET_GAP;
 /** Height of the deepest downtown towers, in world units. */
 const CITY_PEAK_HEIGHT = 260;
 /** Lowest suburban blocks, so the outskirts still read as a city. */
-const CITY_BASE_HEIGHT = 14;
+const CITY_BASE_HEIGHT = 28;
 
 export interface CityBuildingSlot {
   game: JamGame;
@@ -29,6 +29,8 @@ export interface CityBuildingSlot {
   posterSize: number;
   topVotes: boolean;
   topToday: boolean;
+  /** 1 = most voted landmark, through 10. 0 for every other tower. */
+  voteRank: number;
   /** Per-floor width scale factors (setbacks). */
   tierScales: number[];
   /** Neon palette index. */
@@ -107,6 +109,7 @@ export function buildCityLayout(
   const maxPlays = Math.max(1, ...sorted.map((g) => g.totalPlays));
 
   const topVoteIds = new Set(sorted.slice(0, 12).map((g) => g.gameId));
+  const voteRankById = new Map(sorted.slice(0, 10).map((g, i) => [g.gameId, i + 1]));
   const topTodayIds = new Set(
     [...sorted]
       .sort((a, b) => (b.votesToday ?? 0) - (a.votesToday ?? 0))
@@ -185,6 +188,7 @@ export function buildCityLayout(
       posterSize: topVotes || topToday ? 8.6 : 7.2,
       topVotes,
       topToday,
+      voteRank: voteRankById.get(game.gameId) ?? 0,
       tierScales: tierScalesForSeed(seed, 9),
       theme: seed % THEME_COUNT,
       playsNorm,

@@ -37,7 +37,7 @@ export function CityRoad({ streets }: CityRoadProps) {
       dummy.updateMatrix();
       deck.matrices.push(dummy.matrix.clone());
       deck.colors.push(new THREE.Color('#141020'));
-      deck.glows.push(new THREE.Color(0.02, 0.01, 0.05));
+      deck.glows.push(new THREE.Color(0.06, 0.05, 0.1));
 
       // Centre dashes
       const count = Math.max(1, Math.floor(len / DASH_SPACING));
@@ -66,10 +66,11 @@ export function CityRoad({ streets }: CityRoadProps) {
 
     const boxGeo = new THREE.BoxGeometry(1, 1, 1);
     const deckMat = createNeonMaterial({
-      color: '#12101f',
-      metalness: 0.3,
-      roughness: 0.85,
+      color: '#1c1830',
+      metalness: 0.68,
+      roughness: 0.2,
       vertexColors: true,
+      sheen: true,
     });
     const dashMat = createNeonMaterial({ color: '#0a0808', metalness: 0.2, roughness: 0.6 });
     const kerbMat = createNeonMaterial({ color: '#04040c', metalness: 0.4, roughness: 0.35 });

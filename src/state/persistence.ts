@@ -22,6 +22,7 @@ function loadRaw(): PickerStats {
       favorites: Array.isArray(parsed.favorites) ? parsed.favorites : [],
       history: Array.isArray(parsed.history) ? parsed.history : [],
       rollSeenIds: Array.isArray(parsed.rollSeenIds) ? parsed.rollSeenIds : [],
+      seenGameIds: Array.isArray(parsed.seenGameIds) ? parsed.seenGameIds : undefined,
     };
   } catch {
     return { ...DEFAULTS };
@@ -131,6 +132,7 @@ export function pruneStatsToJamPool(validGameIds: ReadonlySet<string>): boolean 
   const favorites = cache.favorites.filter((id) => validGameIds.has(id));
   const history = cache.history.filter((h) => validGameIds.has(h.gameId));
   const rollSeenIds = (cache.rollSeenIds ?? []).filter((id) => validGameIds.has(id));
+  const seenGameIds = cache.seenGameIds?.filter((id) => validGameIds.has(id));
   const playCounts: Record<string, number> = {};
   for (const [id, n] of Object.entries(cache.playCounts)) {
     if (validGameIds.has(id)) playCounts[id] = n;
@@ -139,11 +141,49 @@ export function pruneStatsToJamPool(validGameIds: ReadonlySet<string>): boolean 
     favorites.length !== cache.favorites.length ||
     history.length !== cache.history.length ||
     rollSeenIds.length !== (cache.rollSeenIds ?? []).length ||
-    Object.keys(playCounts).length !== Object.keys(cache.playCounts).length;
+    Object.keys(playCounts).length !== Object.keys(cache.playCounts).length ||
+    (cache.seenGameIds != null && seenGameIds != null && seenGameIds.length !== cache.seenGameIds.length);
   if (!changed) return false;
-  cache = { ...cache, favorites, history, playCounts, rollSeenIds };
+  cache = {
+    ...cache,
+    favorites,
+    history,
+    playCounts,
+    rollSeenIds,
+    ...(cache.seenGameIds != null && seenGameIds != null ? { seenGameIds } : {}),
+  };
   flush();
   return true;
+}
+
+/** Ids that are new for this page load. Null until the visit is recorded. */
+let sessionNewIds: Set<string> | null = null;
+
+/**
+ * Compare the current jam ids with the set saved on the previous visit.
+ * First visit (no saved set) marks nothing new and stores the current ids.
+ * Later visits keep the newcomers green in memory, then store the current ids
+ * so the same games are not new on the next visit.
+ */
+export function noteSeenGames(currentIds: string[]): Set<string> {
+  if (sessionNewIds) return sessionNewIds;
+  const ids = currentIds.filter((id) => id.length > 0);
+  if (ids.length === 0) return new Set();
+  const stored = cache.seenGameIds;
+  if (!stored) sessionNewIds = new Set();
+  else {
+    const prev = new Set(stored);
+    sessionNewIds = new Set(ids.filter((id) => !prev.has(id)));
+  }
+  cache = { ...cache, seenGameIds: ids };
+  flush();
+  const w = window as typeof window & { __visitNewIds?: string[] };
+  w.__visitNewIds = [...sessionNewIds];
+  return sessionNewIds;
+}
+
+export function isNewThisVisit(gameId: string): boolean {
+  return sessionNewIds?.has(gameId) ?? false;
 }
 
 export type { HistoryEntry };

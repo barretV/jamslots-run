@@ -12,7 +12,7 @@ import {
 } from '../../lib/cityNeon';
 import type { CityBuildingSlot, CitySpawn } from '../../lib/citySpiral';
 import { isNewThisVisit } from '../../state/persistence';
-import { CityRankLandmarks } from './CityRankLandmarks';
+import { CityRankLandmarks, rankGlowMul, rankTopperHeight } from './CityRankLandmarks';
 
 interface CityBuildingsProps {
   buildings: CityBuildingSlot[];
@@ -23,7 +23,7 @@ interface CityBuildingsProps {
 
 const PINK = '#f472b6';
 const GREEN = '#39ff14';
-const FACE_RANGE = 104;
+const camForward = new THREE.Vector3();
 
 interface CityTheme {
   body: THREE.Color;
@@ -342,51 +342,59 @@ function CitySignalBeacons({
 function paintStats(slot: CityBuildingSlot, isFavorite: boolean, isNew: boolean): THREE.CanvasTexture {
   const canvas = document.createElement('canvas');
   canvas.width = 1024;
-  canvas.height = 384;
+  canvas.height = 512;
   const ctx = canvas.getContext('2d');
   if (ctx) {
     const W = canvas.width;
     const H = canvas.height;
     const accent = isFavorite ? PINK : isNew ? GREEN : '#67e8f9';
-    ctx.fillStyle = 'rgba(6, 4, 16, 0.94)';
+    ctx.fillStyle = '#07060e';
     ctx.fillRect(0, 0, W, H);
+    ctx.strokeStyle = '#f8fafc';
+    ctx.lineWidth = 16;
+    ctx.strokeRect(12, 12, W - 24, H - 24);
     ctx.strokeStyle = accent;
     ctx.lineWidth = 8;
-    ctx.strokeRect(10, 10, W - 20, H - 20);
+    ctx.strokeRect(22, 22, W - 44, H - 44);
 
     ctx.textBaseline = 'top';
-    ctx.font = 'bold 36px sans-serif';
+    ctx.font = 'bold 40px sans-serif';
     if (isNew) {
       ctx.fillStyle = GREEN;
       ctx.textAlign = 'left';
-      ctx.fillText('NEW', 36, 28);
+      ctx.fillText('NEW', 40, 36);
     }
     if (isFavorite) {
       ctx.fillStyle = PINK;
       ctx.textAlign = 'right';
-      ctx.fillText('FAVORITE', W - 36, 28);
+      ctx.fillText('FAVORITE', W - 40, 36);
     }
 
     ctx.textAlign = 'left';
     ctx.fillStyle = '#ffffff';
-    ctx.font = 'bold 42px sans-serif';
+    ctx.font = 'bold 44px sans-serif';
     const title = slot.game.title.length > 28 ? slot.game.title.slice(0, 26) + '…' : slot.game.title;
-    ctx.fillText(title, 36, 84);
+    ctx.fillText(title, 40, 96);
 
     const stats = [
       { label: 'PLAYS', value: formatCount(slot.game.totalPlays), color: '#67e8f9' },
       { label: 'VOTES', value: formatCount(slot.game.votes), color: '#f9a8d4' },
-      { label: 'TODAY', value: formatCount(slot.game.votesToday ?? 0), color: '#fbbf24' },
+      { label: 'TODAY', value: formatCount(slot.game.votesToday ?? 0), color: '#fde68a' },
     ];
-    const colW = (W - 72) / 3;
+    const colW = (W - 80) / 3;
     stats.forEach((s, i) => {
-      const x = 36 + i * colW;
+      const x = 40 + i * colW;
       ctx.fillStyle = s.color;
-      ctx.font = 'bold 28px sans-serif';
-      ctx.fillText(s.label, x, 156);
+      ctx.font = 'bold 36px sans-serif';
+      ctx.fillText(s.label, x, 188);
       ctx.fillStyle = '#ffffff';
-      ctx.font = 'bold 80px sans-serif';
-      ctx.fillText(s.value, x, 204);
+      ctx.font = 'bold 108px sans-serif';
+      ctx.shadowColor = '#000000';
+      ctx.shadowBlur = 0;
+      ctx.lineWidth = 10;
+      ctx.strokeStyle = '#000000';
+      ctx.strokeText(s.value, x, 240);
+      ctx.fillText(s.value, x, 240);
     });
   }
   const tex = new THREE.CanvasTexture(canvas);
@@ -398,6 +406,7 @@ function paintStats(slot: CityBuildingSlot, isFavorite: boolean, isNew: boolean)
 export function CityBuildings({ buildings, spawn, craftPos, isFavorite }: CityBuildingsProps) {
   const shell = useCityShell(buildings);
   const facingRef = useRef<string | null>(null);
+  const faceYawRef = useRef(0);
 
   useEffect(() => {
     return () => {
@@ -411,15 +420,34 @@ export function CityBuildings({ buildings, spawn, craftPos, isFavorite }: CityBu
     };
   }, [shell]);
 
-  useFrame((_, delta) => {
+  useFrame((state, delta) => {
     const u = shell.userData.uTime as { value: number } | undefined;
     if (u) u.value += Math.min(delta, 0.05);
+
+    const cam = state.camera;
+    cam.getWorldDirection(camForward);
+    const fx = camForward.x;
+    const fz = camForward.z;
+    const flen = Math.hypot(fx, fz);
+    if (flen > 0.08) faceYawRef.current = Math.atan2(-fx / flen, -fz / flen);
+    const nx = flen > 0.08 ? fx / flen : 0;
+    const nz = flen > 0.08 ? fz / flen : 1;
+    const cx = cam.position.x;
+    const cz = cam.position.z;
     let best: string | null = null;
-    let bestD = FACE_RANGE;
+    let bestScore = -Infinity;
+    const current = facingRef.current;
     for (const b of buildings) {
-      const d = Math.hypot(craftPos.x - b.x, craftPos.z - b.z);
-      if (d < bestD) {
-        bestD = d;
+      const dx = b.x - cx;
+      const dz = b.z - cz;
+      const dist = Math.hypot(dx, dz);
+      if (dist > 150) continue;
+      const dot = dist < 0.75 ? 1 : (dx * nx + dz * nz) / dist;
+      const keep = b.game.gameId === current && dist < 40;
+      if (!keep && (dot < 0.38 || dist > 130)) continue;
+      const score = (keep ? 0.45 : 0) + dot * 3 - dist / 150;
+      if (score > bestScore) {
+        bestScore = score;
         best = b.game.gameId;
       }
     }
@@ -430,7 +458,7 @@ export function CityBuildings({ buildings, spawn, craftPos, isFavorite }: CityBu
     <group>
       <primitive object={shell} />
       <CitySignalBeacons buildings={buildings} isFavorite={isFavorite} />
-      <CityRankLandmarks buildings={buildings} />
+      <CityRankLandmarks buildings={buildings} focusX={spawn.focusX} focusZ={spawn.focusZ} />
       {buildings.map((b) => (
         <GameBillboard
           key={b.game.gameId}
@@ -438,6 +466,7 @@ export function CityBuildings({ buildings, spawn, craftPos, isFavorite }: CityBu
           spawn={spawn}
           craftPos={craftPos}
           facingRef={facingRef}
+          faceYawRef={faceYawRef}
           isFavorite={isFavorite?.(b.game.gameId) ?? false}
           isNew={isNewThisVisit(b.game.gameId)}
         />
@@ -451,6 +480,7 @@ function GameBillboard({
   spawn,
   craftPos,
   facingRef,
+  faceYawRef,
   isFavorite,
   isNew,
 }: {
@@ -458,6 +488,7 @@ function GameBillboard({
   spawn: CitySpawn;
   craftPos: THREE.Vector3;
   facingRef: MutableRefObject<string | null>;
+  faceYawRef: MutableRefObject<number>;
   isFavorite?: boolean;
   isNew: boolean;
 }) {
@@ -468,47 +499,63 @@ function GameBillboard({
   const auraRef = useRef<THREE.MeshBasicMaterial>(null);
   const greenRingRef = useRef<THREE.MeshBasicMaterial>(null);
   const yawGroupRef = useRef<THREE.Group | null>(null);
+  const leanRef = useRef<THREE.Group | null>(null);
   const baseYaw = Math.atan2(slot.x - spawn.focusX, slot.z - spawn.focusZ);
   const yawState = useRef(baseYaw);
   const spin = useRef(0);
   const size = roofSignWorldSize(slot);
-  const y = slot.roofY + size * 0.5 + 0.5;
-  const lean = slot.voteRank > 0 ? 0.14 : slot.topToday ? 0.12 : 0.11;
+  const ranked = slot.voteRank >= 1 && slot.voteRank <= 10;
+  const crownClear = ranked ? rankTopperHeight(slot.voteRank) : 0;
+  const y = ranked ? slot.roofY + crownClear + 1.6 + size * 0.5 : slot.roofY + size * 0.5 + 0.5;
+  const baseLean = ranked ? 0.14 : slot.topToday ? 0.12 : 0.11;
   const framePad = 0.7;
   const panelDepth = 0.26;
   const halfDepth = panelDepth * 0.5;
   const artZ = halfDepth + 0.02;
   const accent = isFavorite ? PINK : isNew ? GREEN : slot.voteRank > 0 ? '#fbbf24' : '#22d3ee';
-  const boardW = Math.min(9.2, Math.max(6.2, size * 0.78));
-  const boardH = boardW * (384 / 1024);
-  const statsX = size * 0.5 + boardW * 0.5 + 0.55;
+  const boardW = Math.min(18, Math.max(12, size * 1.05));
+  const boardH = boardW * (512 / 1024);
+  const statsX = ranked ? 0 : size * 0.5 + boardW * 0.5 + 0.55;
+  const statsY = ranked ? y + size * 0.5 + 0.8 + boardH * 0.5 : y;
+  const frameBase = isFavorite || isNew ? 0.45 : slot.voteRank > 0 ? 0.4 : 0.26;
+  const fadeRef = useRef<{
+    glow: THREE.MeshBasicMaterial;
+    frame: THREE.MeshStandardMaterial;
+    frameBase: number;
+    ranked: boolean;
+    signY: number;
+  } | null>(null);
 
   const LOAD_DISTANCE = 260;
   const RENDER_DISTANCE = 230;
   useFrame((state, delta) => {
     const dt = Math.min(delta, 0.05);
     const g = yawGroupRef.current;
+    const viewed = facingRef.current === slot.game.gameId;
     if (g) {
-      let target = baseYaw;
-      if (facingRef.current === slot.game.gameId) {
-        const dx = craftPos.x - slot.x;
-        const dz = craftPos.z - slot.z;
-        if (dx * dx + dz * dz > 36) target = Math.atan2(dx, dz);
-        else target = yawState.current;
-      }
+      const target = viewed ? faceYawRef.current : baseYaw;
       let diff = target - yawState.current;
       while (diff > Math.PI) diff -= Math.PI * 2;
       while (diff < -Math.PI) diff += Math.PI * 2;
-      const omega = 5.2;
+      const omega = 12;
       spin.current += (diff * omega * omega - 2 * omega * spin.current) * dt;
-      const maxSpin = 1.35;
+      const maxSpin = 10;
       spin.current = Math.max(-maxSpin, Math.min(maxSpin, spin.current));
       yawState.current += spin.current * dt;
       g.rotation.set(0, yawState.current, 0);
-      if (facingRef.current === slot.game.gameId) {
-        const w = window as typeof window & { __citySignYaw?: number };
-        w.__citySignYaw = yawState.current;
-      }
+    }
+    const leanNode = leanRef.current;
+    if (leanNode) {
+      const want = viewed ? 0 : baseLean;
+      leanNode.rotation.x += (want - leanNode.rotation.x) * (1 - Math.exp(-8 * dt));
+    }
+    const fade = fadeRef.current;
+    if (fade?.ranked) {
+      const cam = state.camera.position;
+      const dist = Math.hypot(cam.x - slot.x, cam.y - fade.signY, cam.z - slot.z);
+      const mul = rankGlowMul(dist);
+      fade.glow.opacity = 0.09 * mul;
+      fade.frame.emissiveIntensity = fade.frameBase * mul;
     }
 
     const d = Math.hypot(craftPos.x - slot.x, craftPos.z - slot.z);
@@ -542,9 +589,9 @@ function GameBillboard({
         metalness: 0.5,
         roughness: 0.4,
         emissive: new THREE.Color(accent),
-        emissiveIntensity: isFavorite || isNew ? 0.45 : slot.voteRank > 0 ? 0.4 : 0.26,
+        emissiveIntensity: frameBase,
       }),
-    [accent, isFavorite, isNew, slot.voteRank],
+    [accent, frameBase],
   );
 
   const glowMat = useMemo(
@@ -566,10 +613,12 @@ function GameBillboard({
       map: statsTex,
       transparent: true,
       toneMapped: false,
-      depthWrite: false,
+      depthWrite: true,
       side: THREE.FrontSide,
     });
   }, [statsTex]);
+
+  fadeRef.current = { glow: glowMat, frame: frameMat, frameBase, ranked, signY: y };
 
   useEffect(() => {
     return () => {
@@ -583,7 +632,10 @@ function GameBillboard({
 
   if (!visible || !tex || !posterMat) return null;
 
-  const postH = slot.roofY + size * 0.5 + 0.2;
+  const auraH = slot.roofY + size * 0.5 + 0.2;
+  const poleBottom = ranked ? slot.roofY + crownClear : 0;
+  const poleTop = ranked ? y - size * 0.5 + 0.2 : auraH;
+  const poleH = Math.max(0.4, poleTop - poleBottom);
   const greenRadius = size * (isFavorite ? 1.15 : 0.95);
 
   return (
@@ -594,13 +646,13 @@ function GameBillboard({
         if (node) node.rotation.y = yawState.current;
       }}
     >
-      <mesh position={[0, postH * 0.5, 0]} material={frameMat}>
-        <boxGeometry args={[0.22, postH, 0.22]} />
+      <mesh position={[0, poleBottom + poleH * 0.5, 0]} material={frameMat}>
+        <boxGeometry args={[0.22, poleH, 0.22]} />
       </mesh>
 
       {isFavorite ? (
-        <mesh position={[0, postH * 0.5, 0]} renderOrder={4}>
-          <cylinderGeometry args={[size * 0.62, size * 0.62, postH + size * 0.6, 24, 1, true]} />
+        <mesh position={[0, auraH * 0.5, 0]} renderOrder={4}>
+          <cylinderGeometry args={[size * 0.62, size * 0.62, auraH + size * 0.6, 24, 1, true]} />
           <meshBasicMaterial
             ref={auraRef}
             color={PINK}
@@ -614,8 +666,8 @@ function GameBillboard({
         </mesh>
       ) : null}
       {isNew && !isFavorite ? (
-        <mesh position={[0, postH * 0.5, 0]} renderOrder={4}>
-          <cylinderGeometry args={[size * 0.62, size * 0.62, postH + size * 0.6, 24, 1, true]} />
+        <mesh position={[0, auraH * 0.5, 0]} renderOrder={4}>
+          <cylinderGeometry args={[size * 0.62, size * 0.62, auraH + size * 0.6, 24, 1, true]} />
           <meshBasicMaterial
             ref={auraRef}
             color={GREEN}
@@ -658,7 +710,12 @@ function GameBillboard({
         </mesh>
       ) : null}
 
-      <group position={[0, y, 0]} rotation={[lean, 0, 0]}>
+      <group
+        position={[0, y, 0]}
+        ref={(node) => {
+          leanRef.current = node;
+        }}
+      >
         <mesh material={frameMat} renderOrder={6}>
           <boxGeometry args={[size + framePad, size + framePad, panelDepth]} />
         </mesh>
@@ -674,11 +731,11 @@ function GameBillboard({
       </group>
 
       {statsMat ? (
-        <group position={[statsX, y, 0]}>
-          <mesh position={[0, 0, 0.08]} renderOrder={9} material={statsMat}>
+        <group position={[statsX, statsY, 0]}>
+          <mesh position={[0, 0, 0.16]} renderOrder={9} material={statsMat}>
             <planeGeometry args={[boardW, boardH]} />
           </mesh>
-          <mesh position={[0, 0, -0.08]} rotation={[0, Math.PI, 0]} renderOrder={9} material={statsMat}>
+          <mesh position={[0, 0, -0.16]} rotation={[0, Math.PI, 0]} renderOrder={9} material={statsMat}>
             <planeGeometry args={[boardW, boardH]} />
           </mesh>
         </group>

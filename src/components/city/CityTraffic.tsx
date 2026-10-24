@@ -67,7 +67,7 @@ export function CityTraffic({ streets }: CityTrafficProps) {
         list.push({
           street: si,
           u: ((i + 0.5) / count + (seed % 37) / 370) % 1,
-          speed: (isScooter ? 96 : 62) + (seed % 8) * (isScooter ? 7 : 5),
+          speed: ((isScooter ? 96 : 62) + (seed % 8) * (isScooter ? 7 : 5)) / 3,
           dir,
           lane: dir * (1.35 + (seed % 3) * 0.45),
           isScooter,
@@ -82,11 +82,8 @@ export function CityTraffic({ streets }: CityTrafficProps) {
   const cars = useMemo(() => vehicles.filter((v) => !v.isScooter), [vehicles]);
   const scooters = useMemo(() => vehicles.filter((v) => v.isScooter), [vehicles]);
 
-  const carGeo = useMemo(() => attachGlow(new THREE.BoxGeometry(2.45, 0.46, 0.92), cars.map((v) => v.color), 3.1), [cars]);
-  const scooterGeo = useMemo(
-    () => attachGlow(new THREE.BoxGeometry(1.15, 0.26, 0.42), scooters.map((v) => v.color), 3.3),
-    [scooters],
-  );
+  const carGeo = useMemo(() => new THREE.BoxGeometry(3.8, 1.05, 1.55), []);
+  const scooterGeo = useMemo(() => new THREE.BoxGeometry(2.05, 0.62, 0.85), []);
   const lightGeo = useMemo(
     () => attachGlow(new THREE.BoxGeometry(1, 1, 1), vehicles.map((v) => v.color), 5.5),
     [vehicles],
@@ -100,9 +97,9 @@ export function CityTraffic({ streets }: CityTrafficProps) {
 
   useLayoutEffect(() => {
     if (trailRef.current) trailRef.current.count = 0;
-    paintInstanceColors(carRef.current, cars.map((v) => v.color));
-    paintInstanceColors(scooterRef.current, scooters.map((v) => v.color));
-    paintInstanceColors(lightRef.current, vehicles.map((v) => v.color));
+    paintInstanceColors(carRef.current, cars.map((v) => v.color.clone().multiplyScalar(2.4)));
+    paintInstanceColors(scooterRef.current, scooters.map((v) => v.color.clone().multiplyScalar(2.4)));
+    paintInstanceColors(lightRef.current, vehicles.map((v) => v.color.clone().multiplyScalar(3.2)));
   }, [cars, scooters, vehicles]);
 
   const near = useMemo(() => [] as { i: number; d: number }[], []);
@@ -161,8 +158,8 @@ export function CityTraffic({ streets }: CityTrafficProps) {
       samples: v.samples,
       color: v.color,
       draw: draw.has(i),
-      height: v.isScooter ? 0.7 : 1.2,
-      thick: v.isScooter ? 0.12 : 0.2,
+      height: v.isScooter ? 1.55 : 2.8,
+      thick: v.isScooter ? 0.34 : 0.62,
     }));
     writeTrailMesh(trailRef.current, items, now, trailDummy, tint, TRAIL_SEGS);
 

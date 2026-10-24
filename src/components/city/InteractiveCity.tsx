@@ -33,6 +33,7 @@ export function InteractiveCity({ games, open, onClose, onOpen, filterLabel, isF
   const [mode, setMode] = useState<CityFlightMode>('fly');
   const [nearBuilding, setNearBuilding] = useState<CityBuildingSlot | null>(null);
   const [steerId, setSteerId] = useState<string | null>(null);
+  const [favOpen, setFavOpen] = useState(false);
   const [landChoice, setLandChoice] = useState<'play' | 'takeoff'>('play');
   const modeRef = useRef(mode);
   const nearBuildingRef = useRef(nearBuilding);
@@ -57,6 +58,10 @@ export function InteractiveCity({ games, open, onClose, onOpen, filterLabel, isF
     const fine = window.matchMedia('(any-pointer: fine)').matches;
     return coarse && !fine ? 'low' : 'high';
   }, []);
+
+  useEffect(() => {
+    if (!open) setFavOpen(false);
+  }, [open]);
 
   const startLanding = useCallback((slot: CityBuildingSlot) => {
     steerRef.current = null;
@@ -233,9 +238,19 @@ export function InteractiveCity({ games, open, onClose, onOpen, filterLabel, isF
               {games.length} buildings · {filterLabel}
             </p>
           </div>
-          <button ref={closeRef} type="button" className="interactive-city-modal__close" onClick={onClose}>
-            Back
-          </button>
+          <div className="interactive-city-modal__actions">
+            <button
+              type="button"
+              className={`interactive-city-modal__favs${favOpen ? ' is-open' : ''}`}
+              aria-expanded={favOpen}
+              onClick={() => setFavOpen((openNow) => !openNow)}
+            >
+              Favorites
+            </button>
+            <button ref={closeRef} type="button" className="interactive-city-modal__close" onClick={onClose}>
+              Back
+            </button>
+          </div>
         </header>
 
         <div
@@ -294,12 +309,17 @@ export function InteractiveCity({ games, open, onClose, onOpen, filterLabel, isF
             ) : null}
           </div>
 
-          {favSlots.length > 0 ? (
+          {favOpen ? (
             <div className="interactive-city-favs">
+              <div className="interactive-city-favs__head">
+                <p className="interactive-city-favs__label">Favorites</p>
+                <button type="button" className="interactive-city-favs__close" onClick={() => setFavOpen(false)}>
+                  Close
+                </button>
+              </div>
               <div className="interactive-city-compass" aria-hidden="true">
                 <span ref={tickRef} className="interactive-city-compass__tick" />
               </div>
-              <p className="interactive-city-favs__label">Favorites</p>
               <div className="interactive-city-favs__list">
                 {favSlots.map((slot) => (
                   <button

@@ -108,7 +108,7 @@ export function CityAirTraffic({ streets, buildings }: CityAirTrafficProps) {
     return list;
   }, [buildings, streets]);
 
-  const bodyGeo = useMemo(() => attachGlow(new THREE.BoxGeometry(3.1, 0.62, 1.25), cars.map((c) => c.color), 3.2), [cars]);
+  const bodyGeo = useMemo(() => new THREE.BoxGeometry(6.2, 1.45, 2.35), []);
   const lightGeo = useMemo(() => attachGlow(new THREE.BoxGeometry(1, 1, 1), cars.map((c) => c.color), 6), [cars]);
   const trailGeo = useMemo(() => new THREE.BoxGeometry(1, 1, 1), []);
   const bodyMat = useMemo(() => createCycleMaterial(), []);
@@ -117,8 +117,8 @@ export function CityAirTraffic({ streets, buildings }: CityAirTrafficProps) {
 
   useLayoutEffect(() => {
     if (trailRef.current) trailRef.current.count = 0;
-    paintInstanceColors(bodyRef.current, cars.map((c) => c.color));
-    paintInstanceColors(lightRef.current, cars.map((c) => c.color));
+    paintInstanceColors(bodyRef.current, cars.map((c) => c.color.clone().multiplyScalar(2.4)));
+    paintInstanceColors(lightRef.current, cars.map((c) => c.color.clone().multiplyScalar(3.2)));
   }, [cars]);
 
   useFrame((state, delta) => {
@@ -160,8 +160,8 @@ export function CityAirTraffic({ streets, buildings }: CityAirTrafficProps) {
         samples: car.samples,
         color: car.color,
         draw: true,
-        height: 1.15,
-        thick: 0.22,
+        height: 2.4,
+        thick: 0.7,
       })),
       now,
       trailDummy,

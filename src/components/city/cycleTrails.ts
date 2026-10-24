@@ -1,8 +1,7 @@
 import * as THREE from 'three';
-import { createNeonMaterial } from '../../lib/cityNeon';
 
 export const TRAIL_LIFE = 1.05;
-export const TRAIL_KEEP = 24;
+export const TRAIL_KEEP = 36;
 
 export const CYCLE_COLORS = ['#22d3ee', '#ff2bd6', '#ffb000', '#39ff14', '#ff6a00', '#c084fc'];
 
@@ -13,16 +12,12 @@ export interface TrailSample {
   t: number;
 }
 
-export function createCycleMaterial(): THREE.MeshStandardMaterial {
-  const mat = createNeonMaterial({
-    color: '#f5f3ff',
-    emissive: '#ffffff',
-    emissiveIntensity: 1.7,
-    metalness: 0.18,
-    roughness: 0.3,
+/** Flat saturated hull. Instance color is the neon, not a dark lit box. */
+export function createCycleMaterial(): THREE.MeshBasicMaterial {
+  return new THREE.MeshBasicMaterial({
+    color: '#ffffff',
+    toneMapped: false,
   });
-  mat.toneMapped = false;
-  return mat;
 }
 
 export function createTrailMaterial(): THREE.MeshBasicMaterial {
@@ -62,7 +57,7 @@ export function pushTrail(samples: TrailSample[], x: number, y: number, z: numbe
     const dx = x - last.x;
     const dy = y - last.y;
     const dz = z - last.z;
-    if (dx * dx + dy * dy + dz * dz < 0.45) {
+    if (dx * dx + dy * dy + dz * dz < 4.8) {
       last.x = x;
       last.y = y;
       last.z = z;

@@ -14,11 +14,12 @@ interface InteractiveCityProps {
   onClose: () => void;
   onOpen: (game: JamGame) => void;
   filterLabel: string;
+  isFavorite?: (gameId: string) => boolean;
 }
 
 const EMPTY_INPUT: FlightInput = { forward: 0, strafe: 0, up: 0 };
 
-export function InteractiveCity({ games, open, onClose, onOpen, filterLabel }: InteractiveCityProps) {
+export function InteractiveCity({ games, open, onClose, onOpen, filterLabel, isFavorite }: InteractiveCityProps) {
   const closeRef = useRef<HTMLButtonElement>(null);
   const canvasWrapRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<FlightInput>({ ...EMPTY_INPUT });
@@ -34,6 +35,12 @@ export function InteractiveCity({ games, open, onClose, onOpen, filterLabel }: I
   const [landProgress, setLandProgress] = useState(0);
   const landAnimRef = useRef<number | null>(null);
   const citySpawn = useMemo(() => computeCitySpawn(buildCityLayout(games).buildings), [games]);
+  const quality = useMemo<'low' | 'high'>(() => {
+    if (typeof window === 'undefined') return 'high';
+    const coarse = window.matchMedia('(pointer: coarse)').matches;
+    const fine = window.matchMedia('(any-pointer: fine)').matches;
+    return coarse && !fine ? 'low' : 'high';
+  }, []);
 
   const startLanding = useCallback((slot: CityBuildingSlot) => {
     setLandTarget(slot);
@@ -72,7 +79,7 @@ export function InteractiveCity({ games, open, onClose, onOpen, filterLabel }: I
       return;
     }
     canvasWrapRef.current?.focus({ preventScroll: true });
-    const flightCodes = new Set(['KeyW', 'KeyA', 'KeyS', 'KeyD', 'KeyQ', 'KeyE']);
+    const flightCodes = new Set(['KeyW', 'KeyA', 'KeyS', 'KeyD', 'KeyQ', 'KeyE', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight']);
     const onKeyDown = (e: KeyboardEvent) => {
       keysRef.current[e.code] = true;
       if (flightCodes.has(e.code)) e.preventDefault();
@@ -103,8 +110,8 @@ export function InteractiveCity({ games, open, onClose, onOpen, filterLabel }: I
     const tick = () => {
       const k = keysRef.current;
       inputRef.current = {
-        forward: (k.KeyW ? 1 : 0) + (k.KeyS ? -1 : 0),
-        strafe: (k.KeyD ? 1 : 0) + (k.KeyA ? -1 : 0),
+        forward: ((k.KeyW || k.ArrowUp) ? 1 : 0) + ((k.KeyS || k.ArrowDown) ? -1 : 0),
+        strafe: ((k.KeyD || k.ArrowRight) ? 1 : 0) + ((k.KeyA || k.ArrowLeft) ? -1 : 0),
         up: (k.KeyE ? 1 : 0) + (k.KeyQ ? -1 : 0),
       };
       raf = requestAnimationFrame(tick);
@@ -122,7 +129,7 @@ export function InteractiveCity({ games, open, onClose, onOpen, filterLabel }: I
   };
 
   const flightCodes = useMemo(
-    () => new Set(['KeyW', 'KeyA', 'KeyS', 'KeyD', 'KeyQ', 'KeyE']),
+    () => new Set(['KeyW', 'KeyA', 'KeyS', 'KeyD', 'KeyQ', 'KeyE', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight']),
     [],
   );
 
@@ -180,18 +187,18 @@ export function InteractiveCity({ games, open, onClose, onOpen, filterLabel }: I
           onKeyUp={onWrapKeyUp}
         >
           <Canvas
-            dpr={[1, 1.5]}
+            dpr={[1, 1.6]}
             camera={{
-              fov: 50,
-              near: 2,
-              far: 420,
+              fov: 55,
+              near: 1,
+              far: 4000,
               position: [citySpawn.scenicCamX, citySpawn.scenicCamY, citySpawn.scenicCamZ],
             }}
             gl={{
               antialias: true,
               powerPreference: 'high-performance',
               toneMapping: THREE.NeutralToneMapping,
-              toneMappingExposure: 1.22,
+              toneMappingExposure: 0.85,
             }}
           >
             <CityScene
@@ -200,6 +207,8 @@ export function InteractiveCity({ games, open, onClose, onOpen, filterLabel }: I
               mode={mode}
               landTarget={landTarget}
               landProgress={landProgress}
+              quality={quality}
+              isFavorite={isFavorite}
               onCraftMove={(pos) => {
                 const w = window as typeof window & {
                   __cityCraft?: { x: number; y: number; z: number };

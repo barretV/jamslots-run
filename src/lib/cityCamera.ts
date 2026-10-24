@@ -2,48 +2,60 @@ import * as THREE from 'three';
 import type { CityBuildingSlot } from './citySpiral';
 
 export const CITY_GROUND_Y = 0;
-export const MIN_CAMERA_Y = 20;
-export const MIN_UFO_Y = 22;
+export const MIN_CAMERA_Y = 6;
+export const MIN_UFO_Y = 7;
+/** UFO hull radius used for collision. */
+export const UFO_RADIUS = 3.2;
 
-/** UFO / low flight — skip roofs we are clearly above. */
-export function pushOutOfBuildings(pos: THREE.Vector3, buildings: CityBuildingSlot[], margin: number): void {
-  for (const b of buildings) {
-    // Above roof deck — hover and land without horizontal lock.
-    if (pos.y > b.height + 1) continue;
-    pushOutOfColumn(pos, b, margin);
-  }
-}
-
-/** Camera — must never sit inside a tower footprint (even when above the roof). */
-export function pushCameraOutOfColumns(pos: THREE.Vector3, buildings: CityBuildingSlot[], margin: number): void {
-  for (let pass = 0; pass < 4; pass++) {
-    for (const b of buildings) {
-      pushOutOfColumn(pos, b, margin);
-    }
-  }
-}
-
-function pushOutOfColumn(pos: THREE.Vector3, b: CityBuildingSlot, margin: number): void {
-  const hr = Math.max(b.width, b.depth) * 0.55 + margin;
+/**
+ * Push a point out of every building footprint it overlaps.
+ * Buildings are axis-aligned boxes, so this is a cheap AABB resolve on XZ.
+ */
+function pushOutOfBox(pos: THREE.Vector3, b: CityBuildingSlot, margin: number): void {
+  const hx = b.width * 0.5 + margin;
+  const hz = b.depth * 0.5 + margin;
   const dx = pos.x - b.x;
   const dz = pos.z - b.z;
-  const d2 = dx * dx + dz * dz;
-  if (d2 >= hr * hr) return;
-  const d = Math.sqrt(d2) || 0.001;
-  const push = hr - d;
-  pos.x += (dx / d) * push;
-  pos.z += (dz / d) * push;
+  if (Math.abs(dx) >= hx || Math.abs(dz) >= hz) return;
+  // Resolve along the shallowest axis so we slide along walls instead of snapping.
+  const penX = hx - Math.abs(dx);
+  const penZ = hz - Math.abs(dz);
+  if (penX < penZ) pos.x += (dx >= 0 ? penX : -penX);
+  else pos.z += (dz >= 0 ? penZ : -penZ);
+}
+
+/** UFO / low flight — ignore roofs we are clearly above. */
+export function pushOutOfBuildings(pos: THREE.Vector3, buildings: CityBuildingSlot[], margin: number): void {
+  for (const b of buildings) {
+    if (pos.y > b.height + 1.5) continue;
+    pushOutOfBox(pos, b, margin);
+  }
+}
+
+/** Camera must never sit inside a tower footprint (even above the roof). */
+export function pushCameraOutOfColumns(pos: THREE.Vector3, buildings: CityBuildingSlot[], margin: number): void {
+  for (let pass = 0; pass < 3; pass++) {
+    let moved = false;
+    for (const b of buildings) {
+      if (pos.y > b.height + 0.5) continue;
+      const before = pos.x + pos.z;
+      pushOutOfBox(pos, b, margin);
+      if (pos.x + pos.z !== before) moved = true;
+    }
+    if (!moved) break;
+  }
 }
 
 function viewRayBlocked(cam: THREE.Vector3, look: THREE.Vector3, buildings: CityBuildingSlot[], pad: number): boolean {
-  for (let t = 0.08; t <= 0.92; t += 0.07) {
+  for (let t = 0.1; t <= 0.9; t += 0.1) {
     const px = cam.x + (look.x - cam.x) * t;
     const py = cam.y + (look.y - cam.y) * t;
     const pz = cam.z + (look.z - cam.z) * t;
     for (const b of buildings) {
-      if (py > b.height + pad + 6) continue;
-      const hr = Math.max(b.width, b.depth) * 0.52 + pad;
-      if ((px - b.x) ** 2 + (pz - b.z) ** 2 < hr * hr) return true;
+      if (py > b.height + pad + 3) continue;
+      const hx = b.width * 0.5 + pad;
+      const hz = b.depth * 0.5 + pad;
+      if (Math.abs(px - b.x) < hx && Math.abs(pz - b.z) < hz) return true;
     }
   }
   return false;
@@ -54,17 +66,20 @@ export function clampAboveGround(pos: THREE.Vector3, minY: number): void {
 }
 
 export function skylineLookAt(focusX: number, focusZ: number, peakRoof: number, out: THREE.Vector3): THREE.Vector3 {
-  return out.set(focusX, Math.max(10, peakRoof * 0.34), focusZ);
+  return out.set(focusX, Math.max(18, peakRoof * 0.42), focusZ);
 }
 
-/** Camera behind the UFO, looking toward the skyline (mockup-style, never grazing the ground). */
+/**
+ * Third-person chase camera: sits behind and above the saucer, looks past it
+ * across the city. Never dips to the ground and keeps towers out of the lens.
+ */
 export function chaseCameraFromUfo(
   ufo: THREE.Vector3,
   look: THREE.Vector3,
   buildings: CityBuildingSlot[],
   out: THREE.Vector3,
-  back = 26,
-  up = 5,
+  back = 13,
+  up = 5.5,
 ): THREE.Vector3 {
   const toLook = new THREE.Vector3(look.x - ufo.x, 0, look.z - ufo.z);
   if (toLook.lengthSq() < 1e-5) toLook.set(0, 0, -1);
@@ -72,27 +87,20 @@ export function chaseCameraFromUfo(
 
   out.copy(ufo).addScaledVector(toLook, -back).add(new THREE.Vector3(0, up, 0));
   clampAboveGround(out, MIN_CAMERA_Y);
+  pushCameraOutOfColumns(out, buildings, 3.2);
 
-  const horiz = Math.hypot(look.x - out.x, look.z - out.z);
-  const minPitchDrop = Math.max(0.8, horiz * 0.018);
-  if (out.y < look.y + minPitchDrop) {
-    out.y = look.y + minPitchDrop;
-  }
-
-  pushCameraOutOfColumns(out, buildings, 18);
-
+  // If a tower is between us and the city, lift + back off until we can see.
   const away = new THREE.Vector3(out.x - look.x, 0, out.z - look.z);
   if (away.lengthSq() < 1e-5) away.set(0, 0, 1);
   else away.normalize();
-  for (let i = 0; i < 6 && viewRayBlocked(out, look, buildings, 8); i++) {
-    out.y += 2.5;
+  for (let i = 0; i < 5 && viewRayBlocked(out, look, buildings, 3); i++) {
+    out.y += 3;
     out.addScaledVector(away, 4);
-    pushCameraOutOfColumns(out, buildings, 16);
-    clampAboveGround(out, MIN_CAMERA_Y);
+    pushCameraOutOfColumns(out, buildings, 3.2);
   }
 
-  out.y = Math.min(out.y, ufo.y + 9);
-  clampAboveGround(out, MIN_CAMERA_Y);
+  out.y = Math.max(out.y, MIN_CAMERA_Y);
+  out.y = Math.min(out.y, ufo.y + 14);
   return out;
 }
 

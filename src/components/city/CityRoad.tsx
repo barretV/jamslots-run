@@ -1,83 +1,101 @@
-import { useMemo, useRef, useEffect } from 'react';
+import { useEffect, useMemo } from 'react';
 import * as THREE from 'three';
+import { buildInstancedMesh, createNeonMaterial, emptyBatch, neonColor } from '../../lib/cityNeon';
+import type { CityStreet } from '../../lib/citySpiral';
 
 interface CityRoadProps {
-  points: { x: number; z: number }[];
+  streets: CityStreet[];
 }
 
-/** Low-profile road chips (no tube — avoids camera clipping through a giant surface). */
-export function CityRoad({ points }: CityRoadProps) {
-  const deckRef = useRef<THREE.InstancedMesh>(null);
-  const lineRef = useRef<THREE.InstancedMesh>(null);
-  const dummy = useMemo(() => new THREE.Object3D(), []);
-  const deckMat = useMemo(
-    () =>
-      new THREE.MeshStandardMaterial({
-        color: '#1c1828',
-        emissive: '#334155',
-        emissiveIntensity: 0.28,
-        metalness: 0.42,
-        roughness: 0.62,
-      }),
-    [],
-  );
-  const lineMat = useMemo(
-    () =>
-      new THREE.MeshStandardMaterial({
-        color: '#fbbf24',
-        emissive: '#fde68a',
-        emissiveIntensity: 1.1,
-        metalness: 0.2,
-        roughness: 0.45,
-      }),
-    [],
-  );
+const ROAD_WIDTH = 5.0;
+const DASH_SPACING = 8;
 
-  useEffect(() => {
-    const deck = deckRef.current;
-    const line = lineRef.current;
-    if (!deck || points.length < 2) return;
-    const step = Math.max(1, Math.floor(points.length / 120));
-    let n = 0;
-    let ln = 0;
-    for (let i = 0; i < points.length; i += step) {
-      const p = points[i];
-      const next = points[Math.min(points.length - 1, i + step)];
-      const yaw = Math.atan2(next.x - p.x, next.z - p.z);
-      dummy.position.set(p.x, 0.12, p.z);
-      dummy.rotation.set(0, yaw, 0);
-      dummy.scale.set(5.2, 0.16, 2.35);
+/** Asphalt decks, centre dashes and glowing kerb strips for the street grid. */
+export function CityRoad({ streets }: CityRoadProps) {
+  const group = useMemo(() => {
+    const g = new THREE.Group();
+    g.name = 'city-roads';
+    if (streets.length === 0) return g;
+
+    const deck = emptyBatch();
+    const dash = emptyBatch();
+    const kerb = emptyBatch();
+
+    const dummy = new THREE.Object3D();
+    const dashGlow = neonColor(0.12, 0.9, 0.6, 0.7);
+    const KERB_HUES = [0.52, 0.88, 0.6, 0.95, 0.45, 0.72, 0.3, 0.8];
+
+    streets.forEach((street, si) => {
+      const len = street.to - street.from;
+      const mid = (street.from + street.to) / 2;
+      const along = street.axis === 'x';
+
+      // Deck
+      dummy.position.set(along ? mid : street.coord, 0.06, along ? street.coord : mid);
+      dummy.rotation.set(0, 0, 0);
+      dummy.scale.set(along ? len : ROAD_WIDTH, 0.14, along ? ROAD_WIDTH : len);
       dummy.updateMatrix();
-      deck.setMatrixAt(n++, dummy.matrix);
-      if (line && ln % 2 === 0) {
-        dummy.position.set(p.x, 0.2, p.z);
-        dummy.rotation.set(0, yaw, 0);
-        dummy.scale.set(0.55, 0.08, 1.4);
+      deck.matrices.push(dummy.matrix.clone());
+      deck.colors.push(new THREE.Color('#141020'));
+      deck.glows.push(new THREE.Color(0.02, 0.01, 0.05));
+
+      // Centre dashes
+      const count = Math.max(1, Math.floor(len / DASH_SPACING));
+      for (let i = 0; i < count; i++) {
+        const p = street.from + ((i + 0.5) / count) * len;
+        dummy.position.set(along ? p : street.coord, 0.16, along ? street.coord : p);
+        dummy.scale.set(along ? 3.2 : 0.42, 0.08, along ? 0.42 : 3.2);
         dummy.updateMatrix();
-        line.setMatrixAt(ln / 2, dummy.matrix);
+        dash.matrices.push(dummy.matrix.clone());
+        dash.colors.push(new THREE.Color('#3a2a10'));
+        dash.glows.push(dashGlow.clone().multiplyScalar(i % 2 === 0 ? 1 : 0.5));
       }
-      ln++;
-    }
-    deck.count = n;
-    deck.instanceMatrix.needsUpdate = true;
-    if (line) {
-      line.count = Math.ceil(ln / 2);
-      line.instanceMatrix.needsUpdate = true;
-    }
-  }, [points, dummy]);
 
-  if (points.length < 2) return null;
+      // Kerb neon (glowing street edges)
+      const glow = neonColor(KERB_HUES[si % KERB_HUES.length], 1.0, 0.55, 0.85);
+      for (const side of [-1, 1]) {
+        const off = street.coord + side * (ROAD_WIDTH * 0.5 - 0.25);
+        dummy.position.set(along ? mid : off, 0.2, along ? off : mid);
+        dummy.scale.set(along ? len : 0.34, 0.16, along ? 0.34 : len);
+        dummy.updateMatrix();
+        kerb.matrices.push(dummy.matrix.clone());
+        kerb.colors.push(new THREE.Color('#050510'));
+        kerb.glows.push(glow);
+      }
+    });
 
-  const cap = Math.ceil(points.length / 2);
+    const boxGeo = new THREE.BoxGeometry(1, 1, 1);
+    const deckMat = createNeonMaterial({
+      color: '#12101f',
+      metalness: 0.3,
+      roughness: 0.85,
+      vertexColors: true,
+    });
+    const dashMat = createNeonMaterial({ color: '#0a0808', metalness: 0.2, roughness: 0.6 });
+    const kerbMat = createNeonMaterial({ color: '#04040c', metalness: 0.4, roughness: 0.35 });
 
-  return (
-    <group>
-      <instancedMesh ref={deckRef} args={[undefined, deckMat, cap]} frustumCulled={false}>
-        <boxGeometry />
-      </instancedMesh>
-      <instancedMesh ref={lineRef} args={[undefined, lineMat, cap]} frustumCulled={false}>
-        <boxGeometry />
-      </instancedMesh>
-    </group>
+    const meshes = [
+      buildInstancedMesh(deck, boxGeo, deckMat),
+      buildInstancedMesh(dash, boxGeo, dashMat),
+      buildInstancedMesh(kerb, boxGeo, kerbMat),
+    ];
+    for (const m of meshes) if (m) g.add(m);
+    boxGeo.dispose();
+    return g;
+  }, [streets]);
+
+  useEffect(
+    () => () => {
+      group.traverse((obj) => {
+        const mesh = obj as THREE.Mesh;
+        mesh.geometry?.dispose();
+        const mat = mesh.material as THREE.Material | THREE.Material[] | undefined;
+        if (Array.isArray(mat)) mat.forEach((m) => m.dispose());
+        else mat?.dispose();
+      });
+    },
+    [group],
   );
+
+  return <primitive object={group} />;
 }

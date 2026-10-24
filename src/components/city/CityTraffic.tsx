@@ -1,106 +1,158 @@
 import { useFrame } from '@react-three/fiber';
 import { useMemo, useRef } from 'react';
 import * as THREE from 'three';
+import { createNeonMaterial } from '../../lib/cityNeon';
+import type { CityStreet } from '../../lib/citySpiral';
 
 interface CityTrafficProps {
-  points: { x: number; z: number }[];
+  streets: CityStreet[];
 }
 
-const VEHICLE_COUNT = 58;
+interface Vehicle {
+  street: number;
+  u: number;
+  speed: number;
+  dir: 1 | -1;
+  lane: number;
+  isScooter: boolean;
+  color: THREE.Color;
+  light: THREE.Color;
+}
 
-export function CityTraffic({ points }: CityTrafficProps) {
+const CAR_COLORS = ['#22d3ee', '#f472b6', '#fbbf24', '#a78bfa', '#34d399', '#fb7185', '#f97316'];
+const MAX_PER_STREET = 14;
+const VEHICLE_Y = 0.74;
+
+function glowGeometry(list: Vehicle[], pick: (v: Vehicle) => THREE.Color): THREE.BufferGeometry {
+  const geo = new THREE.BoxGeometry(1, 1, 1);
+  const n = Math.max(1, list.length);
+  const arr = new Float32Array(n * 3);
+  for (let i = 0; i < list.length; i++) {
+    const c = pick(list[i]);
+    arr[i * 3] = c.r;
+    arr[i * 3 + 1] = c.g;
+    arr[i * 3 + 2] = c.b;
+  }
+  geo.setAttribute('aGlow', new THREE.InstancedBufferAttribute(arr, 3));
+  return geo;
+}
+
+/**
+ * Street traffic. Vehicle counts scale with the lifetime plays of the games on
+ * the blocks along each street, so busy games get busy roads.
+ */
+export function CityTraffic({ streets }: CityTrafficProps) {
   const carRef = useRef<THREE.InstancedMesh>(null);
   const scooterRef = useRef<THREE.InstancedMesh>(null);
-  const curve = useMemo(() => {
-    if (points.length < 4) return null;
-    const vecs = points.map((p) => new THREE.Vector3(p.x, 0.72, p.z));
-    return new THREE.CatmullRomCurve3(vecs, false, 'catmullrom', 0.15);
-  }, [points]);
+  const lightRef = useRef<THREE.InstancedMesh>(null);
 
-  const offsets = useMemo(
-    () =>
-      Array.from({ length: VEHICLE_COUNT }, (_, i) => ({
-        t: i / VEHICLE_COUNT,
-        speed: 0.022 + (i % 7) * 0.005,
-        isScooter: i % 3 === 0,
-      })),
-    [],
-  );
+  const vehicles = useMemo(() => {
+    const list: Vehicle[] = [];
+    if (streets.length === 0) return list;
+    const maxPlays = Math.max(1, ...streets.map((s) => s.plays));
 
-  const carColors = useMemo(
-    () => [
-      new THREE.Color('#22d3ee'),
-      new THREE.Color('#f472b6'),
-      new THREE.Color('#fbbf24'),
-      new THREE.Color('#a78bfa'),
-      new THREE.Color('#34d399'),
-    ],
-    [],
-  );
+    streets.forEach((street, si) => {
+      const density = Math.pow(street.plays / maxPlays, 0.55);
+      const count = Math.round(2 + density * (MAX_PER_STREET - 2));
+      for (let i = 0; i < count; i++) {
+        const seed = (si * 131 + i * 977) % 1000;
+        const isScooter = seed % 4 === 0;
+        const dir: 1 | -1 = seed % 2 === 0 ? 1 : -1;
+        list.push({
+          street: si,
+          u: ((i + 0.5) / count + (seed % 37) / 370) % 1,
+          speed: (isScooter ? 0.055 : 0.034) + (seed % 9) * 0.0035,
+          dir,
+          lane: dir * (1.4 + (seed % 3) * 0.5),
+          isScooter,
+          color: new THREE.Color(CAR_COLORS[seed % CAR_COLORS.length]).multiplyScalar(1.05),
+          light: new THREE.Color(isScooter ? '#bff7ff' : '#fff2c8').multiplyScalar(2.4),
+        });
+      }
+    });
+    return list;
+  }, [streets]);
+
+  const cars = useMemo(() => vehicles.filter((v) => !v.isScooter), [vehicles]);
+  const scooters = useMemo(() => vehicles.filter((v) => v.isScooter), [vehicles]);
+
+  const carGeo = useMemo(() => glowGeometry(cars, (v) => v.color), [cars]);
+  const scooterGeo = useMemo(() => glowGeometry(scooters, (v) => v.color), [scooters]);
+  const lightGeo = useMemo(() => glowGeometry(vehicles, (v) => v.light), [vehicles]);
+
+  const carMat = useMemo(() => createNeonMaterial({ color: '#0a0a14', metalness: 0.6, roughness: 0.25 }), []);
+  const scooterMat = useMemo(() => createNeonMaterial({ color: '#0a0a14', metalness: 0.5, roughness: 0.3 }), []);
+  const lightMat = useMemo(() => createNeonMaterial({ color: '#050505', metalness: 0.1, roughness: 0.5 }), []);
+
   const dummy = useMemo(() => new THREE.Object3D(), []);
-  const vehicleMat = useMemo(
-    () =>
-      new THREE.MeshStandardMaterial({
-        emissiveIntensity: 1.75,
-        metalness: 0.45,
-        roughness: 0.28,
-        vertexColors: true,
-      }),
-    [],
-  );
+  const lightDummy = useMemo(() => new THREE.Object3D(), []);
+  const scratch = useMemo(() => new THREE.Matrix4(), []);
 
   useFrame((_, delta) => {
-    if (!curve) return;
-    const cars = carRef.current;
-    const scooters = scooterRef.current;
+    const dt = Math.min(delta, 0.05);
     let carIdx = 0;
     let scIdx = 0;
+    let lightIdx = 0;
 
-    for (let i = 0; i < VEHICLE_COUNT; i++) {
-      const o = offsets[i];
-      o.t = (o.t + o.speed * delta) % 1;
-      const pos = curve.getPointAt(o.t);
-      const tan = curve.getTangentAt(o.t).normalize();
-      dummy.position.copy(pos);
-      dummy.position.y = 1.05;
-      dummy.quaternion.setFromUnitVectors(new THREE.Vector3(0, 0, 1), tan);
+    for (const v of vehicles) {
+      const street = streets[v.street];
+      if (!street) continue;
+      v.u += v.speed * v.dir * dt;
+      if (v.u > 1) v.u -= 1;
+      else if (v.u < 0) v.u += 1;
 
-      if (o.isScooter && scooters) {
-        dummy.scale.set(1.85, 1.85, 1.85);
-        dummy.updateMatrix();
-        scooters.setMatrixAt(scIdx, dummy.matrix);
-        scooters.setColorAt(scIdx, carColors[i % carColors.length]);
-        scIdx++;
-      } else if (cars) {
-        dummy.scale.set(2.05, 2.05, 2.05);
-        dummy.updateMatrix();
-        cars.setMatrixAt(carIdx, dummy.matrix);
-        cars.setColorAt(carIdx, carColors[i % carColors.length]);
-        carIdx++;
+      const len = street.to - street.from;
+      const along = street.from + v.u * len;
+      const perp = street.coord + v.lane;
+
+      if (street.axis === 'x') {
+        dummy.position.set(along, VEHICLE_Y, perp);
+        dummy.rotation.set(0, v.dir > 0 ? 0 : Math.PI, 0);
+      } else {
+        dummy.position.set(perp, VEHICLE_Y, along);
+        dummy.rotation.set(0, v.dir > 0 ? Math.PI / 2 : -Math.PI / 2, 0);
       }
+
+      if (v.isScooter) {
+        dummy.scale.set(1.5, 1.5, 1.5);
+        dummy.updateMatrix();
+        scooterRef.current?.setMatrixAt(scIdx++, dummy.matrix);
+      } else {
+        dummy.scale.set(1, 1, 1);
+        dummy.updateMatrix();
+        carRef.current?.setMatrixAt(carIdx++, dummy.matrix);
+      }
+
+      lightDummy.position.set(1.35 * (v.isScooter ? 0.8 : 1.35), 0.12, 0);
+      lightDummy.rotation.set(0, 0, 0);
+      lightDummy.scale.set(0.42, 0.34, v.isScooter ? 0.5 : 1.0);
+      lightDummy.updateMatrix();
+      scratch.multiplyMatrices(dummy.matrix, lightDummy.matrix);
+      lightRef.current?.setMatrixAt(lightIdx++, scratch);
     }
 
-    if (cars) {
-      cars.count = carIdx;
-      cars.instanceMatrix.needsUpdate = true;
-      if (cars.instanceColor) cars.instanceColor.needsUpdate = true;
-    }
-    if (scooters) {
-      scooters.count = scIdx;
-      scooters.instanceMatrix.needsUpdate = true;
-      if (scooters.instanceColor) scooters.instanceColor.needsUpdate = true;
-    }
+    const flag = (m: THREE.InstancedMesh | null, n: number) => {
+      if (!m) return;
+      m.count = n;
+      m.instanceMatrix.needsUpdate = true;
+    };
+    flag(carRef.current, carIdx);
+    flag(scooterRef.current, scIdx);
+    flag(lightRef.current, lightIdx);
   });
 
-  if (!curve) return null;
+  if (vehicles.length === 0) return null;
 
   return (
     <group>
-      <instancedMesh ref={carRef} args={[undefined, vehicleMat, VEHICLE_COUNT]} frustumCulled={false}>
-        <boxGeometry args={[2.85, 0.78, 1.35]} />
+      <instancedMesh ref={carRef} args={[carGeo, carMat, Math.max(1, cars.length)]} frustumCulled={false}>
+        <boxGeometry args={[3.0, 0.8, 1.45]} />
       </instancedMesh>
-      <instancedMesh ref={scooterRef} args={[undefined, vehicleMat, VEHICLE_COUNT]} frustumCulled={false}>
-        <boxGeometry args={[1.35, 0.55, 0.65]} />
+      <instancedMesh ref={scooterRef} args={[scooterGeo, scooterMat, Math.max(1, scooters.length)]} frustumCulled={false}>
+        <boxGeometry args={[1.6, 0.6, 0.7]} />
+      </instancedMesh>
+      <instancedMesh ref={lightRef} args={[lightGeo, lightMat, Math.max(1, vehicles.length)]} frustumCulled={false}>
+        <boxGeometry args={[1, 1, 1]} />
       </instancedMesh>
     </group>
   );

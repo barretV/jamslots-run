@@ -275,6 +275,7 @@ export function LibraryList({
               onOpen(game);
             }}
             filterLabel={debouncedQuery ? `search "${debouncedQuery}"` : sortPhrase}
+            isFavorite={isFavorite}
           />
         </Suspense>
       ) : null}

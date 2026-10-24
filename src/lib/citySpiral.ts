@@ -101,16 +101,16 @@ export function buildCityLayout(
     let depth =
       Math.max(5, (4.6 + voteT * 7.4 + (topToday ? 1.5 : 0) + ((seed >> 3) % 4) * 0.38) * coreShrink);
     let height =
-      8 +
-      voteT * 26 +
-      (topVotes ? 7 : 0) +
-      (topToday ? 2.5 : 0) +
-      (seed % 6) * 0.5;
+      30 +
+      voteT * 54 +
+      (topVotes ? 24 : 0) +
+      (topToday ? 11 : 0) +
+      (seed % 7) * 1.35;
     const footprint = Math.max(width, depth);
-    const maxAspect = 3.1;
+    const maxAspect = 4.4;
     if (height / footprint > maxAspect) height = footprint * maxAspect;
     const faceYaw = Math.atan2(x, z);
-    const posterSize = 5.12;
+    const posterSize = topVotes || topToday ? 11.5 : 9.4;
 
     buildings.push({
       game,
@@ -171,10 +171,8 @@ function spawnIsClear(x: number, y: number, z: number, yaw: number, buildings: C
   const cam = cameraFromSpawn({ x, y, z, yaw });
   for (const b of buildings) {
     if (spawnHitsBuilding(cam.x, cam.y, cam.z, b, 16)) return false;
-    const posterPad = 6;
-    const px = b.x + Math.sin(b.faceYaw) * (b.depth / 2 + posterPad);
-    const pz = b.z + Math.cos(b.faceYaw) * (b.depth / 2 + posterPad);
-    if (spawnHitsBuilding(cam.x, cam.y, cam.z, { ...b, x: px, z: pz, width: b.posterSize, depth: 1.2 }, 2)) {
+    const signR = Math.max(b.posterSize, Math.min(b.width, b.depth) * 0.55) * 0.52;
+    if (spawnHitsBuilding(cam.x, cam.y, cam.z, { ...b, x: b.x, z: b.z, width: signR * 2, depth: signR * 2 }, 2)) {
       return false;
     }
   }
@@ -236,11 +234,11 @@ export function computeCitySpawn(buildings: CityBuildingSlot[]): CitySpawn {
   focusX /= weightSum;
   focusZ /= weightSum;
 
-  const focusY = peakRoof * 0.22;
-  const flyY = Math.min(22, Math.max(14, peakRoof * 0.32 + 10));
+  const focusY = peakRoof * 0.42;
+  const flyY = Math.min(94, Math.max(44, peakRoof * 0.7 + 4));
 
   let spawnAngle = 0.62;
-  let spawnR = 58;
+  let spawnR = 36;
   let x = fallback.x;
   let z = fallback.z;
   let yaw = fallback.yaw;

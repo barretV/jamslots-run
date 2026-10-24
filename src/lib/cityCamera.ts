@@ -2,15 +2,14 @@ import * as THREE from 'three';
 import type { CityBuildingSlot } from './citySpiral';
 
 export const CITY_GROUND_Y = 0;
-export const MIN_CAMERA_Y = 9;
-export const MIN_UFO_Y = 14;
-/** Keep UFO at least this far from skyline focus on XZ during the opening flight window. */
-export const MIN_FOCUS_DIST_XZ = 34;
+export const MIN_CAMERA_Y = 20;
+export const MIN_UFO_Y = 22;
 
 /** UFO / low flight — skip roofs we are clearly above. */
 export function pushOutOfBuildings(pos: THREE.Vector3, buildings: CityBuildingSlot[], margin: number): void {
   for (const b of buildings) {
-    if (pos.y > b.height + margin + 12) continue;
+    // Above roof deck — hover and land without horizontal lock.
+    if (pos.y > b.height + 1) continue;
     pushOutOfColumn(pos, b, margin);
   }
 }
@@ -75,7 +74,7 @@ export function chaseCameraFromUfo(
   clampAboveGround(out, MIN_CAMERA_Y);
 
   const horiz = Math.hypot(look.x - out.x, look.z - out.z);
-  const minPitchDrop = Math.max(1.5, horiz * 0.035);
+  const minPitchDrop = Math.max(0.8, horiz * 0.018);
   if (out.y < look.y + minPitchDrop) {
     out.y = look.y + minPitchDrop;
   }
@@ -92,28 +91,13 @@ export function chaseCameraFromUfo(
     clampAboveGround(out, MIN_CAMERA_Y);
   }
 
-  out.y = Math.min(out.y, ufo.y + 14);
+  out.y = Math.min(out.y, ufo.y + 9);
   clampAboveGround(out, MIN_CAMERA_Y);
   return out;
 }
 
 export function clampUfoAboveGround(ufo: THREE.Vector3): void {
   clampAboveGround(ufo, MIN_UFO_Y);
-}
-
-export function clampUfoMinFocusDist(
-  ufo: THREE.Vector3,
-  focusX: number,
-  focusZ: number,
-  minDist: number,
-): void {
-  const dx = ufo.x - focusX;
-  const dz = ufo.z - focusZ;
-  const d = Math.hypot(dx, dz);
-  if (d >= minDist || d < 1e-4) return;
-  const s = minDist / d;
-  ufo.x = focusX + dx * s;
-  ufo.z = focusZ + dz * s;
 }
 
 /** Movement forward should match camera view; returns horizontal unit vector. */
@@ -125,5 +109,5 @@ export function cameraForwardXZ(cam: THREE.PerspectiveCamera, out: THREE.Vector3
 }
 
 export function cameraRightXZ(forward: THREE.Vector3, out: THREE.Vector3): THREE.Vector3 {
-  return out.crossVectors(new THREE.Vector3(0, 1, 0), forward).normalize();
+  return out.crossVectors(forward, new THREE.Vector3(0, 1, 0)).normalize();
 }

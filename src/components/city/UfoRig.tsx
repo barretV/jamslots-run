@@ -3,13 +3,11 @@ import type { MutableRefObject } from 'react';
 import { useEffect, useMemo, useRef } from 'react';
 import * as THREE from 'three';
 import {
-  MIN_FOCUS_DIST_XZ,
   MIN_UFO_Y,
   cameraForwardXZ,
   cameraRightXZ,
   chaseCameraFromUfo,
   clampUfoAboveGround,
-  clampUfoMinFocusDist,
   pushOutOfBuildings,
 } from '../../lib/cityCamera';
 import type { CityBuildingSlot, CitySpawn } from '../../lib/citySpiral';
@@ -32,9 +30,9 @@ interface UfoRigProps {
 
 const MOVE_SPEED = 14;
 const VERT_SPEED = 10;
-const CAM_BACK = 24;
-const CAM_UP = 4;
-const OPENING_FLIGHT_SEC = 3.2;
+const CAM_BACK = 14;
+const CAM_UP = 1;
+const LOOK_AHEAD = 52;
 
 export function UfoRig({
   inputRef,
@@ -54,8 +52,6 @@ export function UfoRig({
   const bobRef = useRef(0);
   const lookRef = useRef(new THREE.Vector3(spawn.scenicLookX, spawn.scenicLookY, spawn.scenicLookZ));
   const camSnapped = useRef(false);
-  const piloting = useRef(false);
-  const pilotStartRef = useRef(0);
   const viewFwd = useMemo(() => new THREE.Vector3(), []);
   const viewRight = useMemo(() => new THREE.Vector3(), []);
   const lookTarget = useMemo(() => new THREE.Vector3(), []);
@@ -67,8 +63,6 @@ export function UfoRig({
     yawRef.current = spawn.yaw;
     lookRef.current.set(spawn.scenicLookX, spawn.scenicLookY, spawn.scenicLookZ);
     camSnapped.current = false;
-    piloting.current = false;
-    pilotStartRef.current = 0;
   }, [spawn]);
 
   const hullMat = useMemo(
@@ -113,8 +107,6 @@ export function UfoRig({
     const bob = Math.sin(bobRef.current) * 0.08;
     const cam = state.camera as THREE.PerspectiveCamera;
     const input = inputRef.current;
-    const now = state.clock.elapsedTime;
-
     if (mode === 'landing' && landTarget) {
       if (landProgress <= 0.01) {
         flyStart.current.copy(posRef.current);
@@ -123,16 +115,10 @@ export function UfoRig({
       const t = THREE.MathUtils.smoothstep(landProgress, 0, 1);
       posRef.current.lerpVectors(flyStart.current, flyEnd.current, t);
       lookTarget.set(landTarget.x, landTarget.roofY + 6, landTarget.z);
-      piloting.current = true;
     } else if (mode === 'landed' && landTarget) {
       posRef.current.set(landTarget.x, landTarget.roofY + 3.5, landTarget.z);
       lookTarget.set(landTarget.x, landTarget.roofY + 8, landTarget.z);
     } else if (mode === 'fly') {
-      if (input.forward !== 0 || input.strafe !== 0 || input.up !== 0) {
-        if (!piloting.current) pilotStartRef.current = now;
-        piloting.current = true;
-      }
-
       cameraForwardXZ(cam, viewFwd);
       cameraRightXZ(viewFwd, viewRight);
 
@@ -145,12 +131,6 @@ export function UfoRig({
       pushOutOfBuildings(posRef.current, buildings, 10);
       clampUfoAboveGround(posRef.current);
 
-      const opening =
-        piloting.current && pilotStartRef.current > 0 && now - pilotStartRef.current < OPENING_FLIGHT_SEC;
-      if (opening) {
-        clampUfoMinFocusDist(posRef.current, spawn.focusX, spawn.focusZ, MIN_FOCUS_DIST_XZ);
-      }
-
       if (input.forward !== 0 || input.strafe !== 0) {
         const faceX = viewFwd.x * input.forward + viewRight.x * input.strafe;
         const faceZ = viewFwd.z * input.forward + viewRight.z * input.strafe;
@@ -159,7 +139,9 @@ export function UfoRig({
         }
       }
 
-      lookTarget.set(spawn.focusX, spawn.focusY + 4, spawn.focusZ);
+      lookTarget.copy(posRef.current);
+      lookTarget.addScaledVector(viewFwd, LOOK_AHEAD);
+      lookTarget.y = spawn.focusY + 6;
     }
 
     g.position.copy(posRef.current);
@@ -188,7 +170,7 @@ export function UfoRig({
   });
 
   return (
-    <group ref={groupRef} scale={0.68}>
+    <group ref={groupRef} scale={1}>
       <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.15, 0]} material={hullMat}>
         <cylinderGeometry args={[2.5, 3.1, 0.62, 24]} />
       </mesh>

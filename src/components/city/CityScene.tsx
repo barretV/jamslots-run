@@ -91,11 +91,11 @@ export function CityScene({
 
   return (
     <>
-      <color attach="background" args={['#12061f']} />
-      <fog attach="fog" args={['#12061f', 85, 380]} />
-      <hemisphereLight color="#a78bfa" groundColor="#0a0614" intensity={0.38} />
-      <ambientLight intensity={0.28} color="#4c1d95" />
-      <directionalLight position={[60, 90, 40]} intensity={0.95} color="#e9d5ff" />
+      <color attach="background" args={['#2a1450']} />
+      <fog attach="fog" args={['#3b2068', 38, 260]} />
+      <hemisphereLight color="#c084fc" groundColor="#14082a" intensity={0.48} />
+      <ambientLight intensity={0.34} color="#6d28d9" />
+      <directionalLight position={[60, 90, 40]} intensity={1.1} color="#f0e8ff" />
       <pointLight position={[spawn.focusX, spawn.focusY + 18, spawn.focusZ]} intensity={1.35} color="#c084fc" distance={320} decay={1.6} />
       <pointLight position={[-80, 30, 60]} intensity={0.75} color="#c084fc" distance={170} decay={2} />
       <pointLight position={[90, 25, -50]} intensity={0.85} color="#22d3ee" distance={160} decay={2} />

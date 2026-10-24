@@ -29,7 +29,7 @@ function pickPosterSlots(buildings: CityBuildingSlot[], spawn: CitySpawn): Set<s
   for (const b of byDist) {
     if (ids.size >= POSTER_MAX) break;
     const dSpawn = (b.x - spawn.x) ** 2 + (b.z - spawn.z) ** 2;
-    if (dSpawn < 10 * 10 || dSpawn > 120 * 120) continue;
+    if (dSpawn < 8 * 8 || dSpawn > 150 * 150) continue;
     ids.add(b.game.gameId);
   }
   return ids;
@@ -39,7 +39,7 @@ function voxelColor(seed: number, lift = 0): THREE.Color {
   const hues = [0.72, 0.76, 0.8, 0.66, 0.62];
   const h = hues[(seed + lift) % hues.length];
   const c = new THREE.Color();
-  c.setHSL(h, 0.58, 0.24 + lift * 0.04);
+  c.setHSL(h, 0.64, 0.3 + lift * 0.05);
   return c;
 }
 
@@ -63,7 +63,7 @@ export function CityBuildings({ buildings, spawn }: CityBuildingsProps) {
       new THREE.MeshStandardMaterial({
         color: '#1a1038',
         emissive: '#4c1d95',
-        emissiveIntensity: 0.38,
+        emissiveIntensity: 0.52,
         metalness: 0.38,
         roughness: 0.44,
         vertexColors: true,
@@ -76,7 +76,7 @@ export function CityBuildings({ buildings, spawn }: CityBuildingsProps) {
       new THREE.MeshStandardMaterial({
         color: '#2e1065',
         emissive: '#4c1d95',
-        emissiveIntensity: 0.28,
+        emissiveIntensity: 0.4,
         metalness: 0.4,
         roughness: 0.38,
         vertexColors: true,
@@ -132,8 +132,8 @@ export function CityBuildings({ buildings, spawn }: CityBuildingsProps) {
         }
       }
 
-      if (windows && !posterIds.has(b.game.gameId)) {
-        const bands = [0.28, 0.78];
+      if (windows) {
+        const bands = [0.22, 0.48, 0.74];
         for (const t of bands) {
           const taper = 1 - Math.floor(t * BODY_SEGMENTS) * 0.09;
           const faceZ = b.depth * taper * 0.52;
@@ -197,28 +197,27 @@ export function CityBuildings({ buildings, spawn }: CityBuildingsProps) {
   );
 }
 
-function posterWorldSizeFor(slot: CityBuildingSlot, spawn: CitySpawn): number {
-  const d2 = (slot.x - spawn.x) ** 2 + (slot.z - spawn.z) ** 2;
-  return d2 < 65 * 65 ? 6.2 : 5.12;
+function roofSignWorldSize(slot: CityBuildingSlot): number {
+  const footprint = Math.min(slot.width, slot.depth);
+  const fromFoot = footprint * 0.92;
+  const boost = slot.topVotes ? 1.28 : slot.topToday ? 1.16 : 1.06;
+  return Math.min(14.2, Math.max(slot.posterSize * boost, fromFoot * boost));
 }
 
 function GameBillboard({ slot, spawn }: { slot: CityBuildingSlot; spawn: CitySpawn }) {
   const [tex, setTex] = useState<THREE.Texture | null>(null);
-  const size = posterWorldSizeFor(slot, spawn);
-  const y = slot.height * 0.46;
-  const yaw = slot.faceYaw;
-  const taper = 1 - Math.floor(0.46 * BODY_SEGMENTS) * 0.09;
-  const faceOut = slot.depth * taper * 0.52 + 0.62;
-  const px = slot.x + Math.sin(yaw) * faceOut;
-  const pz = slot.z + Math.cos(yaw) * faceOut;
+  const size = roofSignWorldSize(slot);
+  const y = slot.height + 0.55;
+  const px = slot.x;
+  const pz = slot.z;
+  const faceYaw = Math.atan2(slot.x - spawn.focusX, slot.z - spawn.focusZ);
+  const signTilt = -Math.PI * 0.52;
 
   const posterMat = useMemo(() => {
     if (!tex) return null;
     return new THREE.MeshBasicMaterial({
       map: tex,
       toneMapped: false,
-      depthWrite: false,
-      depthTest: false,
       side: THREE.DoubleSide,
     });
   }, [tex]);
@@ -226,11 +225,23 @@ function GameBillboard({ slot, spawn }: { slot: CityBuildingSlot; spawn: CitySpa
   const frameMat = useMemo(
     () =>
       new THREE.MeshStandardMaterial({
-        color: '#0f172a',
-        emissive: '#312e81',
-        emissiveIntensity: 0.25,
-        metalness: 0.5,
-        roughness: 0.4,
+        color: '#0c0618',
+        emissive: '#d946ef',
+        emissiveIntensity: 0.85,
+        metalness: 0.35,
+        roughness: 0.42,
+      }),
+    [],
+  );
+
+  const glowMat = useMemo(
+    () =>
+      new THREE.MeshBasicMaterial({
+        color: '#22d3ee',
+        transparent: true,
+        opacity: 0.22,
+        toneMapped: false,
+        depthWrite: false,
       }),
     [],
   );
@@ -252,18 +263,23 @@ function GameBillboard({ slot, spawn }: { slot: CityBuildingSlot; spawn: CitySpa
 
   if (!tex || !posterMat) return null;
 
+  const framePad = 0.55;
+
   return (
-    <group position={[px, 0, pz]} rotation={[0, yaw, 0]}>
-      <mesh position={[0, y, 0.08]} material={frameMat} renderOrder={8}>
-        <boxGeometry args={[size + 0.22, size + 0.22, 0.12]} />
+    <group position={[px, y, pz]} rotation={[0, faceYaw, 0]}>
+      <mesh rotation={[signTilt, 0, 0]} position={[0, size * 0.22, 0]} material={glowMat} renderOrder={6}>
+        <planeGeometry args={[size * 1.14, size * 1.14]} />
       </mesh>
-      <mesh position={[0, y, 0.14]} material={posterMat} renderOrder={9}>
+      <mesh rotation={[signTilt, 0, 0]} position={[0, size * 0.24, 0.08]} material={frameMat} renderOrder={7}>
+        <planeGeometry args={[size + framePad, size + framePad]} />
+      </mesh>
+      <mesh rotation={[signTilt, 0, 0]} position={[0, size * 0.26, 0.12]} material={posterMat} renderOrder={8}>
         <planeGeometry args={[size, size]} />
       </mesh>
       {slot.topToday && (slot.game.votesToday ?? 0) > 0 ? (
-        <mesh position={[0, y + size * 0.52, 0.18]} renderOrder={5}>
-          <boxGeometry args={[size * 0.82, 0.9, 0.1]} />
-          <meshStandardMaterial color="#0f172a" emissive="#fbbf24" emissiveIntensity={2.2} />
+        <mesh position={[0, size * 0.62, 0.2]} rotation={[signTilt + 0.12, 0, 0]} renderOrder={9}>
+          <boxGeometry args={[size * 0.55, 0.65, 0.12]} />
+          <meshStandardMaterial color="#0f172a" emissive="#fbbf24" emissiveIntensity={2.4} />
         </mesh>
       ) : null}
     </group>

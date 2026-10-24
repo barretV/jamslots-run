@@ -20,11 +20,16 @@ const EMPTY_INPUT: FlightInput = { forward: 0, strafe: 0, up: 0 };
 
 export function InteractiveCity({ games, open, onClose, onOpen, filterLabel }: InteractiveCityProps) {
   const closeRef = useRef<HTMLButtonElement>(null);
+  const canvasWrapRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<FlightInput>({ ...EMPTY_INPUT });
   const keysRef = useRef<Record<string, boolean>>({});
 
   const [mode, setMode] = useState<CityFlightMode>('fly');
   const [nearBuilding, setNearBuilding] = useState<CityBuildingSlot | null>(null);
+  const modeRef = useRef(mode);
+  const nearBuildingRef = useRef(nearBuilding);
+  modeRef.current = mode;
+  nearBuildingRef.current = nearBuilding;
   const [landTarget, setLandTarget] = useState<CityBuildingSlot | null>(null);
   const [landProgress, setLandProgress] = useState(0);
   const landAnimRef = useRef<number | null>(null);
@@ -66,30 +71,31 @@ export function InteractiveCity({ games, open, onClose, onOpen, filterLabel }: I
       resetFlight();
       return;
     }
-    closeRef.current?.focus();
+    canvasWrapRef.current?.focus({ preventScroll: true });
+    const flightCodes = new Set(['KeyW', 'KeyA', 'KeyS', 'KeyD', 'KeyQ', 'KeyE']);
     const onKeyDown = (e: KeyboardEvent) => {
       keysRef.current[e.code] = true;
+      if (flightCodes.has(e.code)) e.preventDefault();
       if (e.code === 'Escape') {
         e.preventDefault();
         onClose();
       }
-      if (e.code === 'Space' && mode === 'fly' && nearBuilding) {
+      if (e.code === 'Space' && modeRef.current === 'fly' && nearBuildingRef.current) {
         e.preventDefault();
-        startLanding(nearBuilding);
+        startLanding(nearBuildingRef.current);
       }
     };
-    const onKeyUp = (e: {
-      code: string;
-    }) => {
+    const onKeyUp = (e: KeyboardEvent) => {
       keysRef.current[e.code] = false;
     };
-    window.addEventListener('keydown', onKeyDown);
-    window.addEventListener('keyup', onKeyUp);
+    window.addEventListener('keydown', onKeyDown, true);
+    window.addEventListener('keyup', onKeyUp, true);
     return () => {
-      window.removeEventListener('keydown', onKeyDown);
-      window.removeEventListener('keyup', onKeyUp);
+      window.removeEventListener('keydown', onKeyDown, true);
+      window.removeEventListener('keyup', onKeyUp, true);
+      keysRef.current = {};
     };
-  }, [open, onClose, mode, nearBuilding, resetFlight, startLanding]);
+  }, [open, onClose, resetFlight, startLanding]);
 
   useEffect(() => {
     if (!open || mode !== 'fly') return;
@@ -113,6 +119,28 @@ export function InteractiveCity({ games, open, onClose, onOpen, filterLabel }: I
     window.setTimeout(() => {
       inputRef.current = { ...inputRef.current, up: 0 };
     }, 120);
+  };
+
+  const flightCodes = useMemo(
+    () => new Set(['KeyW', 'KeyA', 'KeyS', 'KeyD', 'KeyQ', 'KeyE']),
+    [],
+  );
+
+  const onWrapKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => {
+    keysRef.current[e.code] = true;
+    if (flightCodes.has(e.code)) e.preventDefault();
+    if (e.code === 'Escape') {
+      e.preventDefault();
+      onClose();
+    }
+    if (e.code === 'Space' && modeRef.current === 'fly' && nearBuildingRef.current) {
+      e.preventDefault();
+      startLanding(nearBuildingRef.current);
+    }
+  };
+
+  const onWrapKeyUp = (e: React.KeyboardEvent<HTMLDivElement>) => {
+    keysRef.current[e.code] = false;
   };
 
   if (!open) return null;
@@ -141,7 +169,16 @@ export function InteractiveCity({ games, open, onClose, onOpen, filterLabel }: I
           </button>
         </header>
 
-        <div className="interactive-city-modal__canvas-wrap">
+        <div
+          ref={canvasWrapRef}
+          className="interactive-city-modal__canvas-wrap"
+          tabIndex={-1}
+          onPointerDown={() => {
+            canvasWrapRef.current?.focus({ preventScroll: true });
+          }}
+          onKeyDown={onWrapKeyDown}
+          onKeyUp={onWrapKeyUp}
+        >
           <Canvas
             dpr={[1, 1.5]}
             camera={{
@@ -154,7 +191,7 @@ export function InteractiveCity({ games, open, onClose, onOpen, filterLabel }: I
               antialias: true,
               powerPreference: 'high-performance',
               toneMapping: THREE.NeutralToneMapping,
-              toneMappingExposure: 1.08,
+              toneMappingExposure: 1.22,
             }}
           >
             <CityScene
@@ -164,8 +201,10 @@ export function InteractiveCity({ games, open, onClose, onOpen, filterLabel }: I
               landTarget={landTarget}
               landProgress={landProgress}
               onCraftMove={(pos) => {
-                const w = window as typeof window & { __cityCraft?: { x: number; z: number } };
-                w.__cityCraft = { x: pos.x, z: pos.z };
+                const w = window as typeof window & {
+                  __cityCraft?: { x: number; y: number; z: number };
+                };
+                w.__cityCraft = { x: pos.x, y: pos.y, z: pos.z };
               }}
               onNearBuilding={setNearBuilding}
             />

@@ -12,7 +12,7 @@ import {
 } from '../../lib/cityNeon';
 import type { CityBuildingSlot, CitySpawn } from '../../lib/citySpiral';
 import { isNewThisVisit } from '../../state/persistence';
-import { CityRankLandmarks, rankGlowMul, rankTopperHeight } from './CityRankLandmarks';
+import { CityRankLandmarks, crownMetrics, makeRankTexture, rankGlowMul } from './CityRankLandmarks';
 
 interface CityBuildingsProps {
   buildings: CityBuildingSlot[];
@@ -458,7 +458,7 @@ export function CityBuildings({ buildings, spawn, craftPos, isFavorite }: CityBu
     <group>
       <primitive object={shell} />
       <CitySignalBeacons buildings={buildings} isFavorite={isFavorite} />
-      <CityRankLandmarks buildings={buildings} focusX={spawn.focusX} focusZ={spawn.focusZ} />
+      <CityRankLandmarks buildings={buildings} />
       {buildings.map((b) => (
         <GameBillboard
           key={b.game.gameId}
@@ -505,10 +505,16 @@ function GameBillboard({
   const spin = useRef(0);
   const size = roofSignWorldSize(slot);
   const ranked = slot.voteRank >= 1 && slot.voteRank <= 10;
-  const crownClear = ranked ? rankTopperHeight(slot.voteRank) : 0;
-  const y = ranked ? slot.roofY + crownClear + 1.6 + size * 0.5 : slot.roofY + size * 0.5 + 0.5;
-  const baseLean = ranked ? 0.14 : slot.topToday ? 0.12 : 0.11;
   const framePad = 0.7;
+  const crown = ranked ? crownMetrics(slot.voteRank) : null;
+  const numeral = crown ? Math.min(crown.numeral, Math.max(4.4, size * 0.46)) : 0;
+  const goldTop = slot.roofY + (crown ? crown.meshTop : 0);
+  const digitBottom = goldTop + 1.8;
+  const digitTop = digitBottom + numeral;
+  const digitY = (digitBottom + digitTop) * 0.5;
+  const frameHalf = (size + framePad) * 0.5;
+  const y = ranked ? digitTop + 0.85 + frameHalf : slot.roofY + size * 0.5 + 0.5;
+  const baseLean = ranked ? 0.14 : slot.topToday ? 0.12 : 0.11;
   const panelDepth = 0.26;
   const halfDepth = panelDepth * 0.5;
   const artZ = halfDepth + 0.02;
@@ -618,6 +624,21 @@ function GameBillboard({
     });
   }, [statsTex]);
 
+  const rankTex = useMemo(
+    () => (ranked ? makeRankTexture(slot.voteRank) : null),
+    [ranked, slot.voteRank],
+  );
+  const rankMat = useMemo(() => {
+    if (!rankTex) return null;
+    return new THREE.MeshBasicMaterial({
+      map: rankTex,
+      transparent: true,
+      toneMapped: false,
+      depthWrite: true,
+      side: THREE.FrontSide,
+    });
+  }, [rankTex]);
+
   fadeRef.current = { glow: glowMat, frame: frameMat, frameBase, ranked, signY: y };
 
   useEffect(() => {
@@ -627,15 +648,19 @@ function GameBillboard({
       glowMat.dispose();
       statsTex?.dispose();
       statsMat?.dispose();
+      rankTex?.dispose();
+      rankMat?.dispose();
     };
-  }, [posterMat, frameMat, glowMat, statsTex, statsMat]);
+  }, [posterMat, frameMat, glowMat, statsTex, statsMat, rankTex, rankMat]);
 
   if (!visible || !tex || !posterMat) return null;
 
   const auraH = slot.roofY + size * 0.5 + 0.2;
-  const poleBottom = ranked ? slot.roofY + crownClear : 0;
-  const poleTop = ranked ? y - size * 0.5 + 0.2 : auraH;
-  const poleH = Math.max(0.4, poleTop - poleBottom);
+  const poleLowTop = digitBottom - 0.12;
+  const poleLowH = Math.max(0.2, poleLowTop - goldTop);
+  const poleHighBottom = digitTop + 0.12;
+  const poleHighTop = y - frameHalf;
+  const poleHighH = Math.max(0.2, poleHighTop - poleHighBottom);
   const greenRadius = size * (isFavorite ? 1.15 : 0.95);
 
   return (
@@ -646,9 +671,20 @@ function GameBillboard({
         if (node) node.rotation.y = yawState.current;
       }}
     >
-      <mesh position={[0, poleBottom + poleH * 0.5, 0]} material={frameMat}>
-        <boxGeometry args={[0.22, poleH, 0.22]} />
-      </mesh>
+      {ranked ? (
+        <>
+          <mesh position={[0, goldTop + poleLowH * 0.5, 0]} material={frameMat}>
+            <boxGeometry args={[0.22, poleLowH, 0.22]} />
+          </mesh>
+          <mesh position={[0, poleHighBottom + poleHighH * 0.5, 0]} material={frameMat}>
+            <boxGeometry args={[0.22, poleHighH, 0.22]} />
+          </mesh>
+        </>
+      ) : (
+        <mesh position={[0, auraH * 0.5, 0]} material={frameMat}>
+          <boxGeometry args={[0.22, auraH, 0.22]} />
+        </mesh>
+      )}
 
       {isFavorite ? (
         <mesh position={[0, auraH * 0.5, 0]} renderOrder={4}>
@@ -720,7 +756,7 @@ function GameBillboard({
           <boxGeometry args={[size + framePad, size + framePad, panelDepth]} />
         </mesh>
         <mesh renderOrder={5} material={glowMat}>
-          <planeGeometry args={[size * 1.24, size * 1.24]} />
+          <planeGeometry args={[size, size]} />
         </mesh>
         <mesh position={[0, 0, artZ]} renderOrder={8} material={posterMat}>
           <planeGeometry args={[size, size]} />
@@ -729,6 +765,17 @@ function GameBillboard({
           <planeGeometry args={[size, size]} />
         </mesh>
       </group>
+
+      {rankMat ? (
+        <group position={[0, digitY, 0]}>
+          <mesh position={[0, 0, 0.16]} renderOrder={8} material={rankMat}>
+            <planeGeometry args={[numeral, numeral]} />
+          </mesh>
+          <mesh position={[0, 0, -0.16]} rotation={[0, Math.PI, 0]} renderOrder={8} material={rankMat}>
+            <planeGeometry args={[numeral, numeral]} />
+          </mesh>
+        </group>
+      ) : null}
 
       {statsMat ? (
         <group position={[statsX, statsY, 0]}>

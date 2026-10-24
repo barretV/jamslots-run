@@ -66,7 +66,7 @@ export function rankGlowMul(dist: number): number {
   return 0.1 + 0.9 * THREE.MathUtils.smoothstep(dist, 96, 250);
 }
 
-function makeRankTexture(rank: number): THREE.CanvasTexture {
+export function makeRankTexture(rank: number): THREE.CanvasTexture {
   const canvas = document.createElement('canvas');
   canvas.width = 256;
   canvas.height = 256;
@@ -110,21 +110,9 @@ interface FadeSlot {
   base: number;
 }
 
-function RankMark({ slot, focusX, focusZ }: { slot: CityBuildingSlot; focusX: number; focusZ: number }) {
+function RankMark({ slot }: { slot: CityBuildingSlot }) {
   const rank = slot.voteRank;
   const ringRef = useRef<THREE.Group>(null);
-  const tex = useMemo(() => makeRankTexture(rank), [rank]);
-  const numMat = useMemo(
-    () =>
-      new THREE.MeshBasicMaterial({
-        map: tex,
-        transparent: true,
-        toneMapped: false,
-        depthWrite: true,
-        side: THREE.FrontSide,
-      }),
-    [tex],
-  );
 
   const pieces = useMemo(() => {
     const m = crownMetrics(rank);
@@ -166,14 +154,6 @@ function RankMark({ slot, focusX, focusZ }: { slot: CityBuildingSlot; focusX: nu
     return { m, cap, tiers, beacon, spire, ring, fades };
   }, [rank]);
 
-  useEffect(
-    () => () => {
-      tex.dispose();
-      numMat.dispose();
-    },
-    [numMat, tex],
-  );
-
   useEffect(() => {
     const bag = pieces;
     return () => {
@@ -201,11 +181,6 @@ function RankMark({ slot, focusX, focusZ }: { slot: CityBuildingSlot; focusX: nu
   const { m, cap, tiers, beacon, spire, ring } = pieces;
   const capW = slot.width * (0.62 + m.t * 0.34);
   const capD = slot.depth * (0.62 + m.t * 0.34);
-  const face = Math.min(slot.width, slot.depth);
-  const numeral = Math.min(m.numeral, face * 0.92);
-  const outward = Math.atan2(slot.x - focusX, slot.z - focusZ);
-  const reach = Math.max(slot.width, slot.depth) * 0.5 + 0.45;
-  const digitY = slot.roofY - numeral * 0.5 - 0.35;
 
   return (
     <group>
@@ -234,30 +209,12 @@ function RankMark({ slot, focusX, focusZ }: { slot: CityBuildingSlot; focusX: nu
           </group>
         ) : null}
       </group>
-      <group position={[slot.x, 0, slot.z]} rotation={[0, outward, 0]}>
-        <group position={[0, digitY, reach]}>
-          <mesh position={[0, 0, 0.08]} material={numMat}>
-            <planeGeometry args={[numeral, numeral]} />
-          </mesh>
-          <mesh position={[0, 0, -0.08]} rotation={[0, Math.PI, 0]} material={numMat}>
-            <planeGeometry args={[numeral, numeral]} />
-          </mesh>
-        </group>
-      </group>
     </group>
   );
 }
 
 /** Real meshes for the ten most-voted towers. Everyone else stays on the instanced shell. */
-export function CityRankLandmarks({
-  buildings,
-  focusX,
-  focusZ,
-}: {
-  buildings: CityBuildingSlot[];
-  focusX: number;
-  focusZ: number;
-}) {
+export function CityRankLandmarks({ buildings }: { buildings: CityBuildingSlot[] }) {
   const ranked = useMemo(
     () => buildings.filter((b) => b.voteRank >= 1 && b.voteRank <= 10),
     [buildings],
@@ -265,7 +222,7 @@ export function CityRankLandmarks({
   return (
     <group>
       {ranked.map((slot) => (
-        <RankMark key={slot.game.gameId} slot={slot} focusX={focusX} focusZ={focusZ} />
+        <RankMark key={slot.game.gameId} slot={slot} />
       ))}
     </group>
   );

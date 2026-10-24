@@ -6,7 +6,7 @@ import { loadGameThumbnail, preloadCityThumbnails } from '../../lib/cityTextureC
 import { buildCityLayout, computeCitySpawn, type CityBuildingSlot } from '../../lib/citySpiral';
 import type { JamGame } from '../../types';
 import { CityAirTraffic } from './CityAirTraffic';
-import { CityBuildings } from './CityBuildings';
+import { CityBuildings, landAnchorY } from './CityBuildings';
 import { CityPostFX } from './CityPostFX';
 import { CityRain } from './CityRain';
 import { CityRoad } from './CityRoad';
@@ -102,7 +102,7 @@ export function CityScene({
         const dz = craftPos.current.z - b.z;
         const horiz = Math.hypot(dx, dz);
         if (horiz > Math.max(14, b.width * 1.8)) continue;
-        const dy = Math.abs(craftPos.current.y - (b.roofY + 5));
+        const dy = Math.abs(craftPos.current.y - landAnchorY(b));
         if (dy > 18) continue;
         if (horiz < bestD) {
           bestD = horiz;

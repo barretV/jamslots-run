@@ -22,8 +22,11 @@ export interface FlightInput {
 
 export interface SteerTarget {
   x: number;
+  y: number;
   z: number;
-  landRange: number;
+  lookX: number;
+  lookY: number;
+  lookZ: number;
 }
 
 interface UfoRigProps {
@@ -40,6 +43,8 @@ interface UfoRigProps {
 const CRUISE = 20;
 const VERT_SPEED = 14;
 const BOOST_MUL = 1.8;
+/** Favorite steer only. 1.25 times the Shift boost speed. */
+const STEER_SPEED = CRUISE * BOOST_MUL * 1.25;
 const CAM_BACK = 24;
 const CAM_UP = 7.5;
 const LOOK_AHEAD = 60;
@@ -244,18 +249,24 @@ export function UfoRig({
 
       if (steer && !manual) {
         const dx = steer.x - posRef.current.x;
+        const dy = steer.y - posRef.current.y;
         const dz = steer.z - posRef.current.z;
-        const dist = Math.hypot(dx, dz);
-        if (dist > steer.landRange && dist > 0.05) {
-          desired.x = (dx / dist) * CRUISE * boostMul;
-          desired.z = (dz / dist) * CRUISE * boostMul;
+        const dist = Math.hypot(dx, dy, dz);
+        const hold = 1.4;
+        const speed = dist <= hold ? 0 : Math.min(STEER_SPEED, (dist - hold) * 1.15 * 0.62);
+        if (dist > 0.04 && speed > 0) {
+          desired.x = (dx / dist) * speed;
+          desired.y = (dy / dist) * speed;
+          desired.z = (dz / dist) * speed;
         }
-        if (dist > 5) {
-          const eased = easeYaw(yawRef.current, Math.atan2(dx, dz), dt);
+        const fdx = steer.lookX - posRef.current.x;
+        const fdz = steer.lookZ - posRef.current.z;
+        if (fdx * fdx + fdz * fdz > 9) {
+          const eased = easeYaw(yawRef.current, Math.atan2(fdx, fdz), dt);
           yawRef.current = eased.yaw;
           yawRate = eased.rate;
         }
-        lookTarget.set(steer.x, Math.max(16, posRef.current.y + 10), steer.z);
+        lookTarget.set(steer.lookX, steer.lookY, steer.lookZ);
       } else {
         desired.addScaledVector(viewFwd, input.forward * CRUISE * boostMul);
         desired.addScaledVector(viewRight, input.strafe * CRUISE * boostMul);
@@ -271,9 +282,8 @@ export function UfoRig({
         lookTarget.copy(posRef.current);
         lookTarget.addScaledVector(viewFwd, LOOK_AHEAD);
         lookTarget.y = Math.max(16, posRef.current.y + 10);
+        desired.y = input.up * VERT_SPEED;
       }
-
-      desired.y = input.up * VERT_SPEED;
       const respond = 1 - Math.exp(-1.15 * dt);
       velRef.current.lerp(desired, respond);
       posRef.current.addScaledVector(velRef.current, dt);

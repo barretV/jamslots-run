@@ -64,6 +64,39 @@ function roofSignWorldSize(slot: CityBuildingSlot): number {
   return Math.min(22, Math.max(slot.posterSize * boost, byFoot, byHeight));
 }
 
+/** Cover center. Same height the top-10 sign is drawn at. */
+export function billboardCenterY(slot: CityBuildingSlot): number {
+  const size = roofSignWorldSize(slot);
+  const ranked = slot.voteRank >= 1 && slot.voteRank <= 10;
+  if (!ranked) return slot.roofY + size * 0.5 + 0.5;
+  const crown = crownMetrics(slot.voteRank);
+  const numeral = Math.min(crown.numeral, Math.max(4.4, size * 0.46));
+  const digitTop = slot.roofY + crown.meshTop + 1.8 + numeral;
+  const frameHalf = (size + 0.7) * 0.5;
+  return digitTop + 0.85 + frameHalf;
+}
+
+/** Where Space can start a landing. Top 10 use the cover. Everyone else stays on the roof. */
+export function landAnchorY(slot: CityBuildingSlot): number {
+  if (slot.voteRank >= 1 && slot.voteRank <= 10) return billboardCenterY(slot);
+  return slot.roofY + 5;
+}
+
+/** Stop in front of the cover, at the sign center height. */
+export function coverApproachPoint(slot: CityBuildingSlot, focusX: number, focusZ: number) {
+  const y = billboardCenterY(slot);
+  const outward = Math.atan2(slot.x - focusX, slot.z - focusZ);
+  const stand = 12;
+  return {
+    x: slot.x + Math.sin(outward) * stand,
+    y,
+    z: slot.z + Math.cos(outward) * stand,
+    lookX: slot.x,
+    lookY: y,
+    lookZ: slot.z,
+  };
+}
+
 function pushBox(
   batch: InstanceBatch,
   dummy: THREE.Object3D,
@@ -513,7 +546,7 @@ function GameBillboard({
   const digitTop = digitBottom + numeral;
   const digitY = (digitBottom + digitTop) * 0.5;
   const frameHalf = (size + framePad) * 0.5;
-  const y = ranked ? digitTop + 0.85 + frameHalf : slot.roofY + size * 0.5 + 0.5;
+  const y = billboardCenterY(slot);
   const baseLean = ranked ? 0.14 : slot.topToday ? 0.12 : 0.11;
   const panelDepth = 0.26;
   const halfDepth = panelDepth * 0.5;
@@ -521,8 +554,8 @@ function GameBillboard({
   const accent = isFavorite ? PINK : isNew ? GREEN : slot.voteRank > 0 ? '#fbbf24' : '#22d3ee';
   const boardW = Math.min(18, Math.max(12, size * 1.05));
   const boardH = boardW * (512 / 1024);
-  const statsX = ranked ? 0 : size * 0.5 + boardW * 0.5 + 0.55;
-  const statsY = ranked ? y + size * 0.5 + 0.8 + boardH * 0.5 : y;
+  const statsX = 0;
+  const statsY = y + size * 0.5 + 0.8 + boardH * 0.5;
   const frameBase = isFavorite || isNew ? 0.45 : slot.voteRank > 0 ? 0.4 : 0.26;
   const fadeRef = useRef<{
     glow: THREE.MeshBasicMaterial;

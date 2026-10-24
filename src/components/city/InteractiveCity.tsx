@@ -6,6 +6,7 @@ import { useLibraryImmersiveOverlay } from '../../lib/useLibraryImmersiveOverlay
 import { buildCityLayout, computeCitySpawn, type CityBuildingSlot } from '../../lib/citySpiral';
 import type { JamGame } from '../../types';
 import { CityScene, type CityFlightMode } from './CityScene';
+import { coverApproachPoint } from './CityBuildings';
 import { type FlightInput, type SteerTarget } from './UfoRig';
 
 interface InteractiveCityProps {
@@ -196,11 +197,7 @@ export function InteractiveCity({ games, open, onClose, onOpen, filterLabel, isF
   }, [open]);
 
   const aimAt = (slot: CityBuildingSlot) => {
-    steerRef.current = {
-      x: slot.x,
-      z: slot.z,
-      landRange: Math.max(14, slot.width * 1.8),
-    };
+    steerRef.current = coverApproachPoint(slot, citySpawn.focusX, citySpawn.focusZ);
     setSteerId(slot.game.gameId);
     canvasWrapRef.current?.focus({ preventScroll: true });
   };
@@ -298,7 +295,7 @@ export function InteractiveCity({ games, open, onClose, onOpen, filterLabel, isF
 
           <div className="interactive-city-hud">
             {mode === 'fly' ? (
-              <p className="interactive-city-hud__hint">WASD move · Q down · E up</p>
+              <p className="interactive-city-hud__hint">WASD move · Q down · E up · Shift faster</p>
             ) : mode === 'landed' ? (
               <p className="interactive-city-hud__hint">On the roof. Play or take off.</p>
             ) : (

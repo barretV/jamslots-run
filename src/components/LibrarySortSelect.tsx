@@ -11,6 +11,8 @@ export type LibrarySortMode =
   | 'favorites-asc'
   | 'votes-desc'
   | 'votes-asc'
+  | 'likes-desc'
+  | 'likes-asc'
   | 'votes-over-plays-desc'
   | 'plays-over-votes-desc'
   | 'votes-today-desc';
@@ -25,6 +27,8 @@ const SORT_OPTIONS: { value: LibrarySortMode; label: string }[] = [
   { value: 'favorites-asc', label: 'Least favorited' },
   { value: 'votes-desc', label: 'Most votes' },
   { value: 'votes-asc', label: 'Least votes' },
+  { value: 'likes-desc', label: 'Most likes' },
+  { value: 'likes-asc', label: 'Least likes' },
   { value: 'votes-over-plays-desc', label: 'More votes than plays' },
   { value: 'plays-over-votes-desc', label: 'More plays than votes' },
   { value: 'votes-today-desc', label: 'Most new votes today' },
@@ -53,6 +57,10 @@ export function sortHintPhrase(mode: LibrarySortMode): string {
       return 'most votes';
     case 'votes-asc':
       return 'least votes';
+    case 'likes-desc':
+      return 'most likes';
+    case 'likes-asc':
+      return 'least likes';
     case 'votes-over-plays-desc':
       return 'votes over plays (biggest gap first)';
     case 'plays-over-votes-desc':

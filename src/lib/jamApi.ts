@@ -18,6 +18,7 @@ export function bundleFromJamApi(d: {
       shareUrl: String(e.shareUrl ?? ''),
       votes: Number(e.votes ?? 0),
       votesToday: 0,
+      numLikes: Math.max(0, Number(e.numLikes ?? 0)),
       totalPlays: Number(e.totalPlays ?? 0),
       publishedAt: Number(e.publishedAt ?? 0),
       rank: e.rank != null ? Number(e.rank) : undefined,

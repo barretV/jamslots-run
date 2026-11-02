@@ -9,6 +9,8 @@ export interface JamGame {
   votes: number;
   /** Votes gained since UTC day start (from sync snapshots). */
   votesToday?: number;
+  /** RUN likes (`numLikes`). Older bundles omit this; treat missing as 0. */
+  numLikes?: number;
   totalPlays: number;
   publishedAt: number;
   rank?: number;

@@ -14,6 +14,7 @@ function normalizeBundle(raw: GamesBundle): GamesBundle {
     thumbnailUrl: typeof g.thumbnailUrl === 'string' ? g.thumbnailUrl.trim() : '',
     votes: Number(g.votes ?? 0),
     votesToday: g.votesToday != null ? Math.max(0, Number(g.votesToday)) : undefined,
+    numLikes: Math.max(0, Number(g.numLikes ?? 0)),
     totalPlays: Number(g.totalPlays ?? 0),
     publishedAt: Number(g.publishedAt ?? 0),
   }));

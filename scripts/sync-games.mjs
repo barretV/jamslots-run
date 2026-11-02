@@ -44,6 +44,72 @@ for (const e of d.entries ?? []) {
   });
 }
 
+const LIKE_CONCURRENCY = 8;
+const LIKE_GAP_MS = 180;
+
+/** Fill numLikes from each game's RUN record. Failures stay 0 and are logged once. */
+async function attachNumLikes(games) {
+  let failures = 0;
+  let firstError = '';
+  let cursor = 0;
+  let done = 0;
+  let nextSlot = 0;
+  let cooldownUntil = 0;
+
+  async function pace() {
+    const now = Date.now();
+    const slot = Math.max(now, nextSlot, cooldownUntil);
+    nextSlot = slot + LIKE_GAP_MS;
+    const wait = slot - now;
+    if (wait > 0) await new Promise((resolve) => setTimeout(resolve, wait));
+  }
+
+  async function readLikes(gameId, attempt = 0) {
+    await pace();
+    const url = `https://api.run.world/v1/games/${encodeURIComponent(gameId)}`;
+    const res = await fetch(url);
+    if (res.status === 429 && attempt < 5) {
+      const retryAfter = Number(res.headers.get('retry-after'));
+      const delay = Number.isFinite(retryAfter) && retryAfter > 0
+        ? retryAfter * 1000
+        : Math.min(8000, 700 * 2 ** attempt);
+      cooldownUntil = Math.max(cooldownUntil, Date.now() + delay);
+      return readLikes(gameId, attempt + 1);
+    }
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const body = await res.json();
+    const n = Number(body?.numLikes);
+    return Number.isFinite(n) ? Math.max(0, Math.floor(n)) : 0;
+  }
+
+  async function worker() {
+    while (cursor < games.length) {
+      const game = games[cursor++];
+      try {
+        game.numLikes = await readLikes(game.gameId);
+      } catch (err) {
+        failures += 1;
+        if (!firstError) firstError = err instanceof Error ? err.message : String(err);
+        game.numLikes = 0;
+      }
+      done += 1;
+      if (done % 250 === 0 || done === games.length) {
+        console.log(`numLikes ${done}/${games.length}`);
+      }
+    }
+  }
+
+  const workers = Math.min(LIKE_CONCURRENCY, games.length);
+  await Promise.all(Array.from({ length: workers }, () => worker()));
+  if (failures > 0) {
+    console.warn(
+      `numLikes: ${failures} of ${games.length} game fetches failed; those counts defaulted to 0. First error: ${firstError}`,
+    );
+  }
+}
+
+await attachNumLikes(games);
+
 const { votesDayUtc } = applyVoteDailyTracking(root, games, prevTotals);
 
 const payload = {

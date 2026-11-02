@@ -10,6 +10,7 @@ interface PlayedListProps {
   totalPlaysFor?: (gameId: string) => number | undefined;
   votesFor?: (gameId: string) => number | undefined;
   votesTodayFor?: (gameId: string) => number | undefined;
+  numLikesFor?: (gameId: string) => number | undefined;
   isFavorite?: (gameId: string) => boolean;
   onToggleFavorite?: (gameId: string) => void;
   embedded?: boolean;
@@ -25,6 +26,7 @@ export function PlayedList({
   totalPlaysFor,
   votesFor,
   votesTodayFor,
+  numLikesFor,
   isFavorite,
   onToggleFavorite,
   embedded = false,
@@ -44,6 +46,7 @@ export function PlayedList({
     totalPlays: totalPlaysFor?.(entry.gameId),
     votes: votesFor?.(entry.gameId),
     votesToday: votesTodayFor?.(entry.gameId),
+    numLikes: numLikesFor?.(entry.gameId) ?? 0,
   }));
 
   return (

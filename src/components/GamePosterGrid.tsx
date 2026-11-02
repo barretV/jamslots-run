@@ -14,6 +14,7 @@ export interface PosterGridItem {
   totalPlays?: number;
   votes?: number;
   votesToday?: number;
+  numLikes?: number;
 }
 
 interface GamePosterGridProps {

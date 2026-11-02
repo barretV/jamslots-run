@@ -105,6 +105,14 @@ function sortGames(
       if (voteDiff !== 0) return voteDiff;
       return compareByTitle(a, b);
     }
+    if (mode === 'likes-desc' || mode === 'likes-asc') {
+      const likeDiff =
+        mode === 'likes-desc'
+          ? (b.numLikes ?? 0) - (a.numLikes ?? 0)
+          : (a.numLikes ?? 0) - (b.numLikes ?? 0);
+      if (likeDiff !== 0) return likeDiff;
+      return compareByTitle(a, b);
+    }
     const playsDiff =
       mode === 'plays-desc' ? b.totalPlays - a.totalPlays : a.totalPlays - b.totalPlays;
     if (playsDiff !== 0) return playsDiff;
@@ -156,6 +164,7 @@ export function LibraryList({
     totalPlays: game.totalPlays,
     votes: game.votes,
     votesToday: game.votesToday,
+    numLikes: game.numLikes ?? 0,
   }));
 
   const sortPhrase = sortHintPhrase(sortMode);

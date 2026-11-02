@@ -53,6 +53,7 @@ export const PosterGridTile = memo(function PosterGridTile({
             rank={rank}
             votes={item.votes}
             votesToday={item.votesToday}
+            numLikes={item.numLikes}
             voteUrl={runJamVoteGameUrl(jamSlug, item.gameId)}
             favorited={favorited}
             showFavorite={showStar}

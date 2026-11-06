@@ -8,6 +8,7 @@ import {
 } from '../lib/octoberWinners';
 import { useLibraryImmersiveOverlay } from '../lib/useLibraryImmersiveOverlay';
 import type { JamGame } from '../types';
+import { AwardsStage } from './AwardsStage';
 
 interface WinnersModalProps {
   games: JamGame[];
@@ -63,12 +64,12 @@ function PodiumSpot({
   const { prize, game } = row;
   return (
     <article className={`podium-spot podium-spot--${tier}`}>
-      <Medal metal={prize.metal} mark={String(prize.place ?? '')} />
       {game ? <Poster game={game} onOpen={onOpen} /> : null}
-      <h3 className="podium-spot__title">{prize.title}</h3>
-      {game?.creatorName ? <p className="podium-spot__creator">{game.creatorName}</p> : null}
-      <p className="podium-spot__amount">{formatPrizeMoney(prize.amount)}</p>
-      <div className="podium-spot__step" aria-hidden="true" />
+      <div className="podium-spot__copy">
+        <h3 className="podium-spot__title">{prize.title}</h3>
+        {game?.creatorName ? <p className="podium-spot__creator">{game.creatorName}</p> : null}
+        <p className="podium-spot__amount">{formatPrizeMoney(prize.amount)}</p>
+      </div>
     </article>
   );
 }
@@ -182,6 +183,7 @@ function Podium({
       <PodiumSpot row={silver} onOpen={onOpen} tier="silver" />
       <PodiumSpot row={gold} onOpen={onOpen} tier="gold" />
       <PodiumSpot row={bronze} onOpen={onOpen} tier="bronze" />
+      <AwardsStage size={size} />
     </div>
   );
 }

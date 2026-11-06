@@ -4013,10 +4013,149 @@ body.library-immersive-open {
 .winners-modal__body {
   flex: 1 1 auto;
   min-height: 0;
-  overflow: auto;
-  touch-action: pan-y;
-  overscroll-behavior: contain;
-  padding: 1.4rem 1.1rem 3.5rem;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+  padding: 0.55rem 0.9rem 0.7rem;
+}
+
+.winners-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  flex: 0 0 auto;
+}
+
+.winners-tabs__btn {
+  min-height: 44px;
+  padding: 0.35rem 0.75rem;
+  border-radius: 4px;
+  border: 1px solid rgba(255, 215, 106, 0.35);
+  background: #07050e;
+  color: #f8f4ea;
+  font-size: 1.1rem;
+  font-weight: 800;
+  letter-spacing: 0.03em;
+  cursor: pointer;
+}
+
+.winners-tabs__btn.is-on {
+  background: #ffd76a;
+  color: #1a1206;
+  border-color: #ffd76a;
+}
+
+.winners-tabs__btn:active {
+  transform: scale(0.95);
+}
+
+.fit-stage {
+  flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  width: min(1080px, 100%);
+  margin: 0 auto;
+}
+
+.fit-stage .podium {
+  flex: 1 1 auto;
+  min-height: 0;
+  width: 100%;
+  max-width: none;
+  grid-template-rows: minmax(0, 1fr) minmax(8.5rem, 30%);
+  align-items: stretch;
+}
+
+.fit-stage .podium-spot {
+  min-height: 0;
+  height: 100%;
+  overflow: hidden;
+  justify-content: flex-end;
+}
+
+.fit-stage .podium-spot__copy {
+  flex: 0 0 auto;
+}
+
+.fit-stage .stage-poster,
+.fit-stage .podium-spot--gold .stage-poster,
+.fit-stage .podium-spot--silver .stage-poster,
+.fit-stage .podium-spot--bronze .stage-poster,
+.fit-stage .podium--votes .podium-spot--gold .stage-poster,
+.fit-stage .podium--votes .podium-spot--silver .stage-poster,
+.fit-stage .podium--votes .podium-spot--bronze .stage-poster {
+  width: min(100%, 11rem);
+  height: auto;
+  max-height: calc(100% - 4.8rem);
+  aspect-ratio: 1;
+  flex: 0 1 auto;
+}
+
+.fit-stage .podium-spot--gold .stage-poster {
+  width: min(100%, 15rem);
+}
+
+.fit-stage .awards-stage,
+.fit-stage .podium--votes .awards-stage {
+  height: 100%;
+  min-height: 0;
+  margin-top: 0;
+}
+
+.fit-stage .finalists {
+  flex: 0 0 auto;
+  width: 100%;
+  max-width: 760px;
+  margin: 0.35rem auto 0;
+}
+
+.fit-stage .finalist {
+  flex-direction: row;
+  align-items: center;
+  text-align: left;
+  gap: 0.65rem;
+  padding: 0.4rem 0.65rem;
+}
+
+.fit-stage .finalist .stage-poster {
+  width: 3.6rem;
+  height: 3.6rem;
+  max-height: none;
+  flex: 0 0 auto;
+}
+
+.fit-stage .stage-block__note {
+  margin: 0 0 0.35rem;
+  text-align: center;
+}
+
+.fit-stage .plaques {
+  flex: 1 1 auto;
+  min-height: 0;
+  height: 100%;
+  max-width: none;
+  grid-template-rows: minmax(0, 1fr) minmax(0, 1fr);
+}
+
+.fit-stage .plaque {
+  min-height: 0;
+  overflow: hidden;
+}
+
+.fit-stage .plaque .stage-poster {
+  width: 4.6rem;
+  height: 4.6rem;
+  max-height: none;
+}
+
+.fit-stage .story-row {
+  flex: 1 1 auto;
+  align-content: center;
+  width: 100%;
+  margin: 0 auto;
 }
 
 .stage-block {

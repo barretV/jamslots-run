@@ -182,7 +182,7 @@ export function CityScene({
       <CityRoad streets={streets} />
       <CityTraffic streets={streets} />
       <CityAirTraffic streets={streets} buildings={buildings} />
-      <CitySearchlights buildings={buildings} />
+      <CitySearchlights buildings={buildings.filter((b) => !ribbons.has(b.game.gameId))} />
       {quality !== 'low' ? <CityRain /> : null}
       <CityBuildings
         buildings={buildings}

@@ -486,26 +486,16 @@ function WinnerBuildingMarks({
       const glowMat = new THREE.MeshBasicMaterial({
         color,
         transparent: true,
-        opacity: 0.48,
-        blending: THREE.AdditiveBlending,
-        depthWrite: false,
-        toneMapped: false,
-      });
-      const haloMat = new THREE.MeshBasicMaterial({
-        color,
-        transparent: true,
-        opacity: 0.16,
+        opacity: 0.22,
         blending: THREE.AdditiveBlending,
         depthWrite: false,
         toneMapped: false,
       });
       const medalMat = new THREE.MeshBasicMaterial({ color, toneMapped: true });
       const beacons = new THREE.InstancedMesh(new THREE.BoxGeometry(1, 1, 1), glowMat, slots.length);
-      const halos = new THREE.InstancedMesh(new THREE.BoxGeometry(1, 1, 1), haloMat, slots.length);
       const medals = new THREE.InstancedMesh(new THREE.SphereGeometry(1, 18, 14), medalMat, slots.length);
       const discs = new THREE.InstancedMesh(new THREE.CircleGeometry(1, 24), medalMat, slots.length * 2);
       beacons.frustumCulled = false;
-      halos.frustumCulled = false;
       medals.frustumCulled = false;
       discs.frustumCulled = false;
       slots.forEach((b, i) => {
@@ -513,24 +503,19 @@ function WinnerBuildingMarks({
         const ox = Math.sin(yaw);
         const oz = Math.cos(yaw);
         const beaconH = b.height + 22;
-        dummy.position.set(b.x + ox * b.width * 0.72, beaconH * 0.5, b.z + oz * b.depth * 0.72);
+        dummy.position.set(b.x - oz * (b.width * 0.85), beaconH * 0.5, b.z + ox * (b.depth * 0.85));
         dummy.rotation.set(0, 0, 0);
         dummy.scale.set(1.35, beaconH, 1.35);
         dummy.updateMatrix();
         beacons.setMatrixAt(i, dummy.matrix);
-
-        dummy.position.set(b.x, b.height * 0.72, b.z);
-        dummy.scale.set(b.width * 1.12, b.height * 0.38, b.depth * 1.12);
-        dummy.updateMatrix();
-        halos.setMatrixAt(i, dummy.matrix);
 
         dummy.position.set(b.x, b.height + radius * 0.55, b.z);
         dummy.scale.set(radius * 0.28, radius * 0.28, radius * 0.28);
         dummy.updateMatrix();
         medals.setMatrixAt(i, dummy.matrix);
 
-        const side = radius * 0.55;
-        dummy.position.set(b.x - oz * (b.width * 0.7 + 1.4), b.height + radius * 0.85, b.z + ox * (b.depth * 0.7 + 1.4));
+        const side = radius * 0.34;
+        dummy.position.set(b.x - oz * (b.width * 1.8 + 2.2), b.height + radius * 0.2, b.z + ox * (b.depth * 1.8 + 2.2));
         dummy.rotation.set(0, yaw, 0);
         dummy.scale.set(side, side, side);
         dummy.updateMatrix();
@@ -539,15 +524,11 @@ function WinnerBuildingMarks({
         dummy.updateMatrix();
         discs.setMatrixAt(i * 2 + 1, dummy.matrix);
 
-        const light = new THREE.PointLight(color, 2.6, 78, 2);
-        light.position.set(b.x, b.height + 10, b.z);
-        g.add(light);
       });
       beacons.instanceMatrix.needsUpdate = true;
-      halos.instanceMatrix.needsUpdate = true;
       medals.instanceMatrix.needsUpdate = true;
       discs.instanceMatrix.needsUpdate = true;
-      g.add(halos, beacons, medals, discs);
+      g.add(beacons, medals, discs);
     }
     return g;
   }, [buildings, ribbons]);
@@ -752,7 +733,7 @@ function GameBillboard({
 
   const posterMat = useMemo(() => {
     if (!tex) return null;
-    return new THREE.MeshBasicMaterial({ map: tex, toneMapped: false, side: THREE.FrontSide });
+    return new THREE.MeshBasicMaterial({ map: tex, toneMapped: true, side: THREE.FrontSide });
   }, [tex]);
 
   const frameMat = useMemo(
@@ -785,7 +766,7 @@ function GameBillboard({
     return new THREE.MeshBasicMaterial({
       map: statsTex,
       transparent: true,
-      toneMapped: false,
+      toneMapped: true,
       depthWrite: true,
       side: THREE.FrontSide,
     });

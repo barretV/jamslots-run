@@ -217,6 +217,36 @@ export function AwardsStage({ size }: { size: 'hero' | 'votes' }) {
       scene.add(ring);
     }
 
+    const confettiCount = 90;
+    const confettiPos = new Float32Array(confettiCount * 3);
+    const confettiColor = new Float32Array(confettiCount * 3);
+    const confettiFall = new Float32Array(confettiCount);
+    const confettiPalette = ['#ffd76a', '#fff7d6', '#ff4fa3', '#67e8f9', '#e08a4f', '#c084fc'].map((hex) => new THREE.Color(hex));
+    for (let i = 0; i < confettiCount; i++) {
+      confettiPos[i * 3] = (Math.random() - 0.5) * 8.2;
+      confettiPos[i * 3 + 1] = Math.random() * 3.6;
+      confettiPos[i * 3 + 2] = -0.8 - Math.random() * 2.4;
+      confettiFall[i] = 0.28 + Math.random() * 0.55;
+      const tint = confettiPalette[i % confettiPalette.length];
+      confettiColor[i * 3] = tint.r;
+      confettiColor[i * 3 + 1] = tint.g;
+      confettiColor[i * 3 + 2] = tint.b;
+    }
+    const confettiGeo = new THREE.BufferGeometry();
+    confettiGeo.setAttribute('position', new THREE.BufferAttribute(confettiPos, 3));
+    confettiGeo.setAttribute('color', new THREE.BufferAttribute(confettiColor, 3));
+    const confettiMat = new THREE.PointsMaterial({
+      size: 0.11,
+      vertexColors: true,
+      transparent: true,
+      opacity: 0.95,
+      depthWrite: false,
+      sizeAttenuation: true,
+    });
+    const confetti = new THREE.Points(confettiGeo, confettiMat);
+    confetti.renderOrder = 1;
+    scene.add(confetti);
+
     const textures: THREE.Texture[] = [];
     const medals: THREE.Object3D[] = [];
     for (const spec of PLACES) {
@@ -258,15 +288,27 @@ export function AwardsStage({ size }: { size: 'hero' | 'votes' }) {
     };
     void document.fonts.ready.then(paintLabels);
 
+    let time = 0;
     const tick = () => {
       if (stopped) return;
       frame = requestAnimationFrame(tick);
-      const t = clock.getElapsedTime();
+      const dt = Math.min(clock.getDelta(), 0.05);
+      time += dt;
+      const t = time;
       medals.forEach((medal, i) => {
         const base = medal.userData.baseY as number;
         medal.position.y = base + Math.sin(t * 1.15 + i) * 0.035;
         medal.rotation.y = Math.sin(t * 0.55 + i * 0.7) * 0.16;
       });
+      for (let i = 0; i < confettiCount; i++) {
+        confettiPos[i * 3 + 1] -= confettiFall[i] * dt;
+        confettiPos[i * 3] += Math.sin(t * 1.4 + i) * 0.004;
+        if (confettiPos[i * 3 + 1] < -0.15) {
+          confettiPos[i * 3 + 1] = 3.3 + Math.random() * 0.4;
+          confettiPos[i * 3] = (Math.random() - 0.5) * 8.2;
+        }
+      }
+      (confettiGeo.getAttribute('position') as THREE.BufferAttribute).needsUpdate = true;
       renderer.render(scene, camera);
     };
     tick();
@@ -282,6 +324,8 @@ export function AwardsStage({ size }: { size: 'hero' | 'votes' }) {
         if (Array.isArray(mat)) mat.forEach((item) => item.dispose());
         else mat?.dispose();
       });
+      confettiGeo.dispose();
+      confettiMat.dispose();
       for (const tex of textures) tex.dispose();
       env.texture.dispose();
       room.traverse((obj) => {

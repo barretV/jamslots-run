@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import {
   formatPrizeMoney,
@@ -9,6 +9,15 @@ import {
 import { useLibraryImmersiveOverlay } from '../lib/useLibraryImmersiveOverlay';
 import type { JamGame } from '../types';
 import { AwardsStage } from './AwardsStage';
+
+type WinnerTab = 'editors' | 'special' | 'votes' | 'story';
+
+const TABS: { id: WinnerTab; label: string }[] = [
+  { id: 'editors', label: "Editor's Picks" },
+  { id: 'special', label: 'Special Categories' },
+  { id: 'votes', label: 'Game Votes' },
+  { id: 'story', label: 'Story and Video' },
+];
 
 interface WinnersModalProps {
   games: JamGame[];
@@ -190,6 +199,7 @@ function Podium({
 
 export function WinnersModal({ games, open, onClose, onOpen }: WinnersModalProps) {
   const closeRef = useRef<HTMLButtonElement>(null);
+  const [tab, setTab] = useState<WinnerTab>('editors');
   const resolved = useMemo(() => resolveOctoberPrizes(games), [games]);
 
   useLibraryImmersiveOverlay(open);
@@ -229,41 +239,58 @@ export function WinnersModal({ games, open, onClose, onOpen }: WinnersModalProps
           </button>
         </header>
         <div className="winners-modal__body">
-          <section className="stage-block stage-hero" aria-label={heading('editors')}>
-            <h3 className="stage-block__title">{heading('editors')}</h3>
-            <Podium gold={editorsGold} silver={editorsSilver} bronze={editorsBronze} onOpen={onOpen} size="hero" />
-            <div className="finalists">
-              <Finalist row={place4} onOpen={onOpen} />
-              <Finalist row={place5} onOpen={onOpen} />
-            </div>
-          </section>
+          <div className="winners-tabs" role="tablist" aria-label="Winner groups">
+            {TABS.map((item) => (
+              <button
+                key={item.id}
+                type="button"
+                role="tab"
+                aria-selected={tab === item.id}
+                className={tab === item.id ? 'winners-tabs__btn is-on' : 'winners-tabs__btn'}
+                onClick={() => setTab(item.id)}
+              >
+                {item.label}
+              </button>
+            ))}
+          </div>
 
-          <section className="stage-block" aria-label={heading('votes')}>
-            <h3 className="stage-block__title">{heading('votes')}</h3>
-            <Podium gold={votesGold} silver={votesSilver} bronze={votesBronze} onOpen={onOpen} size="votes" />
-          </section>
+          {tab === 'editors' ? (
+            <section className="fit-stage" role="tabpanel" aria-label={heading('editors')}>
+              <Podium gold={editorsGold} silver={editorsSilver} bronze={editorsBronze} onOpen={onOpen} size="hero" />
+              <div className="finalists">
+                <Finalist row={place4} onOpen={onOpen} />
+                <Finalist row={place5} onOpen={onOpen} />
+              </div>
+            </section>
+          ) : null}
 
-          <section className="stage-block" aria-label={heading('special')}>
-            <div className="stage-block__head">
-              <h3 className="stage-block__title">{heading('special')}</h3>
+          {tab === 'special' ? (
+            <section className="fit-stage" role="tabpanel" aria-label={heading('special')}>
               <p className="stage-block__note">$500 each</p>
-            </div>
-            <div className="plaques">
-              <Plaque row={rowById(resolved, 'special-sticky')} kind="sticky" onOpen={onOpen} />
-              <Plaque row={rowById(resolved, 'special-money')} kind="money" onOpen={onOpen} />
-              <Plaque row={rowById(resolved, 'special-social')} kind="social" onOpen={onOpen} />
-              <Plaque row={rowById(resolved, 'special-theme')} kind="theme" onOpen={onOpen} />
-            </div>
-          </section>
+              <div className="plaques">
+                <Plaque row={rowById(resolved, 'special-sticky')} kind="sticky" onOpen={onOpen} />
+                <Plaque row={rowById(resolved, 'special-money')} kind="money" onOpen={onOpen} />
+                <Plaque row={rowById(resolved, 'special-social')} kind="social" onOpen={onOpen} />
+                <Plaque row={rowById(resolved, 'special-theme')} kind="theme" onOpen={onOpen} />
+              </div>
+            </section>
+          ) : null}
 
-          <section className="stage-block stage-story" aria-label={heading('story')}>
-            <h3 className="stage-block__title">{heading('story')}</h3>
-            <div className="story-row">
-              <StoryCard row={rowById(resolved, 'story-1')} />
-              <StoryCard row={rowById(resolved, 'story-2')} />
-              <StoryCard row={rowById(resolved, 'story-3')} />
-            </div>
-          </section>
+          {tab === 'votes' ? (
+            <section className="fit-stage" role="tabpanel" aria-label={heading('votes')}>
+              <Podium gold={votesGold} silver={votesSilver} bronze={votesBronze} onOpen={onOpen} size="votes" />
+            </section>
+          ) : null}
+
+          {tab === 'story' ? (
+            <section className="fit-stage fit-stage--story" role="tabpanel" aria-label={heading('story')}>
+              <div className="story-row">
+                <StoryCard row={rowById(resolved, 'story-1')} />
+                <StoryCard row={rowById(resolved, 'story-2')} />
+                <StoryCard row={rowById(resolved, 'story-3')} />
+              </div>
+            </section>
+          ) : null}
         </div>
       </div>
     </div>,

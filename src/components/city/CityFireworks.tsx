@@ -74,16 +74,6 @@ function skyAnchor(focusX: number, focusZ: number, salt: number): FireworkAnchor
   };
 }
 
-function showAnchor(spot: FireworkAnchor, salt: number): FireworkAnchor {
-  const ang = salt * 1.7;
-  const side = 22 + (salt % 3) * 10;
-  return {
-    x: spot.x + Math.cos(ang) * side,
-    y: spot.y + 18 + (salt % 4) * 12,
-    z: spot.z + Math.sin(ang) * side,
-  };
-}
-
 /** Repeating sky bursts. Readable from cruise height, a handful alive at once. */
 export function CityFireworks({
   focusX,
@@ -112,13 +102,12 @@ export function CityFireworks({
       next: 0.32,
       cursor: 6,
     };
-    const first = spots[0] ?? { x: focusX, y: 90, z: focusZ };
     for (let i = 0; i < 4; i++) {
       spawnBurst(next, i, skyAnchor(focusX, focusZ, i + 1), positions, lives, colors);
       next.age[i] = 0.15 + i * 0.28;
     }
-    spawnBurst(next, 4, showAnchor(first, 1), positions, lives, colors);
-    spawnBurst(next, 5, showAnchor(first, 3), positions, lives, colors);
+    spawnBurst(next, 4, skyAnchor(focusX, focusZ, 5), positions, lives, colors);
+    spawnBurst(next, 5, skyAnchor(focusX, focusZ, 8), positions, lives, colors);
     next.age[4] = 0.22;
     next.age[5] = 0.48;
     for (let i = 6; i < BURSTS; i++) parkBurst(i, positions, lives);
@@ -179,10 +168,7 @@ export function CityFireworks({
     const list = spotsRef.current;
     s.next -= dt;
     if (s.next <= 0) {
-      const sky = s.cursor % 2 === 0 || list.length === 0;
-      const anchor = sky
-        ? skyAnchor(focus.x, focus.z, s.cursor + 2)
-        : showAnchor(list[s.cursor % list.length] ?? { x: focus.x, y: 120, z: focus.z }, s.cursor);
+      const anchor = skyAnchor(focus.x, focus.z, s.cursor + list.length + 2);
       spawnBurst(s, s.cursor, anchor, positions, lives, colors);
       s.cursor = (s.cursor + 1) % BURSTS;
       s.next = 0.38;

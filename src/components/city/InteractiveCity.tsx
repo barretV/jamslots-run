@@ -35,7 +35,7 @@ export function InteractiveCity({ games, open, onClose, onOpen, filterLabel, isF
 
   const [mode, setMode] = useState<CityFlightMode>('fly');
   const [celebrating, setCelebrating] = useState(true);
-  const [tourCaption, setTourCaption] = useState('');
+  const [tourCard, setTourCard] = useState<{ title: string; prize: string; amount: string } | null>(null);
   const [nearBuilding, setNearBuilding] = useState<CityBuildingSlot | null>(null);
   const [steerId, setSteerId] = useState<string | null>(null);
   const [favOpen, setFavOpen] = useState(false);
@@ -72,13 +72,17 @@ export function InteractiveCity({ games, open, onClose, onOpen, filterLabel, isF
     if (!open) {
       setFavOpen(false);
       setCelebrating(true);
-      setTourCaption('');
+      setTourCard(null);
     }
   }, [open]);
 
   const onTourStep = useCallback((step: TourStep) => {
     const prize = OCTOBER_PRIZES.find((item) => item.id === step.prizeId);
-    setTourCaption(prize ? `${step.title}. ${prize.category}, ${formatPrizeMoney(prize.amount)}` : step.title);
+    setTourCard({
+      title: step.title,
+      prize: prize?.category ?? 'Prize',
+      amount: prize ? formatPrizeMoney(prize.amount) : '',
+    });
   }, []);
 
   const startLanding = useCallback((slot: CityBuildingSlot) => {
@@ -319,8 +323,12 @@ export function InteractiveCity({ games, open, onClose, onOpen, filterLabel, isF
           </Canvas>
 
           <div className="interactive-city-hud">
-            {showTour ? (
-              <p className="interactive-city-hud__hint">{tourCaption || 'October Jam winners'}</p>
+            {showTour && tourCard ? (
+              <div className="interactive-city-caption">
+                <p className="interactive-city-caption__title">{tourCard.title}</p>
+                <p className="interactive-city-caption__prize">{tourCard.prize}</p>
+                {tourCard.amount ? <p className="interactive-city-caption__amount">{tourCard.amount}</p> : null}
+              </div>
             ) : mode === 'fly' ? (
               <p className="interactive-city-hud__hint">WASD move · Q down · E up · Shift faster</p>
             ) : mode === 'landed' ? (

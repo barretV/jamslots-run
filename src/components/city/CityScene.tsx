@@ -8,7 +8,7 @@ import { ribbonByGameId } from '../../lib/octoberWinners';
 import type { JamGame } from '../../types';
 import { CityAirTraffic } from './CityAirTraffic';
 import { CityBuildings, billboardCenterY, landAnchorY } from './CityBuildings';
-import { CityFireworks, type FireworkAnchor } from './CityFireworks';
+import { CityFireworks } from './CityFireworks';
 import { CityPostFX } from './CityPostFX';
 import { CityRain } from './CityRain';
 import { CityRoad } from './CityRoad';
@@ -56,17 +56,18 @@ export function CityScene({
   const spawn = useMemo(() => computeCitySpawn(buildings), [buildings]);
   const ribbons = useMemo(() => ribbonByGameId(games), [games]);
   const tourStops = useMemo(() => pickTourStops(buildings, games), [buildings, games]);
-  const fireworkAnchors = useMemo(() => {
-    const fromTour: FireworkAnchor[] = tourStops.map((stop) => ({
+  const fireworkSpots = useMemo(() => {
+    const fromTour = tourStops.map((stop) => ({
       x: stop.slot.x,
-      y: billboardCenterY(stop.slot) + 18,
+      y: billboardCenterY(stop.slot) + 14,
       z: stop.slot.z,
     }));
     if (fromTour.length > 0) return fromTour;
-    const winners = buildings.filter((b) => ribbons.has(b.game.gameId)).slice(0, 4);
-    if (winners.length === 0) return [{ x: spawn.focusX, y: spawn.focusY + 30, z: spawn.focusZ }];
-    return winners.map((b) => ({ x: b.x, y: billboardCenterY(b) + 16, z: b.z }));
-  }, [buildings, ribbons, spawn.focusX, spawn.focusY, spawn.focusZ, tourStops]);
+    return buildings
+      .filter((b) => ribbons.has(b.game.gameId))
+      .slice(0, 8)
+      .map((b) => ({ x: b.x, y: billboardCenterY(b) + 14, z: b.z }));
+  }, [buildings, ribbons, tourStops]);
   const craftPos = useRef(new THREE.Vector3(spawn.x, spawn.y, spawn.z));
 
   useEffect(() => {
@@ -168,7 +169,7 @@ export function CityScene({
         <meshStandardMaterial color="#0a0718" metalness={0.15} roughness={0.92} />
       </mesh>
 
-      <CityFireworks anchors={fireworkAnchors} />
+      <CityFireworks focusX={spawn.focusX} focusZ={spawn.focusZ} spots={fireworkSpots} />
       <CityWinnerTour
         stops={tourStops}
         focusX={spawn.focusX}

@@ -157,8 +157,21 @@ export const OCTOBER_PRIZES: OctoberPrize[] = [
   },
 ];
 
-/** Camera order: gold covers first, then a special-category winner. */
-export const TOUR_PRIZE_IDS = ['editors-1', 'votes-1', 'editors-2', 'special-sticky'] as const;
+/** Cutscene order matches the winners page. Story prizes are not games. */
+export const TOUR_PRIZE_IDS: readonly string[] = [
+  'editors-1',
+  'editors-2',
+  'editors-3',
+  'editors-4',
+  'editors-5',
+  'special-sticky',
+  'special-money',
+  'special-social',
+  'special-theme',
+  'votes-1',
+  'votes-2',
+  'votes-3',
+];
 
 export const RIBBON_COLOR: Record<PrizeMetal, string> = {
   gold: '#ffd76a',

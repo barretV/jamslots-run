@@ -452,6 +452,13 @@ function disposeObject(root: THREE.Object3D) {
   mats.forEach((mat) => mat.dispose());
 }
 
+function medalRadius(metal: PrizeMetal): number {
+  if (metal === 'gold') return 5.2;
+  if (metal === 'silver') return 4.2;
+  if (metal === 'bronze') return 3.6;
+  return 3.2;
+}
+
 /** Prize glow, a vertical ribbon, and a medal on each winning tower. */
 function WinnerBuildingMarks({
   buildings,
@@ -475,69 +482,72 @@ function WinnerBuildingMarks({
     for (const [metal, slots] of byMetal) {
       if (slots.length === 0) continue;
       const color = RIBBON_COLOR[metal];
-      const solidMat = new THREE.MeshStandardMaterial({
-        color: '#140c08',
-        emissive: color,
-        emissiveIntensity: 1.4,
-        roughness: 0.35,
-        metalness: 0.2,
+      const radius = medalRadius(metal);
+      const glowMat = new THREE.MeshBasicMaterial({
+        color,
+        transparent: true,
+        opacity: 0.48,
+        blending: THREE.AdditiveBlending,
+        depthWrite: false,
+        toneMapped: false,
       });
       const haloMat = new THREE.MeshBasicMaterial({
         color,
         transparent: true,
-        opacity: 0.14,
+        opacity: 0.16,
         blending: THREE.AdditiveBlending,
         depthWrite: false,
-        toneMapped: true,
+        toneMapped: false,
       });
-      const ribs = new THREE.InstancedMesh(new THREE.BoxGeometry(1, 1, 1), solidMat, slots.length);
-      const medals = new THREE.InstancedMesh(new THREE.CircleGeometry(1, 22), solidMat, slots.length);
-      const bands = new THREE.InstancedMesh(new THREE.BoxGeometry(1, 1, 1), solidMat, slots.length);
+      const medalMat = new THREE.MeshBasicMaterial({ color, toneMapped: true });
+      const beacons = new THREE.InstancedMesh(new THREE.BoxGeometry(1, 1, 1), glowMat, slots.length);
       const halos = new THREE.InstancedMesh(new THREE.BoxGeometry(1, 1, 1), haloMat, slots.length);
-      ribs.frustumCulled = false;
-      medals.frustumCulled = false;
-      bands.frustumCulled = false;
+      const medals = new THREE.InstancedMesh(new THREE.SphereGeometry(1, 18, 14), medalMat, slots.length);
+      const discs = new THREE.InstancedMesh(new THREE.CircleGeometry(1, 24), medalMat, slots.length * 2);
+      beacons.frustumCulled = false;
       halos.frustumCulled = false;
+      medals.frustumCulled = false;
+      discs.frustumCulled = false;
       slots.forEach((b, i) => {
         const yaw = Math.atan2(b.x, b.z);
         const ox = Math.sin(yaw);
         const oz = Math.cos(yaw);
-        dummy.position.set(b.x, b.height * 0.72, b.z);
+        const beaconH = b.height + 22;
+        dummy.position.set(b.x + ox * b.width * 0.72, beaconH * 0.5, b.z + oz * b.depth * 0.72);
         dummy.rotation.set(0, 0, 0);
-        dummy.scale.set(b.width * 1.08, Math.min(18, b.height * 0.22), b.depth * 1.08);
+        dummy.scale.set(1.35, beaconH, 1.35);
+        dummy.updateMatrix();
+        beacons.setMatrixAt(i, dummy.matrix);
+
+        dummy.position.set(b.x, b.height * 0.72, b.z);
+        dummy.scale.set(b.width * 1.12, b.height * 0.38, b.depth * 1.12);
         dummy.updateMatrix();
         halos.setMatrixAt(i, dummy.matrix);
 
-        dummy.position.set(b.x + ox * b.width * 0.56, b.height * 0.78, b.z + oz * b.depth * 0.56);
-        dummy.rotation.set(0, yaw, 0);
-        dummy.scale.set(0.7, Math.min(16, b.height * 0.28), 0.36);
-        dummy.updateMatrix();
-        ribs.setMatrixAt(i, dummy.matrix);
-
-        dummy.position.set(
-          b.x + ox * (b.width * 0.56 + 1.1),
-          b.height * 0.92,
-          b.z + oz * (b.depth * 0.56 + 1.1),
-        );
-        dummy.scale.set(2.1, 2.1, 2.1);
+        dummy.position.set(b.x, b.height + radius * 0.55, b.z);
+        dummy.scale.set(radius * 0.28, radius * 0.28, radius * 0.28);
         dummy.updateMatrix();
         medals.setMatrixAt(i, dummy.matrix);
 
-        dummy.position.set(b.x, b.height - 0.9, b.z);
-        dummy.rotation.set(0, b.faceYaw, 0);
-        dummy.scale.set(b.width * 1.04, 1.15, b.depth * 1.04);
+        const side = radius * 0.55;
+        dummy.position.set(b.x - oz * (b.width * 0.7 + 1.4), b.height + radius * 0.85, b.z + ox * (b.depth * 0.7 + 1.4));
+        dummy.rotation.set(0, yaw, 0);
+        dummy.scale.set(side, side, side);
         dummy.updateMatrix();
-        bands.setMatrixAt(i, dummy.matrix);
+        discs.setMatrixAt(i * 2, dummy.matrix);
+        dummy.rotation.set(0, yaw + Math.PI, 0);
+        dummy.updateMatrix();
+        discs.setMatrixAt(i * 2 + 1, dummy.matrix);
 
-        const light = new THREE.PointLight(color, 0.7, 18, 2);
-        light.position.set(b.x, b.height + 3, b.z);
+        const light = new THREE.PointLight(color, 2.6, 78, 2);
+        light.position.set(b.x, b.height + 10, b.z);
         g.add(light);
       });
-      ribs.instanceMatrix.needsUpdate = true;
-      medals.instanceMatrix.needsUpdate = true;
-      bands.instanceMatrix.needsUpdate = true;
+      beacons.instanceMatrix.needsUpdate = true;
       halos.instanceMatrix.needsUpdate = true;
-      g.add(halos, ribs, medals, bands);
+      medals.instanceMatrix.needsUpdate = true;
+      discs.instanceMatrix.needsUpdate = true;
+      g.add(halos, beacons, medals, discs);
     }
     return g;
   }, [buildings, ribbons]);
@@ -932,8 +942,8 @@ function GameBillboard({
               <boxGeometry args={[0.42, size * 0.62, 0.16]} />
               <meshStandardMaterial color="#120c08" emissive={RIBBON_COLOR[ribbon]} emissiveIntensity={1.15} />
             </mesh>
-            <mesh position={[0, size * 0.24, 0.14]}>
-              <circleGeometry args={[Math.max(0.9, size * 0.14), 22]} />
+            <mesh position={[0, size * 0.28, 0.14]}>
+              <circleGeometry args={[Math.min(2.2, Math.max(1.15, size * 0.16)), 22]} />
               <meshStandardMaterial color="#120c08" emissive={RIBBON_COLOR[ribbon]} emissiveIntensity={1.35} />
             </mesh>
           </group>

@@ -17,8 +17,8 @@ export interface TourStep {
   prizeId: string;
 }
 
-const DWELL = 2.35;
-const BLEND = 0.65;
+const DWELL = 3.25;
+const BLEND = 0.55;
 
 export function pickTourStops(buildings: CityBuildingSlot[], games: JamGame[]): TourStop[] {
   const byPrize = new Map<string, string>();
@@ -26,13 +26,11 @@ export function pickTourStops(buildings: CityBuildingSlot[], games: JamGame[]): 
     if (row.game) byPrize.set(row.prize.id, row.game.gameId);
   }
   const stops: TourStop[] = [];
-  const seen = new Set<string>();
   for (const prizeId of TOUR_PRIZE_IDS) {
     const gameId = byPrize.get(prizeId);
-    if (!gameId || seen.has(gameId)) continue;
+    if (!gameId) continue;
     const slot = buildings.find((b) => b.game.gameId === gameId);
     if (!slot) continue;
-    seen.add(gameId);
     stops.push({ slot, prizeId });
   }
   return stops;
@@ -41,9 +39,9 @@ export function pickTourStops(buildings: CityBuildingSlot[], games: JamGame[]): 
 function pose(slot: CityBuildingSlot, focusX: number, focusZ: number, dolly: number, pos: THREE.Vector3, look: THREE.Vector3) {
   const y = billboardCenterY(slot);
   const outward = Math.atan2(slot.x - focusX, slot.z - focusZ);
-  const dist = 40 - dolly * 6;
-  pos.set(slot.x + Math.sin(outward) * dist, y + 20, slot.z + Math.cos(outward) * dist);
-  look.set(slot.x, y + 3, slot.z);
+  const dist = 40 - dolly * 3;
+  pos.set(slot.x + Math.sin(outward) * dist, y + 26, slot.z + Math.cos(outward) * dist);
+  look.set(slot.x, y + 1, slot.z);
 }
 
 /** Moves the camera across a few winner covers, then hands back to flight. */

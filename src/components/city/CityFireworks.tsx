@@ -8,12 +8,12 @@ export interface FireworkAnchor {
   z: number;
 }
 
-const BURSTS = 5;
-const PER = 24;
+const BURSTS = 12;
+const PER = 42;
 const COUNT = BURSTS * PER;
-const LIFE = 1.35;
+const LIFE = 2.15;
 
-const PALETTE = ['#ffd76a', '#f8fafc', '#e879f9', '#67e8f9', '#e08a4f'];
+const PALETTE = ['#ffd76a', '#fff7d6', '#ff4fa3', '#67e8f9', '#e08a4f', '#c084fc', '#f8fafc'];
 
 interface BurstSim {
   age: Float32Array;
@@ -24,13 +24,17 @@ interface BurstSim {
   cursor: number;
 }
 
-function spawnBurst(sim: BurstSim, index: number, anchor: FireworkAnchor, positions: Float32Array, lives: Float32Array, colors: Float32Array) {
-  const ox = anchor.x + (Math.random() - 0.5) * 10;
-  const oy = anchor.y + (Math.random() - 0.5) * 6;
-  const oz = anchor.z + (Math.random() - 0.5) * 10;
-  sim.origin[index * 3] = ox;
-  sim.origin[index * 3 + 1] = oy;
-  sim.origin[index * 3 + 2] = oz;
+function spawnBurst(
+  sim: BurstSim,
+  index: number,
+  anchor: FireworkAnchor,
+  positions: Float32Array,
+  lives: Float32Array,
+  colors: Float32Array,
+) {
+  sim.origin[index * 3] = anchor.x;
+  sim.origin[index * 3 + 1] = anchor.y;
+  sim.origin[index * 3 + 2] = anchor.z;
   sim.age[index] = 0;
   sim.life[index] = LIFE;
   const tint = new THREE.Color(PALETTE[index % PALETTE.length]);
@@ -38,13 +42,13 @@ function spawnBurst(sim: BurstSim, index: number, anchor: FireworkAnchor, positi
     const idx = index * PER + p;
     const theta = Math.random() * Math.PI * 2;
     const phi = Math.acos(2 * Math.random() - 1);
-    const speed = 8 + Math.random() * 14;
+    const speed = 16 + Math.random() * 28;
     sim.vel[idx * 3] = Math.sin(phi) * Math.cos(theta) * speed;
-    sim.vel[idx * 3 + 1] = Math.abs(Math.cos(phi)) * speed * 0.85;
+    sim.vel[idx * 3 + 1] = Math.abs(Math.cos(phi)) * speed * 0.92 + 6;
     sim.vel[idx * 3 + 2] = Math.sin(phi) * Math.sin(theta) * speed;
-    positions[idx * 3] = ox;
-    positions[idx * 3 + 1] = oy;
-    positions[idx * 3 + 2] = oz;
+    positions[idx * 3] = anchor.x;
+    positions[idx * 3 + 1] = anchor.y;
+    positions[idx * 3 + 2] = anchor.z;
     lives[idx] = 1;
     colors[idx * 3] = tint.r;
     colors[idx * 3 + 1] = tint.g;
@@ -55,18 +59,48 @@ function spawnBurst(sim: BurstSim, index: number, anchor: FireworkAnchor, positi
 function parkBurst(index: number, positions: Float32Array, lives: Float32Array) {
   for (let p = 0; p < PER; p++) {
     const idx = index * PER + p;
-    positions[idx * 3 + 1] = -400;
+    positions[idx * 3 + 1] = -800;
     lives[idx] = 0;
   }
 }
 
-/** A few recycled sky bursts. One draw call, two alive at a time. */
-export function CityFireworks({ anchors }: { anchors: FireworkAnchor[] }) {
+function skyAnchor(focusX: number, focusZ: number, salt: number): FireworkAnchor {
+  const ang = salt * 2.399 + Math.random() * 0.8;
+  const rad = 30 + (salt % 5) * 38 + Math.random() * 40;
+  return {
+    x: focusX + Math.cos(ang) * rad,
+    y: 168 + (salt % 4) * 28 + Math.random() * 36,
+    z: focusZ + Math.sin(ang) * rad,
+  };
+}
+
+function showAnchor(spot: FireworkAnchor, salt: number): FireworkAnchor {
+  const ang = salt * 1.7;
+  const side = 22 + (salt % 3) * 10;
+  return {
+    x: spot.x + Math.cos(ang) * side,
+    y: spot.y + 18 + (salt % 4) * 12,
+    z: spot.z + Math.sin(ang) * side,
+  };
+}
+
+/** Repeating sky bursts. Readable from cruise height, a handful alive at once. */
+export function CityFireworks({
+  focusX,
+  focusZ,
+  spots,
+}: {
+  focusX: number;
+  focusZ: number;
+  spots: FireworkAnchor[];
+}) {
   const positions = useMemo(() => new Float32Array(COUNT * 3), []);
   const colors = useMemo(() => new Float32Array(COUNT * 3), []);
   const lives = useMemo(() => new Float32Array(COUNT), []);
-  const anchorsRef = useRef(anchors);
-  anchorsRef.current = anchors;
+  const focusRef = useRef({ x: focusX, z: focusZ });
+  const spotsRef = useRef(spots);
+  focusRef.current = { x: focusX, z: focusZ };
+  spotsRef.current = spots;
 
   const sim = useRef<BurstSim | null>(null);
   if (!sim.current) {
@@ -75,16 +109,19 @@ export function CityFireworks({ anchors }: { anchors: FireworkAnchor[] }) {
       life: new Float32Array(BURSTS),
       origin: new Float32Array(BURSTS * 3),
       vel: new Float32Array(COUNT * 3),
-      next: 1.15,
-      cursor: 2,
+      next: 0.32,
+      cursor: 6,
     };
-    const first = anchors[0] ?? { x: 0, y: 80, z: 0 };
-    const second = anchors[1] ?? { x: first.x + 18, y: first.y + 6, z: first.z - 12 };
-    spawnBurst(next, 0, first, positions, lives, colors);
-    spawnBurst(next, 1, second, positions, lives, colors);
-    next.age[0] = 0.18;
-    next.age[1] = 0.05;
-    for (let i = 2; i < BURSTS; i++) parkBurst(i, positions, lives);
+    const first = spots[0] ?? { x: focusX, y: 90, z: focusZ };
+    for (let i = 0; i < 4; i++) {
+      spawnBurst(next, i, skyAnchor(focusX, focusZ, i + 1), positions, lives, colors);
+      next.age[i] = 0.15 + i * 0.28;
+    }
+    spawnBurst(next, 4, showAnchor(first, 1), positions, lives, colors);
+    spawnBurst(next, 5, showAnchor(first, 3), positions, lives, colors);
+    next.age[4] = 0.22;
+    next.age[5] = 0.48;
+    for (let i = 6; i < BURSTS; i++) parkBurst(i, positions, lives);
     sim.current = next;
   }
 
@@ -113,7 +150,8 @@ export function CityFireworks({ anchors }: { anchors: FireworkAnchor[] }) {
             vLife = aLife;
             vColor = color;
             vec4 mv = modelViewMatrix * vec4(position, 1.0);
-            gl_PointSize = aLife * 16.0 * (90.0 / max(24.0, -mv.z));
+            float dist = max(32.0, -mv.z);
+            gl_PointSize = clamp(aLife * 2800.0 / dist, 16.0, 42.0);
             gl_Position = projectionMatrix * mv;
           }
         `,
@@ -121,11 +159,12 @@ export function CityFireworks({ anchors }: { anchors: FireworkAnchor[] }) {
           varying float vLife;
           varying vec3 vColor;
           void main() {
-            if (vLife < 0.04) discard;
+            if (vLife < 0.03) discard;
             vec2 p = gl_PointCoord * 2.0 - 1.0;
             float d = dot(p, p);
             if (d > 1.0) discard;
-            gl_FragColor = vec4(vColor, (1.0 - d) * vLife);
+            float glow = pow(1.0 - d, 1.35);
+            gl_FragColor = vec4(vColor * 1.55, glow * vLife);
           }
         `,
       }),
@@ -136,14 +175,17 @@ export function CityFireworks({ anchors }: { anchors: FireworkAnchor[] }) {
     const dt = Math.min(delta, 0.05);
     const s = sim.current;
     if (!s) return;
-    const list = anchorsRef.current;
-    const fallback = list[0] ?? { x: 0, y: 90, z: 0 };
+    const focus = focusRef.current;
+    const list = spotsRef.current;
     s.next -= dt;
-    if (s.next <= 0 && list.length > 0) {
-      const anchor = list[s.cursor % list.length] ?? fallback;
+    if (s.next <= 0) {
+      const sky = s.cursor % 2 === 0 || list.length === 0;
+      const anchor = sky
+        ? skyAnchor(focus.x, focus.z, s.cursor + 2)
+        : showAnchor(list[s.cursor % list.length] ?? { x: focus.x, y: 120, z: focus.z }, s.cursor);
       spawnBurst(s, s.cursor, anchor, positions, lives, colors);
       s.cursor = (s.cursor + 1) % BURSTS;
-      s.next = 1.7;
+      s.next = 0.38;
     }
     for (let i = 0; i < BURSTS; i++) {
       if (s.life[i] <= 0) continue;
@@ -160,20 +202,17 @@ export function CityFireworks({ anchors }: { anchors: FireworkAnchor[] }) {
       const oz = s.origin[i * 3 + 2];
       for (let p = 0; p < PER; p++) {
         const idx = i * PER + p;
-        const drag = 1 - t * 0.35;
+        const drag = 1 - t * 0.22;
         positions[idx * 3] = ox + s.vel[idx * 3] * t * drag;
-        positions[idx * 3 + 1] = oy + s.vel[idx * 3 + 1] * t * drag - 9 * t * t;
+        positions[idx * 3 + 1] = oy + s.vel[idx * 3 + 1] * t * drag - 11 * t * t;
         positions[idx * 3 + 2] = oz + s.vel[idx * 3 + 2] * t * drag;
         lives[idx] = fade;
       }
     }
-    const posAttr = geo.getAttribute('position') as THREE.BufferAttribute;
-    const lifeAttr = geo.getAttribute('aLife') as THREE.BufferAttribute;
-    const colorAttr = geo.getAttribute('color') as THREE.BufferAttribute;
-    posAttr.needsUpdate = true;
-    lifeAttr.needsUpdate = true;
-    colorAttr.needsUpdate = true;
+    (geo.getAttribute('position') as THREE.BufferAttribute).needsUpdate = true;
+    (geo.getAttribute('aLife') as THREE.BufferAttribute).needsUpdate = true;
+    (geo.getAttribute('color') as THREE.BufferAttribute).needsUpdate = true;
   });
 
-  return <points geometry={geo} material={mat} frustumCulled={false} />;
+  return <points geometry={geo} material={mat} frustumCulled={false} renderOrder={20} />;
 }

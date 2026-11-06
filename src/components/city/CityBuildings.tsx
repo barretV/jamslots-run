@@ -11,6 +11,7 @@ import {
   type InstanceBatch,
 } from '../../lib/cityNeon';
 import type { CityBuildingSlot, CitySpawn } from '../../lib/citySpiral';
+import { RIBBON_COLOR, type PrizeMetal } from '../../lib/octoberWinners';
 import { isNewThisVisit } from '../../state/persistence';
 import { CityRankLandmarks, crownMetrics, makeRankTexture, rankGlowMul } from './CityRankLandmarks';
 
@@ -19,6 +20,7 @@ interface CityBuildingsProps {
   craftPos: THREE.Vector3;
   spawn: CitySpawn;
   isFavorite?: (gameId: string) => boolean;
+  ribbons?: Map<string, PrizeMetal>;
 }
 
 const PINK = '#f472b6';
@@ -436,7 +438,116 @@ function paintStats(slot: CityBuildingSlot, isFavorite: boolean, isNew: boolean)
   return tex;
 }
 
-export function CityBuildings({ buildings, spawn, craftPos, isFavorite }: CityBuildingsProps) {
+function disposeObject(root: THREE.Object3D) {
+  const mats = new Set<THREE.Material>();
+  const geos = new Set<THREE.BufferGeometry>();
+  root.traverse((obj) => {
+    const mesh = obj as THREE.Mesh;
+    if (mesh.geometry) geos.add(mesh.geometry);
+    const mat = mesh.material as THREE.Material | THREE.Material[] | undefined;
+    if (Array.isArray(mat)) mat.forEach((m) => mats.add(m));
+    else if (mat) mats.add(mat);
+  });
+  geos.forEach((geo) => geo.dispose());
+  mats.forEach((mat) => mat.dispose());
+}
+
+/** Prize glow, a vertical ribbon, and a medal on each winning tower. */
+function WinnerBuildingMarks({
+  buildings,
+  ribbons,
+}: {
+  buildings: CityBuildingSlot[];
+  ribbons: Map<string, PrizeMetal>;
+}) {
+  const group = useMemo(() => {
+    const g = new THREE.Group();
+    g.name = 'winner-marks';
+    const byMetal = new Map<PrizeMetal, CityBuildingSlot[]>();
+    for (const b of buildings) {
+      const metal = ribbons.get(b.game.gameId);
+      if (!metal) continue;
+      const list = byMetal.get(metal) ?? [];
+      list.push(b);
+      byMetal.set(metal, list);
+    }
+    const dummy = new THREE.Object3D();
+    for (const [metal, slots] of byMetal) {
+      if (slots.length === 0) continue;
+      const color = RIBBON_COLOR[metal];
+      const solidMat = new THREE.MeshStandardMaterial({
+        color: '#140c08',
+        emissive: color,
+        emissiveIntensity: 1.4,
+        roughness: 0.35,
+        metalness: 0.2,
+      });
+      const haloMat = new THREE.MeshBasicMaterial({
+        color,
+        transparent: true,
+        opacity: 0.14,
+        blending: THREE.AdditiveBlending,
+        depthWrite: false,
+        toneMapped: true,
+      });
+      const ribs = new THREE.InstancedMesh(new THREE.BoxGeometry(1, 1, 1), solidMat, slots.length);
+      const medals = new THREE.InstancedMesh(new THREE.CircleGeometry(1, 22), solidMat, slots.length);
+      const bands = new THREE.InstancedMesh(new THREE.BoxGeometry(1, 1, 1), solidMat, slots.length);
+      const halos = new THREE.InstancedMesh(new THREE.BoxGeometry(1, 1, 1), haloMat, slots.length);
+      ribs.frustumCulled = false;
+      medals.frustumCulled = false;
+      bands.frustumCulled = false;
+      halos.frustumCulled = false;
+      slots.forEach((b, i) => {
+        const yaw = Math.atan2(b.x, b.z);
+        const ox = Math.sin(yaw);
+        const oz = Math.cos(yaw);
+        dummy.position.set(b.x, b.height * 0.72, b.z);
+        dummy.rotation.set(0, 0, 0);
+        dummy.scale.set(b.width * 1.08, Math.min(18, b.height * 0.22), b.depth * 1.08);
+        dummy.updateMatrix();
+        halos.setMatrixAt(i, dummy.matrix);
+
+        dummy.position.set(b.x + ox * b.width * 0.56, b.height * 0.78, b.z + oz * b.depth * 0.56);
+        dummy.rotation.set(0, yaw, 0);
+        dummy.scale.set(0.7, Math.min(16, b.height * 0.28), 0.36);
+        dummy.updateMatrix();
+        ribs.setMatrixAt(i, dummy.matrix);
+
+        dummy.position.set(
+          b.x + ox * (b.width * 0.56 + 1.1),
+          b.height * 0.92,
+          b.z + oz * (b.depth * 0.56 + 1.1),
+        );
+        dummy.scale.set(2.1, 2.1, 2.1);
+        dummy.updateMatrix();
+        medals.setMatrixAt(i, dummy.matrix);
+
+        dummy.position.set(b.x, b.height - 0.9, b.z);
+        dummy.rotation.set(0, b.faceYaw, 0);
+        dummy.scale.set(b.width * 1.04, 1.15, b.depth * 1.04);
+        dummy.updateMatrix();
+        bands.setMatrixAt(i, dummy.matrix);
+
+        const light = new THREE.PointLight(color, 0.7, 18, 2);
+        light.position.set(b.x, b.height + 3, b.z);
+        g.add(light);
+      });
+      ribs.instanceMatrix.needsUpdate = true;
+      medals.instanceMatrix.needsUpdate = true;
+      bands.instanceMatrix.needsUpdate = true;
+      halos.instanceMatrix.needsUpdate = true;
+      g.add(halos, ribs, medals, bands);
+    }
+    return g;
+  }, [buildings, ribbons]);
+
+  useEffect(() => () => disposeObject(group), [group]);
+
+  return <primitive object={group} />;
+}
+
+export function CityBuildings({ buildings, spawn, craftPos, isFavorite, ribbons }: CityBuildingsProps) {
   const shell = useCityShell(buildings);
   const facingRef = useRef<string | null>(null);
   const faceYawRef = useRef(0);
@@ -491,6 +602,7 @@ export function CityBuildings({ buildings, spawn, craftPos, isFavorite }: CityBu
     <group>
       <primitive object={shell} />
       <CitySignalBeacons buildings={buildings} isFavorite={isFavorite} />
+      {ribbons && ribbons.size > 0 ? <WinnerBuildingMarks buildings={buildings} ribbons={ribbons} /> : null}
       <CityRankLandmarks buildings={buildings} />
       {buildings.map((b) => (
         <GameBillboard
@@ -502,6 +614,7 @@ export function CityBuildings({ buildings, spawn, craftPos, isFavorite }: CityBu
           faceYawRef={faceYawRef}
           isFavorite={isFavorite?.(b.game.gameId) ?? false}
           isNew={isNewThisVisit(b.game.gameId)}
+          ribbon={ribbons?.get(b.game.gameId)}
         />
       ))}
     </group>
@@ -516,6 +629,7 @@ function GameBillboard({
   faceYawRef,
   isFavorite,
   isNew,
+  ribbon,
 }: {
   slot: CityBuildingSlot;
   spawn: CitySpawn;
@@ -524,9 +638,11 @@ function GameBillboard({
   faceYawRef: MutableRefObject<number>;
   isFavorite?: boolean;
   isNew: boolean;
+  ribbon?: PrizeMetal;
 }) {
+  const featured = ribbon != null;
   const [tex, setTex] = useState<THREE.Texture | null>(null);
-  const [visible, setVisible] = useState(false);
+  const [visible, setVisible] = useState(featured);
   const [statsTex, setStatsTex] = useState<THREE.Texture | null>(null);
   const triedRef = useRef(false);
   const auraRef = useRef<THREE.MeshBasicMaterial>(null);
@@ -551,12 +667,20 @@ function GameBillboard({
   const panelDepth = 0.26;
   const halfDepth = panelDepth * 0.5;
   const artZ = halfDepth + 0.02;
-  const accent = isFavorite ? PINK : isNew ? GREEN : slot.voteRank > 0 ? '#fbbf24' : '#22d3ee';
+  const accent = ribbon
+    ? RIBBON_COLOR[ribbon]
+    : isFavorite
+      ? PINK
+      : isNew
+        ? GREEN
+        : slot.voteRank > 0
+          ? '#fbbf24'
+          : '#22d3ee';
   const boardW = Math.min(18, Math.max(12, size * 1.05));
   const boardH = boardW * (512 / 1024);
   const statsX = 0;
   const statsY = y + size * 0.5 + 0.8 + boardH * 0.5;
-  const frameBase = isFavorite || isNew ? 0.45 : slot.voteRank > 0 ? 0.4 : 0.26;
+  const frameBase = ribbon ? 0.62 : isFavorite || isNew ? 0.45 : slot.voteRank > 0 ? 0.4 : 0.26;
   const fadeRef = useRef<{
     glow: THREE.MeshBasicMaterial;
     frame: THREE.MeshStandardMaterial;
@@ -598,8 +722,8 @@ function GameBillboard({
     }
 
     const d = Math.hypot(craftPos.x - slot.x, craftPos.z - slot.z);
-    const shouldLoad = d < LOAD_DISTANCE;
-    const shouldRender = d < RENDER_DISTANCE;
+    const shouldLoad = featured || d < LOAD_DISTANCE;
+    const shouldRender = featured || d < RENDER_DISTANCE;
     if (shouldRender !== visible) setVisible(shouldRender);
     if (shouldLoad && !triedRef.current) {
       triedRef.current = true;
@@ -686,7 +810,8 @@ function GameBillboard({
     };
   }, [posterMat, frameMat, glowMat, statsTex, statsMat, rankTex, rankMat]);
 
-  if (!visible || !tex || !posterMat) return null;
+  if (!visible) return null;
+  if (!featured && (!tex || !posterMat)) return null;
 
   const auraH = slot.roofY + size * 0.5 + 0.2;
   const poleLowTop = digitBottom - 0.12;
@@ -791,12 +916,28 @@ function GameBillboard({
         <mesh renderOrder={5} material={glowMat}>
           <planeGeometry args={[size, size]} />
         </mesh>
-        <mesh position={[0, 0, artZ]} renderOrder={8} material={posterMat}>
-          <planeGeometry args={[size, size]} />
-        </mesh>
-        <mesh position={[0, 0, -artZ]} rotation={[0, Math.PI, 0]} renderOrder={8} material={posterMat}>
-          <planeGeometry args={[size, size]} />
-        </mesh>
+        {posterMat ? (
+          <mesh position={[0, 0, artZ]} renderOrder={8} material={posterMat}>
+            <planeGeometry args={[size, size]} />
+          </mesh>
+        ) : null}
+        {posterMat ? (
+          <mesh position={[0, 0, -artZ]} rotation={[0, Math.PI, 0]} renderOrder={8} material={posterMat}>
+            <planeGeometry args={[size, size]} />
+          </mesh>
+        ) : null}
+        {ribbon ? (
+          <group position={[-(size + framePad) * 0.5 - 0.15, 0, artZ]}>
+            <mesh>
+              <boxGeometry args={[0.42, size * 0.62, 0.16]} />
+              <meshStandardMaterial color="#120c08" emissive={RIBBON_COLOR[ribbon]} emissiveIntensity={1.15} />
+            </mesh>
+            <mesh position={[0, size * 0.24, 0.14]}>
+              <circleGeometry args={[Math.max(0.9, size * 0.14), 22]} />
+              <meshStandardMaterial color="#120c08" emissive={RIBBON_COLOR[ribbon]} emissiveIntensity={1.35} />
+            </mesh>
+          </group>
+        ) : null}
       </group>
 
       {rankMat ? (

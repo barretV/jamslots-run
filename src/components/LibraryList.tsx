@@ -10,6 +10,9 @@ const LibraryChartsModal = lazy(() =>
 const InteractiveCity = lazy(() =>
   import('./city/InteractiveCity').then((m) => ({ default: m.InteractiveCity })),
 );
+const WinnersModal = lazy(() =>
+  import('./WinnersModal').then((m) => ({ default: m.WinnersModal })),
+);
 
 interface LibraryListProps {
   games: JamGame[];
@@ -135,6 +138,7 @@ export function LibraryList({
   const [sortMode, setSortMode] = useState<LibrarySortMode>('title-asc');
   const [chartsOpen, setChartsOpen] = useState(false);
   const [cityOpen, setCityOpen] = useState(false);
+  const [winnersOpen, setWinnersOpen] = useState(false);
   useEffect(() => {
     const id = window.setTimeout(() => setDebouncedQuery(query.trim()), 200);
     return () => window.clearTimeout(id);
@@ -230,6 +234,9 @@ export function LibraryList({
             >
               Charts
             </button>
+            <button type="button" className="library-winners-btn" onClick={() => setWinnersOpen(true)}>
+              Winners
+            </button>
             <button
               type="button"
               className="library-city-btn"
@@ -270,6 +277,19 @@ export function LibraryList({
             open={chartsOpen}
             onClose={() => setChartsOpen(false)}
             filterLabel={debouncedQuery ? `search "${debouncedQuery}"` : sortPhrase}
+          />
+        </Suspense>
+      ) : null}
+      {winnersOpen ? (
+        <Suspense fallback={null}>
+          <WinnersModal
+            games={games}
+            open={winnersOpen}
+            onClose={() => setWinnersOpen(false)}
+            onOpen={(game) => {
+              setWinnersOpen(false);
+              onOpen(game);
+            }}
           />
         </Suspense>
       ) : null}

@@ -32,7 +32,7 @@ export interface SteerTarget {
 interface UfoRigProps {
   inputRef: MutableRefObject<FlightInput>;
   steerRef: MutableRefObject<SteerTarget | null>;
-  mode: 'fly' | 'landing' | 'landed';
+  mode: 'cinematic' | 'fly' | 'landing' | 'landed';
   landTarget: { x: number; z: number; roofY: number } | null;
   landProgress: number;
   spawn: CitySpawn;
@@ -82,6 +82,7 @@ export function UfoRig({
   const flyEnd = useRef(new THREE.Vector3());
   const bobRef = useRef(0);
   const camSnapped = useRef(false);
+  const wasCinematic = useRef(false);
   const sparkCursor = useRef(0);
   const viewFwd = useMemo(() => new THREE.Vector3(), []);
   const viewRight = useMemo(() => new THREE.Vector3(), []);
@@ -218,6 +219,20 @@ export function UfoRig({
     if (!g) return;
 
     const dt = Math.min(delta, 0.05);
+    if (mode === 'cinematic') {
+      g.visible = false;
+      wasCinematic.current = true;
+      return;
+    }
+    if (wasCinematic.current) {
+      wasCinematic.current = false;
+      posRef.current.set(spawn.x, spawn.y, spawn.z);
+      yawRef.current = spawn.yaw;
+      velRef.current.set(0, 0, 0);
+      bankRef.current = 0;
+      camSnapped.current = false;
+    }
+    g.visible = true;
     bobRef.current += dt * 2.1;
     const bob = Math.sin(bobRef.current) * 0.1;
     const cam = state.camera as THREE.PerspectiveCamera;

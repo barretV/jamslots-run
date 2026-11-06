@@ -5,8 +5,10 @@ import * as THREE from 'three';
 import { useLibraryImmersiveOverlay } from '../../lib/useLibraryImmersiveOverlay';
 import { buildCityLayout, computeCitySpawn, type CityBuildingSlot } from '../../lib/citySpiral';
 import type { JamGame } from '../../types';
+import { formatPrizeMoney, OCTOBER_PRIZES } from '../../lib/octoberWinners';
 import { CityScene, type CityFlightMode } from './CityScene';
 import { coverApproachPoint } from './CityBuildings';
+import { pickTourStops, type TourStep } from './CityWinnerTour';
 import { type FlightInput, type SteerTarget } from './UfoRig';
 
 interface InteractiveCityProps {
@@ -32,6 +34,8 @@ export function InteractiveCity({ games, open, onClose, onOpen, filterLabel, isF
   const keysRef = useRef<Record<string, boolean>>({});
 
   const [mode, setMode] = useState<CityFlightMode>('fly');
+  const [celebrating, setCelebrating] = useState(true);
+  const [tourCaption, setTourCaption] = useState('');
   const [nearBuilding, setNearBuilding] = useState<CityBuildingSlot | null>(null);
   const [steerId, setSteerId] = useState<string | null>(null);
   const [favOpen, setFavOpen] = useState(false);
@@ -49,6 +53,10 @@ export function InteractiveCity({ games, open, onClose, onOpen, filterLabel, isF
   const landAnimRef = useRef<number | null>(null);
   const layout = useMemo(() => buildCityLayout(games), [games]);
   const citySpawn = useMemo(() => computeCitySpawn(layout.buildings), [layout]);
+  const tourStops = useMemo(() => pickTourStops(layout.buildings, games), [layout, games]);
+  const showTour = celebrating && tourStops.length > 0;
+  const sceneMode: CityFlightMode = showTour ? 'cinematic' : mode;
+  modeRef.current = sceneMode;
   const favSlots = useMemo(
     () => (isFavorite ? layout.buildings.filter((b) => isFavorite(b.game.gameId)) : []),
     [isFavorite, layout],
@@ -61,8 +69,17 @@ export function InteractiveCity({ games, open, onClose, onOpen, filterLabel, isF
   }, []);
 
   useEffect(() => {
-    if (!open) setFavOpen(false);
+    if (!open) {
+      setFavOpen(false);
+      setCelebrating(true);
+      setTourCaption('');
+    }
   }, [open]);
+
+  const onTourStep = useCallback((step: TourStep) => {
+    const prize = OCTOBER_PRIZES.find((item) => item.id === step.prizeId);
+    setTourCaption(prize ? `${step.title}. ${prize.category}, ${formatPrizeMoney(prize.amount)}` : step.title);
+  }, []);
 
   const startLanding = useCallback((slot: CityBuildingSlot) => {
     steerRef.current = null;
@@ -99,6 +116,11 @@ export function InteractiveCity({ games, open, onClose, onOpen, filterLabel, isF
       landAnimRef.current = null;
     }
   }, []);
+
+  const beginFlight = useCallback(() => {
+    setCelebrating(false);
+    resetFlight();
+  }, [resetFlight]);
 
   const activateLanded = useCallback(() => {
     const game = landTargetRef.current?.game;
@@ -278,11 +300,14 @@ export function InteractiveCity({ games, open, onClose, onOpen, filterLabel, isF
               games={games}
               inputRef={inputRef}
               steerRef={steerRef}
-              mode={mode}
+              mode={sceneMode}
               landTarget={landTarget}
               landProgress={landProgress}
               quality={quality}
               isFavorite={isFavorite}
+              celebrating={showTour}
+              onTourDone={beginFlight}
+              onTourStep={onTourStep}
               onCraftMove={(pos) => {
                 const w = window as typeof window & {
                   __cityCraft?: { x: number; y: number; z: number };
@@ -294,7 +319,9 @@ export function InteractiveCity({ games, open, onClose, onOpen, filterLabel, isF
           </Canvas>
 
           <div className="interactive-city-hud">
-            {mode === 'fly' ? (
+            {showTour ? (
+              <p className="interactive-city-hud__hint">{tourCaption || 'October Jam winners'}</p>
+            ) : mode === 'fly' ? (
               <p className="interactive-city-hud__hint">WASD move · Q down · E up · Shift faster</p>
             ) : mode === 'landed' ? (
               <p className="interactive-city-hud__hint">On the roof. Play or take off.</p>
@@ -332,6 +359,13 @@ export function InteractiveCity({ games, open, onClose, onOpen, filterLabel, isF
             </div>
           ) : null}
 
+          {showTour ? (
+            <button type="button" className="interactive-city-skip" onClick={beginFlight}>
+              Skip
+            </button>
+          ) : null}
+
+          {showTour ? null : (
           <div className="interactive-city-touch" aria-label="Flight controls">
             <button type="button" className="interactive-city-touch__btn" onPointerDown={() => bumpVertical(1)}>
               Up
@@ -349,6 +383,7 @@ export function InteractiveCity({ games, open, onClose, onOpen, filterLabel, isF
               </button>
             ) : null}
           </div>
+          )}
 
           {activeGame ? (
             <div className="interactive-city-landed">

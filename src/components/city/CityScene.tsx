@@ -4,18 +4,21 @@ import { useEffect, useMemo, useRef } from 'react';
 import * as THREE from 'three';
 import { loadGameThumbnail, preloadCityThumbnails } from '../../lib/cityTextureCache';
 import { buildCityLayout, computeCitySpawn, type CityBuildingSlot } from '../../lib/citySpiral';
+import { ribbonByGameId } from '../../lib/octoberWinners';
 import type { JamGame } from '../../types';
 import { CityAirTraffic } from './CityAirTraffic';
-import { CityBuildings, landAnchorY } from './CityBuildings';
+import { CityBuildings, billboardCenterY, landAnchorY } from './CityBuildings';
+import { CityFireworks, type FireworkAnchor } from './CityFireworks';
 import { CityPostFX } from './CityPostFX';
 import { CityRain } from './CityRain';
 import { CityRoad } from './CityRoad';
 import { CitySearchlights } from './CitySearchlights';
 import { CitySky } from './CitySky';
 import { CityTraffic } from './CityTraffic';
+import { CityWinnerTour, pickTourStops, type TourStep } from './CityWinnerTour';
 import { UfoRig, type FlightInput, type SteerTarget } from './UfoRig';
 
-export type CityFlightMode = 'fly' | 'landing' | 'landed';
+export type CityFlightMode = 'cinematic' | 'fly' | 'landing' | 'landed';
 
 interface CitySceneProps {
   games: JamGame[];
@@ -28,6 +31,9 @@ interface CitySceneProps {
   onNearBuilding: (slot: CityBuildingSlot | null) => void;
   quality?: 'low' | 'high';
   isFavorite?: (gameId: string) => boolean;
+  celebrating?: boolean;
+  onTourDone?: () => void;
+  onTourStep?: (step: TourStep) => void;
 }
 
 export function CityScene({
@@ -41,10 +47,26 @@ export function CityScene({
   onNearBuilding,
   quality = 'high',
   isFavorite,
+  celebrating = false,
+  onTourDone,
+  onTourStep,
 }: CitySceneProps) {
   const layout = useMemo(() => buildCityLayout(games), [games]);
   const { buildings, streets } = layout;
   const spawn = useMemo(() => computeCitySpawn(buildings), [buildings]);
+  const ribbons = useMemo(() => ribbonByGameId(games), [games]);
+  const tourStops = useMemo(() => pickTourStops(buildings, games), [buildings, games]);
+  const fireworkAnchors = useMemo(() => {
+    const fromTour: FireworkAnchor[] = tourStops.map((stop) => ({
+      x: stop.slot.x,
+      y: billboardCenterY(stop.slot) + 18,
+      z: stop.slot.z,
+    }));
+    if (fromTour.length > 0) return fromTour;
+    const winners = buildings.filter((b) => ribbons.has(b.game.gameId)).slice(0, 4);
+    if (winners.length === 0) return [{ x: spawn.focusX, y: spawn.focusY + 30, z: spawn.focusZ }];
+    return winners.map((b) => ({ x: b.x, y: billboardCenterY(b) + 16, z: b.z }));
+  }, [buildings, ribbons, spawn.focusX, spawn.focusY, spawn.focusZ, tourStops]);
   const craftPos = useRef(new THREE.Vector3(spawn.x, spawn.y, spawn.z));
 
   useEffect(() => {
@@ -66,13 +88,15 @@ export function CityScene({
   }, [buildings, spawn]);
 
   useEffect(() => {
-    preloadCityThumbnails(
-      buildings
+    const winnerUrls = buildings.filter((b) => ribbons.has(b.game.gameId)).map((b) => b.game.thumbnailUrl);
+    preloadCityThumbnails([
+      ...winnerUrls,
+      ...buildings
         .filter((b) => b.topVotes || b.topToday)
         .slice(0, 70)
         .map((b) => b.game.thumbnailUrl),
-    );
-  }, [buildings]);
+    ]);
+  }, [buildings, ribbons]);
 
   useEffect(() => {
     let alive = true;
@@ -144,12 +168,28 @@ export function CityScene({
         <meshStandardMaterial color="#0a0718" metalness={0.15} roughness={0.92} />
       </mesh>
 
+      <CityFireworks anchors={fireworkAnchors} />
+      <CityWinnerTour
+        stops={tourStops}
+        focusX={spawn.focusX}
+        focusZ={spawn.focusZ}
+        active={celebrating && mode === 'cinematic'}
+        onStep={onTourStep ?? (() => {})}
+        onDone={onTourDone ?? (() => {})}
+      />
+
       <CityRoad streets={streets} />
       <CityTraffic streets={streets} />
       <CityAirTraffic streets={streets} buildings={buildings} />
       <CitySearchlights buildings={buildings} />
       {quality !== 'low' ? <CityRain /> : null}
-      <CityBuildings buildings={buildings} craftPos={craftPos.current} spawn={spawn} isFavorite={isFavorite} />
+      <CityBuildings
+        buildings={buildings}
+        craftPos={craftPos.current}
+        spawn={spawn}
+        isFavorite={isFavorite}
+        ribbons={ribbons}
+      />
       <UfoRig
         inputRef={inputRef}
         steerRef={steerRef}

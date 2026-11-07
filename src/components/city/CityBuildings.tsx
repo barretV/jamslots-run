@@ -211,9 +211,9 @@ function useCityShell(buildings: CityBuildingSlot[]) {
         pushBox(
           stripBatch,
           dummy,
-          b.x + b.width * 0.22,
+          b.x - Math.sin(yaw) * b.width * 0.24,
           b.height + antennaH * 0.5,
-          b.z + b.depth * 0.22,
+          b.z - Math.cos(yaw) * b.depth * 0.24,
           0.28,
           antennaH,
           0.28,
@@ -269,15 +269,20 @@ function useCityShell(buildings: CityBuildingSlot[]) {
       }
 
       if (b.height > 52) {
+        // Side edges only. These used to sit on the world-space +x/+z corners, so on
+        // a tower whose sign faces that way the strip hung in front of the panel and
+        // drew a bright line straight down the cover art.
+        const tx = Math.cos(yaw);
+        const tz = -Math.sin(yaw);
+        const inward = 0.18;
         for (let k = 0; k < 2; k++) {
-          const sx = k === 0 ? 1 : -1;
-          const sz = k === 0 ? 1 : -1;
+          const s = k === 0 ? 1 : -1;
           pushBox(
             stripBatch,
             dummy,
-            b.x + sx * b.width * 0.26,
+            b.x + s * tx * b.width * 0.46 - Math.sin(yaw) * inward,
             b.height * 0.5,
-            b.z + sz * b.depth * 0.26,
+            b.z + s * tz * b.depth * 0.46 - Math.cos(yaw) * inward,
             0.22,
             b.height * 0.985,
             0.22,

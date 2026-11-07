@@ -99,16 +99,16 @@ const NARROW_PROFILES: Record<number, PodiumProfile> = {
   5: { w: 2.25, h: 1.2, d: 1.5, art: 2.4 },
 };
 
-const PLAQUE_ASPECT = 2.4;
+const PLAQUE_ASPECT = 2.05;
 
 /* Ceremony timing. The drop is deliberately long enough to read as a fall and
  * the stagger is wide enough that the impacts travel left-to-right as a wave. */
-const SLAM_START = 0.18;
-const SLAM_STAGGER = 0.26;
-const DROP_SECONDS = 0.66;
-/* Small enough that the fall itself is on camera; a card dropped from far
- * overhead only becomes visible in the last frame or two, which reads as a pop. */
-const DROP_HEIGHT = 3.1;
+/* MashKin-style ceremony beats: each winner is held off-stage, then slams in on
+ * its own cue with a hard drop, a squash, a shockwave and a camera punch. */
+const SLAM_START = 0.5;
+const SLAM_STAGGER = 0.42;
+const DROP_SECONDS = 0.52;
+const DROP_HEIGHT = 7.6;
 
 function specialProfile(narrow: boolean): PodiumProfile {
   return narrow
@@ -289,17 +289,16 @@ function StageCamera({
     const base = basePos.current;
     if (base.lengthSq() === 0) return;
     const state = shake.current;
-    state.strength *= Math.exp(-5.5 * Math.min(delta, 0.05));
-    if (state.strength < 0.003) {
-      camera.position.copy(base);
-      camera.lookAt(aim.current);
-      return;
-    }
-    // Jitter decays from the impact outwards, like a camera taking the hit.
+    const dt = Math.min(delta, 0.05);
+    state.strength *= Math.exp(-5.5 * dt);
+    state.punch *= Math.exp(-3.2 * dt);
+    const jitter = state.strength > 0.003 ? state.strength : 0;
+    // Jitter decays from the impact outwards, like a camera taking the hit, and
+    // the punch dollies the whole stage toward the viewer on each slam.
     camera.position.set(
-      base.x + (Math.random() - 0.5) * state.strength,
-      base.y + (Math.random() - 0.5) * state.strength,
-      base.z + (Math.random() - 0.5) * state.strength * 0.6,
+      base.x + (Math.random() - 0.5) * jitter,
+      base.y + (Math.random() - 0.5) * jitter,
+      base.z - state.punch + (Math.random() - 0.5) * jitter * 0.6,
     );
     camera.lookAt(aim.current);
   });
@@ -465,20 +464,32 @@ function paintInfoPlaque(
 
   const maxWidth = width - pad * 2;
 
+  // Prize moves up beside the category label so the whole bottom of the card is
+  // free for the creator, who is the reason any of this exists.
   ctx.textBaseline = 'alphabetic';
+  const money = formatPrizeMoney(prize.amount);
+  const moneySize = Math.round(width * 0.056);
+  ctx.textAlign = 'right';
+  ctx.font = `900 ${moneySize}px Unbounded, Outfit, system-ui, sans-serif`;
+  const moneyWidth = ctx.measureText(money).width;
+  const topBaseline = Math.round(height * 0.15);
+  ctx.fillStyle = accent;
+  ctx.fillText(money, width - pad, topBaseline);
+
+  const kickerSpace = maxWidth - moneyWidth - Math.round(width * 0.035);
   ctx.textAlign = 'left';
-  let kickerSize = Math.round(width * 0.052);
+  let kickerSize = Math.round(width * 0.05);
   let kickerText = kicker.toUpperCase();
   ctx.font = `800 ${kickerSize}px Outfit, system-ui, sans-serif`;
-  while (kickerSize > Math.round(width * 0.03) && ctx.measureText(kickerText).width > maxWidth) {
+  while (kickerSize > Math.round(width * 0.028) && ctx.measureText(kickerText).width > kickerSpace) {
     kickerSize -= 1;
     ctx.font = `800 ${kickerSize}px Outfit, system-ui, sans-serif`;
   }
-  while (kickerText.length > 8 && ctx.measureText(kickerText).width > maxWidth) {
+  while (kickerText.length > 8 && ctx.measureText(kickerText).width > kickerSpace) {
     kickerText = kickerText.slice(0, -1);
   }
   ctx.fillStyle = accent;
-  ctx.fillText(kickerText, pad, Math.round(height * 0.17));
+  ctx.fillText(kickerText, pad, topBaseline);
   let fontSize = Math.round(width * 0.105);
   let lines: string[] = [];
   while (fontSize >= Math.round(width * 0.06)) {
@@ -509,46 +520,40 @@ function paintInfoPlaque(
     ctx.fillText(line, pad, firstBaseline + index * lineHeight);
   });
 
-  ctx.fillStyle = `${accent}2e`;
-  ctx.fillRect(pad, Math.round(height * 0.79), width - pad * 2, 2);
+  // Credit band across the foot of the card.
+  const bandTop = Math.round(height * 0.755);
+  ctx.fillStyle = `${accent}16`;
+  ctx.fillRect(0, bandTop, width, height - bandTop);
+  ctx.fillStyle = `${accent}40`;
+  ctx.fillRect(0, bandTop, width, 2);
 
-  const footerCenter = Math.round(height * 0.9);
+  const footerCenter = Math.round((bandTop + height) / 2) + Math.round(height * 0.012);
   ctx.textBaseline = 'middle';
+  ctx.textAlign = 'left';
 
-  // Prize on the right.
-  const money = formatPrizeMoney(prize.amount);
-  const moneySize = Math.round(width * 0.074);
-  ctx.textAlign = 'right';
-  ctx.font = `900 ${moneySize}px Unbounded, Outfit, system-ui, sans-serif`;
-  ctx.fillStyle = accent;
-  ctx.fillText(money, width - pad, footerCenter);
-  const moneyWidth = ctx.measureText(money).width;
-
-  // Creator on the left. These are the people who made the thing, so the credit
-  // gets real weight instead of a truncated whisper under the title.
   const author = game?.creatorName ?? prize.creatorName;
   const name = author || 'Creator to be announced';
-  const bySize = Math.round(width * 0.032);
-  const nameSpace = width - pad * 2 - moneyWidth - Math.round(width * 0.055);
-  let nameSize = Math.round(width * 0.052);
+  const bySize = Math.round(width * 0.045);
+  ctx.font = `800 ${bySize}px Outfit, system-ui, sans-serif`;
+  ctx.fillStyle = accent;
+  ctx.fillText('BY', pad, footerCenter);
+  const byWidth = ctx.measureText('BY').width;
+  const nameLeft = pad + byWidth + Math.round(width * 0.02);
+  const nameSpace = width - pad - nameLeft;
+
+  // Full-width credit, sized like a nameplate rather than a footnote.
+  let nameSize = Math.round(width * 0.092);
   let fitted = name;
   ctx.font = `800 ${nameSize}px Outfit, system-ui, sans-serif`;
-  while (nameSize > Math.round(width * 0.034) && ctx.measureText(fitted).width > nameSpace - bySize * 2.4) {
+  while (nameSize > Math.round(width * 0.06) && ctx.measureText(fitted).width > nameSpace) {
     nameSize -= 2;
     ctx.font = `800 ${nameSize}px Outfit, system-ui, sans-serif`;
   }
-  while (fitted.length > 4 && ctx.measureText(fitted).width > nameSpace - bySize * 2.4) {
+  while (fitted.length > 4 && ctx.measureText(fitted).width > nameSpace) {
     fitted = fitted.slice(0, -1);
   }
-
-  ctx.textAlign = 'left';
-  ctx.font = `800 ${bySize}px Outfit, system-ui, sans-serif`;
-  ctx.fillStyle = accent;
-  ctx.fillText('BY', pad, footerCenter + 2);
-  const byWidth = ctx.measureText('BY').width;
-  ctx.font = `800 ${nameSize}px Outfit, system-ui, sans-serif`;
   ctx.fillStyle = '#fff6e2';
-  ctx.fillText(fitted, pad + byWidth + bySize * 0.5, footerCenter + 2);
+  ctx.fillText(fitted, nameLeft, footerCenter);
   ctx.textBaseline = 'alphabetic';
 }
 
@@ -1177,6 +1182,7 @@ function PodiumBase({ slot }: { slot: PodiumSlot }) {
 
 interface StageShake {
   strength: number;
+  punch: number;
 }
 
 function SlamCard({
@@ -1242,25 +1248,28 @@ function SlamCard({
       const progress = Math.min(1, Math.max(0, local / DROP_SECONDS));
       let y = startY;
       if (local >= 0) {
-        // Accelerating fall, then a damped bounce settle once it hits.
-        y = startY + (targetY - startY) * Math.pow(progress, 1.75);
+        // Gravity slam from off-stage, then a bounce and a slow idle float.
+        y = startY + (targetY - startY) * Math.pow(progress, 1.6);
         if (progress >= 1) {
           const since = local - DROP_SECONDS;
-          y = targetY + Math.abs(Math.sin(since * 12)) * 0.26 * Math.exp(-since * 5.5);
+          y = targetY + Math.abs(Math.sin(since * 12)) * 0.3 * Math.exp(-since * 5.5);
+          y += Math.sin(since * 0.9 + place) * 0.018;
         }
       }
       group.position.y = y;
 
-      // Tumble in, then a hard squash on contact that the shake sells.
+      // Stretch on the way down, hard squash on contact, then settle.
       const falling = local >= 0 && progress < 1;
       group.rotation.z = falling ? tilt * (1 - progress) : 0;
       if (!reduced && !landed.current && local >= DROP_SECONDS * 0.97) {
         landed.current = true;
-        shake.current.strength = Math.max(shake.current.strength, place === 1 ? 0.55 : 0.34);
+        shake.current.strength = Math.max(shake.current.strength, place === 1 ? 0.5 : 0.34);
+        shake.current.punch = Math.max(shake.current.punch, place === 1 ? 1.15 : 0.55);
       }
       const sinceLanding = local - DROP_SECONDS;
-      const squash = sinceLanding >= 0 ? Math.exp(-sinceLanding * 7) : 0;
-      group.scale.set(1 + squash * 0.14, 1 - squash * 0.22, 1 + squash * 0.14);
+      const squash = sinceLanding >= 0 ? Math.exp(-sinceLanding * 9) : 0;
+      const stretch = falling ? 0.1 * progress * progress : 0;
+      group.scale.set(1 - squash * 0.16, 1 + stretch - squash * 0.3, 1 - squash * 0.16);
     }
 
     const hover = hoverRef.current;
@@ -1545,6 +1554,113 @@ function ImpactBurst({ slot, reduced, launch }: { slot: PodiumSlot; reduced: boo
   );
 }
 
+/** Dust kicked off the podium lip on impact — soft and heavy, so it reads separate from the sparks. */
+function DustBurst({ slot, reduced, launch }: { slot: PodiumSlot; reduced: boolean; launch: boolean }) {
+  const meshRef = useRef<THREE.InstancedMesh>(null);
+  const startRef = useRef<number | null>(null);
+  const dummy = useMemo(() => new THREE.Object3D(), []);
+  const count = 34;
+  const puffs = useMemo(
+    () =>
+      Array.from({ length: count }, (_, index) => {
+        const angle = (index / count) * Math.PI * 2 + Math.random() * 0.9;
+        const reach = 0.7 + Math.random() * 1.7;
+        return {
+          dx: Math.cos(angle) * reach,
+          dz: Math.sin(angle) * reach,
+          lift: 0.7 + Math.random() * 1.4,
+          size: 0.1 + Math.random() * 0.16,
+        };
+      }),
+    [count],
+  );
+
+  useFrame((state) => {
+    const mesh = meshRef.current;
+    if (!mesh) return;
+    if (!launch || reduced) {
+      mesh.visible = false;
+      startRef.current = null;
+      return;
+    }
+    if (startRef.current === null) startRef.current = state.clock.elapsedTime;
+    const local = state.clock.elapsedTime - startRef.current - slot.delay - DROP_SECONDS * 0.98;
+    if (local < 0 || local > 1.25) {
+      mesh.visible = false;
+      return;
+    }
+    mesh.visible = true;
+    const progress = local / 1.25;
+    puffs.forEach((puff, index) => {
+      dummy.position.set(
+        puff.dx * progress * 1.9,
+        slot.h + 0.1 + puff.lift * progress - 0.9 * progress * progress,
+        puff.dz * progress * 1.9,
+      );
+      dummy.rotation.z = index * 0.9 + progress * 1.6;
+      dummy.scale.setScalar(puff.size * (0.5 + progress * 1.9));
+      dummy.updateMatrix();
+      mesh.setMatrixAt(index, dummy.matrix);
+    });
+    mesh.instanceMatrix.needsUpdate = true;
+    (mesh.material as THREE.MeshBasicMaterial).opacity = 0.3 * (1 - progress);
+  });
+
+  return (
+    <instancedMesh
+      ref={meshRef}
+      args={[undefined as unknown as THREE.BufferGeometry, undefined as unknown as THREE.Material, count]}
+      visible={false}
+      frustumCulled={false}
+      renderOrder={3}
+    >
+      <planeGeometry args={[1, 1]} />
+      <meshBasicMaterial
+        color={slot.tier.faceLight}
+        transparent
+        opacity={0.3}
+        side={THREE.DoubleSide}
+        blending={THREE.AdditiveBlending}
+        depthWrite={false}
+        toneMapped={false}
+      />
+    </instancedMesh>
+  );
+}
+
+/** Stage key light that flares as the card lands, the cheap stand-in for a bloom pop. */
+function PodiumLight({ slot, reduced, launch }: { slot: PodiumSlot; reduced: boolean; launch: boolean }) {
+  const ref = useRef<THREE.PointLight>(null);
+  const startRef = useRef<number | null>(null);
+  const base = slot.place === 1 ? 24 : 15;
+  useFrame((state) => {
+    const light = ref.current;
+    if (!light) return;
+    if (!launch) {
+      startRef.current = null;
+      light.intensity = base;
+      return;
+    }
+    if (startRef.current === null) startRef.current = state.clock.elapsedTime;
+    const local = state.clock.elapsedTime - startRef.current - slot.delay - DROP_SECONDS;
+    if (local < 0) {
+      light.intensity = base * 0.78;
+      return;
+    }
+    light.intensity = base + Math.exp(-local * 5.5) * (slot.place === 1 ? 46 : 30) * (reduced ? 0.3 : 1);
+  });
+  return (
+    <pointLight
+      ref={ref}
+      position={[0, slot.h + 3.4, 3.2]}
+      intensity={base}
+      distance={13}
+      decay={2}
+      color={slot.tier.glow}
+    />
+  );
+}
+
 function Podium({
   slot,
   onOpen,
@@ -1564,13 +1680,8 @@ function Podium({
       <SlamCard slot={slot} onOpen={onOpen} reduced={reduced} launch={launch} shake={shake} />
       <ImpactRing slot={slot} reduced={reduced} launch={launch} />
       <ImpactBurst slot={slot} reduced={reduced} launch={launch} />
-      <pointLight
-        position={[0, slot.h + 3.4, 3.2]}
-        intensity={slot.place === 1 ? 24 : 15}
-        distance={13}
-        decay={2}
-        color={slot.tier.glow}
-      />
+      <DustBurst slot={slot} reduced={reduced} launch={launch} />
+      <PodiumLight slot={slot} reduced={reduced} launch={launch} />
       <pointLight
         position={[0, slot.h * 0.5, slot.d / 2 + 2.4]}
         intensity={5}
@@ -1778,7 +1889,7 @@ export function WinnerStage3D({ rows, onOpen, mode = 'ranked' }: WinnerStage3DPr
   const [launch, setLaunch] = useState(false);
   const [showLoader, setShowLoader] = useState(true);
   const [fading, setFading] = useState(false);
-  const shake = useRef<StageShake>({ strength: 0 });
+  const shake = useRef<StageShake>({ strength: 0, punch: 0 });
 
   useEffect(() => {
     let alive = true;

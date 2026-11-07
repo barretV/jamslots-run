@@ -130,10 +130,108 @@ function pose(
   look.set(slot.x, y + 1, slot.z);
 }
 
+const NO_OBSTACLES: CityBuildingSlot[] = [];
+
+/** True when a tower stands between the camera and the sign it is meant to show. */
+function segmentBlocked(
+  from: THREE.Vector3,
+  to: THREE.Vector3,
+  obstacles: CityBuildingSlot[],
+  skipGameId: string,
+): boolean {
+  const dx = to.x - from.x;
+  const dy = to.y - from.y;
+  const dz = to.z - from.z;
+  const flat = dx * dx + dz * dz;
+  for (const b of obstacles) {
+    if (b.game.gameId === skipGameId) continue;
+    const top = b.roofY + 1.5;
+    if (top < Math.min(from.y, to.y) - 1) continue;
+    const halfW = b.width * 0.5;
+    const halfD = b.depth * 0.5;
+    let t = flat > 0 ? ((b.x - from.x) * dx + (b.z - from.z) * dz) / flat : 0;
+    t = Math.max(0, Math.min(1, t));
+    const gap = Math.hypot(from.x + dx * t - b.x, from.z + dz * t - b.z);
+    if (gap > Math.max(halfW, halfD) + 4) continue;
+    let tmin = 0.02;
+    let tmax = 0.98;
+    const axes: [number, number, number, number][] = [
+      [from.x, dx, b.x - halfW, b.x + halfW],
+      [from.y, dy, 0, top],
+      [from.z, dz, b.z - halfD, b.z + halfD],
+    ];
+    let hit = true;
+    for (const [origin, dir, low, high] of axes) {
+      if (Math.abs(dir) < 1e-6) {
+        if (origin < low || origin > high) {
+          hit = false;
+          break;
+        }
+        continue;
+      }
+      let a = (low - origin) / dir;
+      let c = (high - origin) / dir;
+      if (a > c) {
+        const swap = a;
+        a = c;
+        c = swap;
+      }
+      tmin = Math.max(tmin, a);
+      tmax = Math.min(tmax, c);
+      if (tmin > tmax) {
+        hit = false;
+        break;
+      }
+    }
+    if (hit) return true;
+  }
+  return false;
+}
+
+/**
+ * Honorable mentions sit out in the dense city, where a neighbour can stand squarely
+ * between the camera and the sign. Keep the standard framing when the shot is clear,
+ * and only swing out, rise or pull back when something is in the way.
+ */
+function planHonorPose(
+  slot: CityBuildingSlot,
+  focusX: number,
+  focusZ: number,
+  obstacles: CityBuildingSlot[],
+): { pos: THREE.Vector3; look: THREE.Vector3 } {
+  const y = billboardCenterY(slot);
+  const look = new THREE.Vector3(slot.x, y + 1, slot.z);
+  const outward = Math.atan2(slot.x - focusX, slot.z - focusZ);
+  const dists = [40, 31, 52, 64];
+  const lifts = [26, 34, 44];
+  const offsets = [0, 0.26, -0.26, 0.52, -0.52, 0.82, -0.82];
+  let fallback = new THREE.Vector3(
+    slot.x + Math.sin(outward) * 40,
+    y + 26,
+    slot.z + Math.cos(outward) * 40,
+  );
+  for (const lift of lifts) {
+    for (const dist of dists) {
+      for (const offset of offsets) {
+        const angle = outward + offset;
+        const pos = new THREE.Vector3(
+          slot.x + Math.sin(angle) * dist,
+          y + lift,
+          slot.z + Math.cos(angle) * dist,
+        );
+        if (!segmentBlocked(pos, look, obstacles, slot.game.gameId)) return { pos, look };
+        fallback = pos;
+      }
+    }
+  }
+  return { pos: fallback, look };
+}
+
 /** Moves the camera across the winners, then a fast pass of the honorable mentions. */
 export function CityWinnerTour({
   stops,
   honorStops = [],
+  obstacles = NO_OBSTACLES,
   focusX,
   focusZ,
   active,
@@ -143,6 +241,7 @@ export function CityWinnerTour({
 }: {
   stops: TourStop[];
   honorStops?: HonorStop[];
+  obstacles?: CityBuildingSlot[];
   focusX: number;
   focusZ: number;
   active: boolean;
@@ -166,6 +265,30 @@ export function CityWinnerTour({
   const lookB = useRef(new THREE.Vector3());
   const look = useRef(new THREE.Vector3());
   const wide = useRef(new THREE.Vector3());
+  const honorPlans = useMemo(() => {
+    const plans = new Map<string, { pos: THREE.Vector3; look: THREE.Vector3 }>();
+    for (const stop of honorStops) {
+      plans.set(stop.slot.game.gameId, planHonorPose(stop.slot, focusX, focusZ, obstacles));
+    }
+    return plans;
+  }, [honorStops, focusX, focusZ, obstacles]);
+  const place = (
+    slot: CityBuildingSlot,
+    kind: 'winner' | 'honor',
+    dolly: number,
+    pos: THREE.Vector3,
+    look: THREE.Vector3,
+  ) => {
+    if (kind === 'honor') {
+      const plan = honorPlans.get(slot.game.gameId);
+      if (plan) {
+        look.copy(plan.look);
+        pos.copy(plan.pos).lerp(plan.look, dolly * 0.05);
+        return;
+      }
+    }
+    pose(slot, focusX, focusZ, dolly, pos, look);
+  };
   const segments = useMemo(() => buildSegments(stops, honorStops), [stops, honorStops]);
   const segmentsRef = useRef(segments);
   segmentsRef.current = segments;
@@ -270,8 +393,8 @@ export function CityWinnerTour({
     const mix = Math.min(1, Math.max(0, (local - seg.dwell) / blendLen));
     const eased = mix * mix * (3 - 2 * mix);
     const dolly = Math.min(1, local / seg.dwell);
-    pose(seg.slot, focusX, focusZ, dolly, posA.current, lookA.current);
-    pose(next.slot, focusX, focusZ, 0, posB.current, lookB.current);
+    place(seg.slot, seg.kind, dolly, posA.current, lookA.current);
+    place(next.slot, next.kind, 0, posB.current, lookB.current);
     cam.position.lerpVectors(posA.current, posB.current, eased);
     look.current.lerpVectors(lookA.current, lookB.current, eased);
     cam.lookAt(look.current);

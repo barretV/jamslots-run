@@ -217,6 +217,7 @@ export function CityScene({
       <CityWinnerTour
         stops={tourStops}
         honorStops={honorStops}
+        obstacles={buildings}
         focusX={spawn.focusX}
         focusZ={spawn.focusZ}
         active={celebrating && mode === 'cinematic'}

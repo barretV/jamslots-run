@@ -86,8 +86,8 @@ const HONOR_TIER: TierPalette = {
 
 /** Five games slam down per wave, then the stage holds them before the next five. */
 const HONOR_WAVE_SIZE = 5;
-/** Slam is ~1.4s end to end, so this leaves roughly two seconds of hold. */
-const HONOR_WAVE_MS = 3500;
+/** Slam is ~1.4s end to end, so this leaves a four-second hold on each wave. */
+const HONOR_WAVE_MS = 5400;
 
 interface PodiumProfile {
   w: number;

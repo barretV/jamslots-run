@@ -68,7 +68,9 @@ function loadWithLoader(url: string): Promise<THREE.Texture> {
           resolve(squareCropTexture(tex));
         },
         undefined,
-        () => tryNext(),
+        // A burst of poster requests can starve the image queue and fail outright,
+        // so give each fallback attempt a beat to breathe before retrying.
+        () => window.setTimeout(tryNext, 220),
       );
     };
     tryNext();

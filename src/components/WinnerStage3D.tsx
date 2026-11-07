@@ -835,15 +835,25 @@ function usePosterTexture(url: string | undefined): THREE.Texture | null {
       return;
     }
     let alive = true;
-    loadGameThumbnail(url)
-      .then((next) => {
-        if (alive) setTexture(next);
-      })
-      .catch(() => {
-        if (alive) setTexture(null);
-      });
+    let timer = 0;
+    let attempt = 0;
+    const load = () => {
+      loadGameThumbnail(url)
+        .then((next) => {
+          if (alive) setTexture(next);
+        })
+        .catch(() => {
+          // The jam grid fires thousands of poster requests at once, which can make
+          // a thumbnail fail outright. Back off and retry until the queue drains.
+          if (!alive || attempt >= 7) return;
+          attempt += 1;
+          timer = window.setTimeout(load, Math.min(9000, 700 * 1.9 ** (attempt - 1)));
+        });
+    };
+    load();
     return () => {
       alive = false;
+      window.clearTimeout(timer);
     };
   }, [url]);
   return texture;

@@ -7,7 +7,7 @@ import { loadGameThumbnail } from '../lib/cityTextureCache';
 import { formatPrizeMoney, type ResolvedPrize, type SpecialKind } from '../lib/octoberWinners';
 import type { JamGame } from '../types';
 
-type StageMode = 'ranked' | 'special' | 'story';
+type StageMode = 'ranked' | 'special' | 'story' | 'honor';
 
 interface WinnerStage3DProps {
   rows: ResolvedPrize[];
@@ -72,6 +72,22 @@ const TIERS: Record<'gold' | 'silver' | 'bronze' | 'place' | 'special', TierPale
     label: 'Special pick',
   },
 };
+
+/** Honorable mentions are not ranked, so they get their own violet stage. */
+const HONOR_TIER: TierPalette = {
+  face: '#a78bfa',
+  faceLight: '#ede9fe',
+  faceDeep: '#5b21b6',
+  ink: '#1e1035',
+  body: '#241a3a',
+  glow: '#c4b5fd',
+  label: 'Honorable mention',
+};
+
+/** Five games slam down per wave, then the stage holds them before the next five. */
+const HONOR_WAVE_SIZE = 5;
+/** Slam is ~1.4s end to end, so this leaves roughly two seconds of hold. */
+const HONOR_WAVE_MS = 3500;
 
 interface PodiumProfile {
   w: number;
@@ -182,6 +198,7 @@ function ordinal(place: number): string {
 }
 
 function tierFor(place: number, mode: StageMode): TierPalette {
+  if (mode === 'honor') return HONOR_TIER;
   if (mode === 'special') return TIERS.special;
   if (place === 1) return TIERS.gold;
   if (place === 2) return TIERS.silver;
@@ -238,15 +255,22 @@ function buildSlots(rows: ResolvedPrize[], narrow: boolean, mode: StageMode): Po
     const cardBase = profile.h + 0.78;
     const cardTop = cardBase + profile.art + plaqueH + 0.16;
     const kicker =
-      mode === 'special'
-        ? `Special category · ${row.prize.category}`
-        : `${ordinal(place)} place · ${row.prize.category}`;
+      mode === 'honor'
+        ? 'Honorable mention'
+        : mode === 'special'
+          ? `Special category · ${row.prize.category}`
+          : `${ordinal(place)} place · ${row.prize.category}`;
     return {
       row,
       place,
       mode,
       kicker,
-      label: mode === 'special' ? row.prize.category.toUpperCase() : tierFor(place, mode).label,
+      label:
+        mode === 'honor'
+          ? 'HONORABLE MENTION'
+          : mode === 'special'
+            ? row.prize.category.toUpperCase()
+            : tierFor(place, mode).label,
       tier: tierFor(place, mode),
       x: position.x,
       z: position.z,
@@ -503,14 +527,15 @@ function paintInfoPlaque(
   // Prize moves up beside the category label so the whole bottom of the card is
   // free for the creator, who is the reason any of this exists.
   ctx.textBaseline = 'alphabetic';
-  const money = formatPrizeMoney(prize.amount);
+  // Honorable mentions win no money: skip the figure instead of printing $0.
+  const money = prize.amount > 0 ? formatPrizeMoney(prize.amount) : '';
   const moneySize = Math.round(width * 0.056);
   ctx.textAlign = 'right';
   ctx.font = `900 ${moneySize}px Unbounded, Outfit, system-ui, sans-serif`;
   const moneyWidth = ctx.measureText(money).width;
   const topBaseline = Math.round(height * 0.15);
   ctx.fillStyle = accent;
-  ctx.fillText(money, width - pad, topBaseline);
+  if (money) ctx.fillText(money, width - pad, topBaseline);
 
   const kickerSpace = maxWidth - moneyWidth - Math.round(width * 0.035);
   ctx.textAlign = 'left';
@@ -871,7 +896,13 @@ function paintStoryCover(
   ctx.font = `800 ${Math.round(width * 0.034)}px Outfit, system-ui, sans-serif`;
   ctx.fillStyle = tier.glow;
   const eyebrow =
-    mode === 'story' ? 'STORY & VIDEO' : mode === 'special' ? 'SPECIAL CATEGORY' : prize.category.toUpperCase();
+    mode === 'honor'
+      ? 'HONORABLE MENTION'
+      : mode === 'story'
+        ? 'STORY & VIDEO'
+        : mode === 'special'
+          ? 'SPECIAL CATEGORY'
+          : prize.category.toUpperCase();
   ctx.fillText(eyebrow, pad, pad + 18);
 
   const badgeX = width - pad - width * 0.06;
@@ -886,7 +917,7 @@ function paintStoryCover(
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
   ctx.fillStyle = tier.ink;
-  if (mode === 'special') {
+  if (mode === 'special' || mode === 'honor') {
     const outer = width * 0.032;
     const inner = width * 0.014;
     ctx.beginPath();
@@ -1478,7 +1509,9 @@ function SlamCard({
           </mesh>
         </group>
 
-        {slot.mode !== 'special' && place === 1 ? <Crown art={art} cardTop={art + plaqueH + 0.16} /> : null}
+        {slot.mode !== 'special' && slot.mode !== 'honor' && place === 1 ? (
+          <Crown art={art} cardTop={art + plaqueH + 0.16} />
+        ) : null}
       </group>
     </group>
   );
@@ -2237,17 +2270,38 @@ const LOADER_FADE_MS = 700;
  * network from trapping the screen behind the loader.
  */
 export function WinnerStage3D({ rows, onOpen, mode = 'ranked' }: WinnerStage3DProps) {
+  // Honorable mentions cycle: the whole list arrives once and the stage plays it in
+  // waves of five, looping back to the first wave after the last.
+  const waves = useMemo(() => {
+    if (mode !== 'honor') return [rows];
+    const out: ResolvedPrize[][] = [];
+    for (let i = 0; i < rows.length; i += HONOR_WAVE_SIZE) out.push(rows.slice(i, i + HONOR_WAVE_SIZE));
+    return out.length > 0 ? out : [rows];
+  }, [mode, rows]);
+  const [waveIndex, setWaveIndex] = useState(0);
+  const waveRows = waves[Math.min(waveIndex, waves.length - 1)] ?? rows;
+
+  useEffect(() => {
+    if (mode !== 'honor' || waves.length < 2) return;
+    const id = window.setInterval(() => {
+      // New cards mount on a zeroed clock, so every wave drops from above again.
+      ceremonyClock.current = 0;
+      setWaveIndex((current) => (current + 1) % waves.length);
+    }, HONOR_WAVE_MS);
+    return () => window.clearInterval(id);
+  }, [mode, waves.length]);
+
   const ranked = useMemo(
-    () => [...rows].sort((a, b) => (a.prize.place ?? 99) - (b.prize.place ?? 99)),
-    [rows],
+    () => [...waveRows].sort((a, b) => (a.prize.place ?? 99) - (b.prize.place ?? 99)),
+    [waveRows],
   );
   const covers = useMemo(
     () => ranked.map(coverUrl).filter((url): url is string => Boolean(url)),
     [ranked],
   );
   const [progress, setProgress] = useState(0);
-  const [launch, setLaunch] = useState(false);
-  const [showLoader, setShowLoader] = useState(true);
+  const [launch, setLaunch] = useState(mode === 'honor');
+  const [showLoader, setShowLoader] = useState(mode !== 'honor');
   const [fading, setFading] = useState(false);
   const shake = useRef<StageShake>({ strength: 0, punch: 0 });
   const flashRef = useRef<HTMLDivElement>(null);
@@ -2260,6 +2314,14 @@ export function WinnerStage3D({ rows, onOpen, mode = 'ranked' }: WinnerStage3DPr
   }, []);
 
   useEffect(() => {
+    // Every wave swaps the covers, and re-running the curtain for each wave would
+    // turn a continuous show into five separate ceremonies.
+    if (mode === 'honor') {
+      setShowLoader(false);
+      setFading(false);
+      setLaunch(true);
+      return;
+    }
     let alive = true;
     let startTimer = 0;
     let hideTimer = 0;
@@ -2321,7 +2383,7 @@ export function WinnerStage3D({ rows, onOpen, mode = 'ranked' }: WinnerStage3DPr
       window.clearTimeout(hideTimer);
       window.clearTimeout(maxTimer);
     };
-  }, [covers]);
+  }, [covers, mode]);
 
   const percent = Math.round(Math.min(1, Math.max(0.08, progress)) * 100);
   const playable = useMemo(() => ranked.filter((row) => Boolean(row.game)), [ranked]);

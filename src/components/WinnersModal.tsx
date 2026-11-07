@@ -7,19 +7,21 @@ import {
   type WinnerSection,
 } from '../lib/octoberWinners';
 import { useLibraryImmersiveOverlay } from '../lib/useLibraryImmersiveOverlay';
+import { HONORABLE_MENTIONS } from '../data/honorableMentions';
 import type { JamGame } from '../types';
 
 const WinnerStage3D = lazy(() =>
   import('./WinnerStage3D').then((module) => ({ default: module.WinnerStage3D })),
 );
 
-type WinnerTab = WinnerSection;
+type WinnerTab = WinnerSection | 'honor';
 
 const TABS: { id: WinnerTab; label: string }[] = [
   { id: 'editors', label: "Editor's Picks" },
   { id: 'special', label: 'Special Categories' },
   { id: 'votes', label: 'Game Votes' },
   { id: 'story', label: 'Story and Video' },
+  { id: 'honor', label: 'Honorable Mentions' },
 ];
 
 interface WinnersModalProps {
@@ -36,6 +38,7 @@ function rowById(rows: ResolvedPrize[], id: string): ResolvedPrize {
 }
 
 function heading(id: WinnerTab): string {
+  if (id === 'honor') return 'Monster Mash Honorable Mentions';
   return OCTOBER_SECTIONS.find((section) => section.id === id)?.heading ?? id;
 }
 
@@ -61,6 +64,22 @@ export function WinnersModal({ games, open, onClose, onOpen }: WinnersModalProps
   const closeRef = useRef<HTMLButtonElement>(null);
   const [tab, setTab] = useState<WinnerTab>('editors');
   const resolved = useMemo(() => resolveOctoberPrizes(games), [games]);
+  // Honorable mentions carry no prize, so the stage rows are built straight from the
+  // run.world row. One entry is not a jam game; it still gets a card, without a cover.
+  const honorRows = useMemo<ResolvedPrize[]>(() => {
+    const byId = new Map(games.map((game) => [game.gameId, game]));
+    return HONORABLE_MENTIONS.map((mention) => ({
+      prize: {
+        id: `honor-${mention.gameId}`,
+        section: 'editors',
+        metal: 'place',
+        category: 'Honorable Mention',
+        title: mention.title,
+        amount: 0,
+      },
+      game: byId.get(mention.gameId) ?? null,
+    }));
+  }, [games]);
 
   useLibraryImmersiveOverlay(open);
 
@@ -100,8 +119,8 @@ export function WinnersModal({ games, open, onClose, onOpen }: WinnersModalProps
     rowById(resolved, 'story-3'),
   ];
 
-  const stageMode: 'ranked' | 'special' | 'story' =
-    tab === 'special' ? 'special' : tab === 'story' ? 'story' : 'ranked';
+  const stageMode: 'ranked' | 'special' | 'story' | 'honor' =
+    tab === 'honor' ? 'honor' : tab === 'special' ? 'special' : tab === 'story' ? 'story' : 'ranked';
   const stageRows =
     tab === 'editors'
       ? editorRows
@@ -109,7 +128,9 @@ export function WinnersModal({ games, open, onClose, onOpen }: WinnersModalProps
         ? voteRows
         : tab === 'special'
           ? specialRows
-          : storyRows;
+          : tab === 'honor'
+            ? honorRows
+            : storyRows;
 
   return createPortal(
     <div className="winners-modal">

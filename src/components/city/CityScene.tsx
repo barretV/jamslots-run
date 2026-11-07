@@ -10,6 +10,7 @@ import { CityAirTraffic } from './CityAirTraffic';
 import { CityBuildings, billboardCenterY, landAnchorY } from './CityBuildings';
 import { CityFireworks } from './CityFireworks';
 import { CityPostFX } from './CityPostFX';
+import { CityLife } from './CityLife';
 import { CityRain } from './CityRain';
 import { CityRoad } from './CityRoad';
 import { CitySearchlights } from './CitySearchlights';
@@ -34,6 +35,7 @@ interface CitySceneProps {
   celebrating?: boolean;
   onTourDone?: () => void;
   onTourStep?: (step: TourStep) => void;
+  onIntro?: () => void;
 }
 
 export function CityScene({
@@ -50,6 +52,7 @@ export function CityScene({
   celebrating = false,
   onTourDone,
   onTourStep,
+  onIntro,
 }: CitySceneProps) {
   const layout = useMemo(() => buildCityLayout(games), [games]);
   const { buildings, streets } = layout;
@@ -177,6 +180,7 @@ export function CityScene({
         active={celebrating && mode === 'cinematic'}
         onStep={onTourStep ?? (() => {})}
         onDone={onTourDone ?? (() => {})}
+        onIntro={onIntro}
       />
 
       <CityRoad streets={streets} />
@@ -184,6 +188,7 @@ export function CityScene({
       <CityAirTraffic streets={streets} buildings={buildings} />
       <CitySearchlights buildings={buildings.filter((b) => !ribbons.has(b.game.gameId))} />
       {quality !== 'low' ? <CityRain /> : null}
+      <CityLife buildings={buildings} />
       <CityBuildings
         buildings={buildings}
         craftPos={craftPos.current}

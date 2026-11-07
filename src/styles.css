@@ -3934,3 +3934,51 @@ body.library-immersive-open {
   transform: translateX(-50%) scale(0.95);
 }
 
+
+/* Opening title card for the city's establishing shot. */
+.interactive-city-intro {
+  position: absolute;
+  left: 50%;
+  bottom: 15%;
+  z-index: 5;
+  text-align: center;
+  pointer-events: none;
+  transform: translateX(-50%);
+  animation: city-intro-in 2.6s ease-out forwards;
+}
+
+.interactive-city-intro__kicker {
+  margin: 0;
+  font: 800 11px/1 Outfit, system-ui, sans-serif;
+  letter-spacing: 0.34em;
+  text-transform: uppercase;
+  color: #ffd76a;
+}
+
+.interactive-city-intro__title {
+  margin: 10px 0 6px;
+  font: 900 clamp(30px, 5vw, 56px)/1 Unbounded, Outfit, system-ui, sans-serif;
+  letter-spacing: -0.02em;
+  color: #fff8e8;
+  text-shadow: 0 0 26px rgba(255, 215, 106, 0.55), 0 0 60px rgba(168, 85, 247, 0.45);
+}
+
+.interactive-city-intro__sub {
+  margin: 0;
+  font: 700 13px/1.4 Outfit, system-ui, sans-serif;
+  letter-spacing: 0.06em;
+  color: rgba(255, 248, 232, 0.78);
+}
+
+@keyframes city-intro-in {
+  0% { opacity: 0; transform: translate(-50%, 18px) scale(0.94); }
+  14% { opacity: 1; transform: translate(-50%, 0) scale(1); }
+  76% { opacity: 1; }
+  100% { opacity: 0; transform: translate(-50%, -10px) scale(1.01); }
+}
+
+/* Sits on the canvas layer, not inside the HUD stack. */
+.interactive-city-intro {
+  top: 34%;
+  bottom: auto;
+}

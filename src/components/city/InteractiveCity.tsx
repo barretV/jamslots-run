@@ -36,6 +36,7 @@ export function InteractiveCity({ games, open, onClose, onOpen, filterLabel, isF
   const [mode, setMode] = useState<CityFlightMode>('fly');
   const [celebrating, setCelebrating] = useState(true);
   const [tourCard, setTourCard] = useState<{ title: string; prize: string; amount: string } | null>(null);
+  const [introCard, setIntroCard] = useState(true);
   const [nearBuilding, setNearBuilding] = useState<CityBuildingSlot | null>(null);
   const [steerId, setSteerId] = useState<string | null>(null);
   const [favOpen, setFavOpen] = useState(false);
@@ -73,8 +74,14 @@ export function InteractiveCity({ games, open, onClose, onOpen, filterLabel, isF
       setFavOpen(false);
       setCelebrating(true);
       setTourCard(null);
+      setIntroCard(true);
     }
   }, [open]);
+
+  const onIntro = useCallback(() => {
+    setIntroCard(true);
+    window.setTimeout(() => setIntroCard(false), 2600);
+  }, []);
 
   const onTourStep = useCallback((step: TourStep) => {
     const prize = OCTOBER_PRIZES.find((item) => item.id === step.prizeId);
@@ -311,6 +318,7 @@ export function InteractiveCity({ games, open, onClose, onOpen, filterLabel, isF
               isFavorite={isFavorite}
               celebrating={showTour}
               onTourDone={beginFlight}
+              onIntro={onIntro}
               onTourStep={onTourStep}
               onCraftMove={(pos) => {
                 const w = window as typeof window & {
@@ -340,6 +348,14 @@ export function InteractiveCity({ games, open, onClose, onOpen, filterLabel, isF
               <p className="interactive-city-hud__land-prompt">Press Space to land on {nearBuilding?.game.title}</p>
             ) : null}
           </div>
+
+          {showTour && introCard ? (
+            <div className="interactive-city-intro">
+              <p className="interactive-city-intro__kicker">October Jam · Hall of Fame</p>
+              <p className="interactive-city-intro__title">Winners City</p>
+              <p className="interactive-city-intro__sub">Every game in the jam, lit up downtown</p>
+            </div>
+          ) : null}
 
           {favOpen ? (
             <div className="interactive-city-favs">

@@ -1317,8 +1317,8 @@ function SlamCard({
     // shorter, gentler drop. Pinning them straight into place made the whole wave
     // appear at once for anyone whose OS animation setting is off.
     const calm = reduced;
-    const dropSeconds = calm ? 0.5 : DROP_SECONDS;
-    const fromY = cardBase + (calm ? 1.4 : DROP_HEIGHT);
+    const dropSeconds = calm ? 0.7 : DROP_SECONDS;
+    const fromY = cardBase + (calm ? 2.8 : DROP_HEIGHT);
     {
       const local = elapsed - clockStart.current - slot.delay;
       // Hold the card out of the scene until its own beat. Showing the whole
@@ -1359,7 +1359,7 @@ function SlamCard({
       // A card is almost as tall as the camera frame, so pure vertical travel just
       // reads as a slow drift. Starting smaller and scaling up sells depth: the
       // card falls towards the viewer instead of sliding down a wall.
-      const grow = calm ? 1 : 0.6 + 0.4 * ease;
+      const grow = calm ? 0.9 + 0.1 * ease : 0.6 + 0.4 * ease;
       group.scale.set(
         grow * (1 - squash * 0.16),
         grow * (1 + stretch - squash * 0.32),

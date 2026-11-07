@@ -1313,56 +1313,53 @@ function SlamCard({
 
     if (clockStart.current === null) clockStart.current = elapsed;
 
-    if (reduced) {
-      group.visible = true;
-      group.position.y = targetY;
-      group.scale.set(1, 1, 1);
-      group.rotation.z = 0;
-    } else {
+    // Reduced motion keeps the ceremony: the cards still arrive one at a time on a
+    // shorter, gentler drop. Pinning them straight into place made the whole wave
+    // appear at once for anyone whose OS animation setting is off.
+    const calm = reduced;
+    const dropSeconds = calm ? 0.5 : DROP_SECONDS;
+    const fromY = cardBase + (calm ? 1.4 : DROP_HEIGHT);
+    {
       const local = elapsed - clockStart.current - slot.delay;
       // Hold the card out of the scene until its own beat. Showing the whole
       // queue waiting above the podiums is what made the wave read as one
       // simultaneous drop instead of five separate slams.
       if (local < 0) {
         group.visible = false;
-        group.position.y = startY;
+        group.position.y = fromY;
         return;
       }
       group.visible = true;
-      const progress = Math.min(1, Math.max(0, local / DROP_SECONDS));
-      let y = startY;
-      if (local >= 0) {
-        // Gravity slam from off-stage, then a bounce and a slow idle float.
-        // MashKin's landing curve: the card comes down fast off the top mark and
-        // floats to a stop, then bounces once. Accelerating into the podium pushed
-        // almost all of the travel into the last frames above the frame edge, which
-        // is what made it look like a teleport.
-        const ease = 1 - Math.pow(1 - progress, DROP_EASE);
-        y = startY + (targetY - startY) * ease;
-        if (progress >= 1) {
-          const since = local - DROP_SECONDS;
-          y = targetY + Math.abs(Math.sin(since * 6.2)) * 0.2 * Math.exp(-since * 4.4);
-          y += Math.sin(since * 0.9 + place) * 0.018;
-        }
+      const progress = Math.min(1, Math.max(0, local / dropSeconds));
+      // MashKin's landing curve: the card comes down fast off the top mark and
+      // floats to a stop, then bounces once. Accelerating into the podium pushed
+      // almost all of the travel into the last frames above the frame edge, which
+      // is what made it look like a teleport.
+      const ease = 1 - Math.pow(1 - progress, DROP_EASE);
+      let y = fromY + (targetY - fromY) * ease;
+      if (progress >= 1) {
+        const since = local - dropSeconds;
+        y = targetY + Math.abs(Math.sin(since * 6.2)) * (calm ? 0.05 : 0.2) * Math.exp(-since * 4.4);
+        if (!calm) y += Math.sin(since * 0.9 + place) * 0.018;
       }
       group.position.y = y;
 
       // Stretch on the way down, hard squash on contact, then settle.
-      const falling = local >= 0 && progress < 1;
-      group.rotation.z = falling ? tilt * (1 - progress) : 0;
-      if (!reduced && !landed.current && local >= DROP_SECONDS * 0.97) {
+      const falling = progress < 1;
+      group.rotation.z = calm ? 0 : falling ? tilt * (1 - progress) : 0;
+      if (!calm && !landed.current && local >= dropSeconds * 0.97) {
         landed.current = true;
         shake.current.strength = Math.max(shake.current.strength, place === 1 ? 0.72 : 0.48);
         shake.current.punch = Math.max(shake.current.punch, place === 1 ? 1.7 : 0.85);
-        if (!reduced) onImpact();
+        onImpact();
       }
-      const sinceLanding = local - DROP_SECONDS;
-      const squash = sinceLanding >= 0 ? Math.exp(-sinceLanding * 9) : 0;
-      const stretch = falling ? 0.14 * progress * progress : 0;
+      const sinceLanding = local - dropSeconds;
+      const squash = !calm && sinceLanding >= 0 ? Math.exp(-sinceLanding * 9) : 0;
+      const stretch = !calm && falling ? 0.14 * progress * progress : 0;
       // A card is almost as tall as the camera frame, so pure vertical travel just
       // reads as a slow drift. Starting smaller and scaling up sells depth: the
       // card falls towards the viewer instead of sliding down a wall.
-      const grow = 0.6 + 0.4 * (1 - Math.pow(1 - progress, DROP_EASE));
+      const grow = calm ? 1 : 0.6 + 0.4 * ease;
       group.scale.set(
         grow * (1 - squash * 0.16),
         grow * (1 + stretch - squash * 0.32),

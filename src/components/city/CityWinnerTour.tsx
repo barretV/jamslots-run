@@ -119,9 +119,24 @@ export function CityWinnerTour({
       const e = k * k * (3 - 2 * k);
       const first = stops[0];
       pose(first.slot, focusX, focusZ, 0, posB.current, lookB.current);
-      wide.current.set(focusX + 250, 250, focusZ + 250);
-      cam.position.lerpVectors(wide.current, posB.current, e);
-      look.current.set(focusX, 34, focusZ).lerp(lookB.current, e);
+      wide.current.set(focusX + 250, 270, focusZ + 250);
+      // Arc down over the roofline. A straight lerp from the aerial to the stop
+      // slices through the towers standing between them.
+      const outward = Math.atan2(first.slot.x - focusX, first.slot.z - focusZ);
+      posA.current.set(
+        posB.current.x + Math.sin(outward) * 85,
+        posB.current.y + 120,
+        posB.current.z + Math.cos(outward) * 85,
+      );
+      const w = (1 - e) * (1 - e);
+      const m = 2 * (1 - e) * e;
+      const n = e * e;
+      cam.position.set(
+        wide.current.x * w + posA.current.x * m + posB.current.x * n,
+        wide.current.y * w + posA.current.y * m + posB.current.y * n,
+        wide.current.z * w + posA.current.z * m + posB.current.z * n,
+      );
+      look.current.set(focusX, 34, focusZ).lerp(lookB.current, e * e);
       cam.lookAt(look.current);
       cam.fov = 66 - 16 * e;
       cam.updateProjectionMatrix();

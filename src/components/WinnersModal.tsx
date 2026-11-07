@@ -1,16 +1,21 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { lazy, Suspense, useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import {
-  formatPrizeMoney,
   OCTOBER_SECTIONS,
   resolveOctoberPrizes,
   type ResolvedPrize,
+  type WinnerSection,
 } from '../lib/octoberWinners';
 import { useLibraryImmersiveOverlay } from '../lib/useLibraryImmersiveOverlay';
 import type { JamGame } from '../types';
-import { AwardsStage } from './AwardsStage';
+import { FitStage, SpecialScene, StoryScene, type SpecialItem } from './AwardsStage';
+import { WinnersConfetti } from './WinnersConfetti';
 
-type WinnerTab = 'editors' | 'special' | 'votes' | 'story';
+const WinnerStage3D = lazy(() =>
+  import('./WinnerStage3D').then((module) => ({ default: module.WinnerStage3D })),
+);
+
+type WinnerTab = WinnerSection;
 
 const TABS: { id: WinnerTab; label: string }[] = [
   { id: 'editors', label: "Editor's Picks" },
@@ -32,168 +37,25 @@ function rowById(rows: ResolvedPrize[], id: string): ResolvedPrize {
   return row;
 }
 
-function heading(id: string): string {
+function heading(id: WinnerTab): string {
   return OCTOBER_SECTIONS.find((section) => section.id === id)?.heading ?? id;
 }
 
-function Poster({
-  game,
-  onOpen,
-}: {
-  game: JamGame;
-  onOpen: (game: JamGame) => void;
-}) {
+function TrophyCrest() {
   return (
-    <button type="button" className="stage-poster" onClick={() => onOpen(game)} aria-label={`Play ${game.title}`}>
-      {game.thumbnailUrl ? (
-        <img src={game.thumbnailUrl} alt="" referrerPolicy="strict-origin-when-cross-origin" />
-      ) : null}
-    </button>
-  );
-}
-
-function Medal({ metal, mark }: { metal: string; mark: string }) {
-  return (
-    <div className={`stage-medal stage-medal--${metal}`} aria-hidden="true">
-      <span className="stage-medal__ribbon" />
-      <span className="stage-medal__disc">{mark}</span>
-    </div>
-  );
-}
-
-function PodiumSpot({
-  row,
-  onOpen,
-  tier,
-}: {
-  row: ResolvedPrize;
-  onOpen: (game: JamGame) => void;
-  tier: 'gold' | 'silver' | 'bronze';
-}) {
-  const { prize, game } = row;
-  return (
-    <article className={`podium-spot podium-spot--${tier}`}>
-      {game ? <Poster game={game} onOpen={onOpen} /> : null}
-      <div className="podium-spot__copy">
-        <h3 className="podium-spot__title">{prize.title}</h3>
-        {game?.creatorName ? <p className="podium-spot__creator">{game.creatorName}</p> : null}
-        <p className="podium-spot__amount">{formatPrizeMoney(prize.amount)}</p>
-      </div>
-    </article>
-  );
-}
-
-function Finalist({ row, onOpen }: { row: ResolvedPrize; onOpen: (game: JamGame) => void }) {
-  const { prize, game } = row;
-  return (
-    <article className="finalist">
-      <Medal metal="place" mark={String(prize.place ?? '')} />
-      {game ? <Poster game={game} onOpen={onOpen} /> : null}
-      <h3 className="finalist__title">{prize.title}</h3>
-      {game?.creatorName ? <p className="finalist__creator">{game.creatorName}</p> : null}
-      <p className="finalist__amount">{formatPrizeMoney(prize.amount)}</p>
-    </article>
-  );
-}
-
-function Icon({ kind }: { kind: 'sticky' | 'money' | 'social' | 'theme' }) {
-  const common = { fill: 'none', stroke: 'currentColor', strokeWidth: 2.2, strokeLinecap: 'round' as const, strokeLinejoin: 'round' as const };
-  if (kind === 'sticky') {
-    return (
-      <svg viewBox="0 0 48 48" aria-hidden="true">
-        <path {...common} d="M24 6l4 10 10 1-8 7 2 11-8-6-8 6 2-11-8-7 10-1z" />
-        <path {...common} d="M24 34v8" />
-      </svg>
-    );
-  }
-  if (kind === 'money') {
-    return (
-      <svg viewBox="0 0 48 48" aria-hidden="true">
-        <circle {...common} cx="24" cy="24" r="14" />
-        <path {...common} d="M24 14v20M19 18.5c1.2-1.4 2.8-2 5-2 2.6 0 4 1.2 4 3s-1.4 2.6-4.2 3.2c-2.6.6-4.3 1.4-4.3 3.4 0 1.8 1.6 3.2 4.5 3.2 2.4 0 4-0.8 5-2.2" />
-      </svg>
-    );
-  }
-  if (kind === 'social') {
-    return (
-      <svg viewBox="0 0 48 48" aria-hidden="true">
-        <circle {...common} cx="14" cy="24" r="5" />
-        <circle {...common} cx="34" cy="14" r="5" />
-        <circle {...common} cx="34" cy="34" r="5" />
-        <path {...common} d="M18.5 22l11-6M18.5 26l11 6" />
-      </svg>
-    );
-  }
-  return (
-    <svg viewBox="0 0 48 48" aria-hidden="true">
-      <path {...common} d="M16 30c-4 0-8-3-8-8 6 0 8-2 8-8 6 2 10 6 12 12" />
-      <path {...common} d="M28 18c2 6 6 10 12 12-2 6-8 10-14 8-4-1-8-5-10-10" />
-      <circle {...common} cx="30" cy="22" r="2" />
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="M7 3.5h10v3.7a5 5 0 0 1-10 0V3.5Z" />
+      <path d="M7 5.5H4.2v1.8A3 3 0 0 0 7 10.3M17 5.5h2.8v1.8a3 3 0 0 1-2.8 3" />
+      <path d="M12 12.2v3.6M9.2 19.5h5.6M10.4 15.8h3.2" />
     </svg>
   );
 }
 
-function Plaque({
-  row,
-  kind,
-  onOpen,
-}: {
-  row: ResolvedPrize;
-  kind: 'sticky' | 'money' | 'social' | 'theme';
-  onOpen: (game: JamGame) => void;
-}) {
-  const { prize, game } = row;
+function BackArrow() {
   return (
-    <article className={`plaque plaque--${kind}`}>
-      <div className="plaque__icon">
-        <Icon kind={kind} />
-      </div>
-      <h3 className="plaque__award">{prize.category}</h3>
-      <div className="plaque__body">
-        {game ? <Poster game={game} onOpen={onOpen} /> : null}
-        <div>
-          <p className="plaque__title">{prize.title}</p>
-          {game?.creatorName ? <p className="plaque__creator">{game.creatorName}</p> : null}
-          <p className="plaque__amount">{formatPrizeMoney(prize.amount)}</p>
-        </div>
-      </div>
-    </article>
-  );
-}
-
-function StoryCard({ row }: { row: ResolvedPrize }) {
-  const { prize } = row;
-  const metal = prize.metal === 'gold' || prize.metal === 'silver' || prize.metal === 'bronze' ? prize.metal : 'bronze';
-  return (
-    <article className={`story-card story-card--${metal}`}>
-      <Medal metal={metal} mark={String(prize.place ?? '')} />
-      <h3 className="story-card__title">{prize.title}</h3>
-      <p className="story-card__prize">{prize.category}</p>
-      <p className="story-card__amount">{formatPrizeMoney(prize.amount)}</p>
-    </article>
-  );
-}
-
-function Podium({
-  gold,
-  silver,
-  bronze,
-  onOpen,
-  size,
-}: {
-  gold: ResolvedPrize;
-  silver: ResolvedPrize;
-  bronze: ResolvedPrize;
-  onOpen: (game: JamGame) => void;
-  size: 'hero' | 'votes';
-}) {
-  return (
-    <div className={`podium podium--${size}`}>
-      <PodiumSpot row={silver} onOpen={onOpen} tier="silver" />
-      <PodiumSpot row={gold} onOpen={onOpen} tier="gold" />
-      <PodiumSpot row={bronze} onOpen={onOpen} tier="bronze" />
-      <AwardsStage size={size} />
-    </div>
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="M15 5 8 12l7 7" />
+    </svg>
   );
 }
 
@@ -224,28 +86,48 @@ export function WinnersModal({ games, open, onClose, onOpen }: WinnersModalProps
   const votesGold = rowById(resolved, 'votes-1');
   const votesSilver = rowById(resolved, 'votes-2');
   const votesBronze = rowById(resolved, 'votes-3');
+  const editorRows = [editorsGold, editorsSilver, editorsBronze, place4, place5];
+  const voteRows = [votesGold, votesSilver, votesBronze];
+  const is3dStage = tab === 'editors' || tab === 'votes';
+
+  const specials: SpecialItem[] = [
+    { kind: 'sticky', row: rowById(resolved, 'special-sticky') },
+    { kind: 'money', row: rowById(resolved, 'special-money') },
+    { kind: 'social', row: rowById(resolved, 'special-social') },
+    { kind: 'theme', row: rowById(resolved, 'special-theme') },
+  ];
+
+  const storyRows = [
+    rowById(resolved, 'story-1'),
+    rowById(resolved, 'story-2'),
+    rowById(resolved, 'story-3'),
+  ];
 
   return createPortal(
-    <div className="winners-modal" role="presentation">
-      <button type="button" className="winners-modal__backdrop" aria-label="Close winners" onClick={onClose} />
+    <div className="winners-modal">
       <div className="winners-modal__panel" role="dialog" aria-modal="true" aria-label="October Jam winners">
-        <header className="winners-modal__header">
-          <div>
-            <p className="winners-modal__kicker">October Jam</p>
-            <h2 className="winners-modal__title">Winners</h2>
+        <header className="winners-head">
+          <div className="winners-head__brand">
+            <span className="winners-head__crest">
+              <TrophyCrest />
+            </span>
+            <div className="winners-head__copy">
+              <p className="winners-head__kicker">
+                October Jam <span aria-hidden="true">✦</span> Hall of Fame
+              </p>
+              <h2 className="winners-head__title">Winners</h2>
+            </div>
           </div>
-          <button ref={closeRef} type="button" className="winners-modal__back" onClick={onClose}>
-            Back
-          </button>
-        </header>
-        <div className="winners-modal__body">
+
           <div className="winners-tabs" role="tablist" aria-label="Winner groups">
             {TABS.map((item) => (
               <button
                 key={item.id}
+                id={`winners-tab-${item.id}`}
                 type="button"
                 role="tab"
                 aria-selected={tab === item.id}
+                aria-controls="winners-panel"
                 className={tab === item.id ? 'winners-tabs__btn is-on' : 'winners-tabs__btn'}
                 onClick={() => setTab(item.id)}
               >
@@ -254,43 +136,39 @@ export function WinnersModal({ games, open, onClose, onOpen }: WinnersModalProps
             ))}
           </div>
 
-          {tab === 'editors' ? (
-            <section className="fit-stage" role="tabpanel" aria-label={heading('editors')}>
-              <Podium gold={editorsGold} silver={editorsSilver} bronze={editorsBronze} onOpen={onOpen} size="hero" />
-              <div className="finalists">
-                <Finalist row={place4} onOpen={onOpen} />
-                <Finalist row={place5} onOpen={onOpen} />
-              </div>
-            </section>
-          ) : null}
+          <button ref={closeRef} type="button" className="winners-head__back" onClick={onClose}>
+            <BackArrow />
+            Back
+          </button>
+        </header>
 
-          {tab === 'special' ? (
-            <section className="fit-stage" role="tabpanel" aria-label={heading('special')}>
-              <p className="stage-block__note">$500 each</p>
-              <div className="plaques">
-                <Plaque row={rowById(resolved, 'special-sticky')} kind="sticky" onOpen={onOpen} />
-                <Plaque row={rowById(resolved, 'special-money')} kind="money" onOpen={onOpen} />
-                <Plaque row={rowById(resolved, 'special-social')} kind="social" onOpen={onOpen} />
-                <Plaque row={rowById(resolved, 'special-theme')} kind="theme" onOpen={onOpen} />
-              </div>
-            </section>
-          ) : null}
-
-          {tab === 'votes' ? (
-            <section className="fit-stage" role="tabpanel" aria-label={heading('votes')}>
-              <Podium gold={votesGold} silver={votesSilver} bronze={votesBronze} onOpen={onOpen} size="votes" />
-            </section>
-          ) : null}
-
-          {tab === 'story' ? (
-            <section className="fit-stage fit-stage--story" role="tabpanel" aria-label={heading('story')}>
-              <div className="story-row">
-                <StoryCard row={rowById(resolved, 'story-1')} />
-                <StoryCard row={rowById(resolved, 'story-2')} />
-                <StoryCard row={rowById(resolved, 'story-3')} />
-              </div>
-            </section>
-          ) : null}
+        <div className="winners-body">
+          <section
+            className="winners-stage"
+            id="winners-panel"
+            role="tabpanel"
+            aria-labelledby={`winners-tab-${tab}`}
+            aria-label={heading(tab)}
+          >
+            {is3dStage ? (
+              <Suspense
+                key={tab}
+                fallback={
+                  <div className="winner-stage3d winner-stage3d--loading">
+                    <p>Raising the podiums…</p>
+                  </div>
+                }
+              >
+                <WinnerStage3D rows={tab === 'editors' ? editorRows : voteRows} onOpen={onOpen} />
+              </Suspense>
+            ) : (
+              <FitStage key={tab}>
+                {tab === 'special' ? <SpecialScene items={specials} onOpen={onOpen} /> : null}
+                {tab === 'story' ? <StoryScene rows={storyRows} /> : null}
+              </FitStage>
+            )}
+          </section>
+          {is3dStage ? null : <WinnersConfetti burstKey={tab} />}
         </div>
       </div>
     </div>,

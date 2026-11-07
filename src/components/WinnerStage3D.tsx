@@ -126,12 +126,12 @@ function CeremonyClock() {
   return null;
 }
 
-const SLAM_START = 0.3;
-const SLAM_STAGGER = 0.46;
-const DROP_SECONDS = 0.85;
-const DROP_HEIGHT = 4.6;
-/** Ease-out power: quick off the top mark, then floating to a stop on the podium. */
-const DROP_EASE = 2.2;
+const SLAM_START = 0.2;
+const SLAM_STAGGER = 0.32;
+const DROP_SECONDS = 0.5;
+const DROP_HEIGHT = 5.4;
+/** Gravity curve: a beat of hang at the top mark, then a hard accelerating slam. */
+const DROP_EASE = 1.7;
 
 function specialProfile(narrow: boolean): PodiumProfile {
   return narrow
@@ -1353,11 +1353,11 @@ function SlamCard({
       // floats to a stop, then bounces once. Accelerating into the podium pushed
       // almost all of the travel into the last frames above the frame edge, which
       // is what made it look like a teleport.
-      const ease = 1 - Math.pow(1 - progress, DROP_EASE);
+      const ease = Math.pow(progress, DROP_EASE);
       let y = fromY + (targetY - fromY) * ease;
       if (progress >= 1) {
         const since = local - dropSeconds;
-        y = targetY + Math.abs(Math.sin(since * 6.2)) * (calm ? 0.05 : 0.2) * Math.exp(-since * 4.4);
+        y = targetY + Math.abs(Math.sin(since * 11)) * (calm ? 0.04 : 0.26) * Math.exp(-since * 7);
         if (!calm) y += Math.sin(since * 0.9 + place) * 0.018;
       }
       group.position.y = y;
@@ -1367,21 +1367,21 @@ function SlamCard({
       group.rotation.z = calm ? 0 : falling ? tilt * (1 - progress) : 0;
       if (!calm && !landed.current && local >= dropSeconds * 0.97) {
         landed.current = true;
-        shake.current.strength = Math.max(shake.current.strength, place === 1 ? 0.72 : 0.48);
-        shake.current.punch = Math.max(shake.current.punch, place === 1 ? 1.7 : 0.85);
+        shake.current.strength = Math.max(shake.current.strength, place === 1 ? 1.15 : 0.7);
+        shake.current.punch = Math.max(shake.current.punch, place === 1 ? 2.6 : 1.3);
         onImpact();
       }
       const sinceLanding = local - dropSeconds;
-      const squash = !calm && sinceLanding >= 0 ? Math.exp(-sinceLanding * 9) : 0;
-      const stretch = !calm && falling ? 0.14 * progress * progress : 0;
+      const squash = !calm && sinceLanding >= 0 ? Math.exp(-sinceLanding * 11) : 0;
+      const stretch = !calm && falling ? 0.2 * progress * progress : 0;
       // A card is almost as tall as the camera frame, so pure vertical travel just
       // reads as a slow drift. Starting smaller and scaling up sells depth: the
       // card falls towards the viewer instead of sliding down a wall.
-      const grow = calm ? 0.9 + 0.1 * ease : 0.6 + 0.4 * ease;
+      const grow = calm ? 0.9 + 0.1 * progress : 0.72 + 0.28 * progress;
       group.scale.set(
-        grow * (1 - squash * 0.16),
-        grow * (1 + stretch - squash * 0.32),
-        grow * (1 - squash * 0.16),
+        grow * (1 - squash * 0.2),
+        grow * (1 + stretch - squash * 0.46),
+        grow * (1 - squash * 0.2),
       );
     }
 
@@ -1830,14 +1830,14 @@ function LandingFlash({ slot, reduced, launch }: { slot: PodiumSlot; reduced: bo
     }
     if (startRef.current === null) startRef.current = ceremonyClock.current;
     const local = ceremonyClock.current - startRef.current - slot.delay - DROP_SECONDS;
-    if (local < 0 || local > 0.24) {
+    if (local < 0 || local > 0.32) {
       mesh.visible = false;
       return;
     }
     mesh.visible = true;
-    const k = local / 0.24;
-    mesh.scale.setScalar(0.5 + k * 2.4);
-    (mesh.material as THREE.MeshBasicMaterial).opacity = 0.55 * (1 - k);
+    const k = local / 0.32;
+    mesh.scale.setScalar(0.4 + k * 3.2);
+    (mesh.material as THREE.MeshBasicMaterial).opacity = 0.9 * (1 - k);
   });
   return (
     <mesh ref={ref} position={[0, slot.h + 0.5, slot.d / 2 + 0.24]} visible={false} renderOrder={5}>
@@ -1876,7 +1876,7 @@ function PodiumLight({ slot, reduced, launch }: { slot: PodiumSlot; reduced: boo
       light.intensity = base * (0.78 + lead * 0.4);
       return;
     }
-    light.intensity = base + Math.exp(-local * 5.5) * (slot.place === 1 ? 46 : 30) * (reduced ? 0.3 : 1);
+    light.intensity = base + Math.exp(-local * 4.5) * (slot.place === 1 ? 92 : 56) * (reduced ? 0.3 : 1);
   });
   return (
     <pointLight
@@ -1887,6 +1887,111 @@ function PodiumLight({ slot, reduced, launch }: { slot: PodiumSlot; reduced: boo
       decay={2}
       color={slot.tier.glow}
     />
+  );
+}
+
+const beamCache = new Map<string, THREE.CanvasTexture>();
+
+/** Vertical white-to-transparent ramp for spotlight shafts. */
+function beamTexture(color: string): THREE.CanvasTexture {
+  const cached = beamCache.get(color);
+  if (cached) return cached;
+  const canvas = document.createElement('canvas');
+  canvas.width = 16;
+  canvas.height = 256;
+  const ctx = canvas.getContext('2d');
+  if (ctx) {
+    const gradient = ctx.createLinearGradient(0, 0, 0, 256);
+    gradient.addColorStop(0, `${color}00`);
+    gradient.addColorStop(0.5, `${color}4a`);
+    gradient.addColorStop(1, `${color}cc`);
+    ctx.fillStyle = gradient;
+    ctx.fillRect(0, 0, 16, 256);
+  }
+  const texture = new THREE.CanvasTexture(canvas);
+  texture.colorSpace = THREE.SRGBColorSpace;
+  beamCache.set(color, texture);
+  return texture;
+}
+
+/**
+ * Spotlight column over a podium: a visible shaft, a lamp glow at the ceiling and
+ * a hot pool on the pad, so the stage is lit from above instead of floating in a
+ * flat gradient. The shaft flares as its card lands.
+ */
+function PodiumBeam({ slot, reduced }: { slot: PodiumSlot; reduced: boolean }) {
+  const coneRef = useRef<THREE.Mesh>(null);
+  const map = beamTexture(slot.tier.face);
+  const height = 13;
+  const topRadius = slot.w * 0.22;
+  const bottomRadius = slot.w * 0.9;
+
+  useFrame(() => {
+    const cone = coneRef.current;
+    if (!cone) return;
+    const material = cone.material as THREE.MeshBasicMaterial;
+    const since = ceremonyClock.current - slot.delay - DROP_SECONDS;
+    // Swell on the approach, then blow out on the hit and settle.
+    const approach = since < 0 ? Math.max(0, 1 + since / 0.4) * 0.05 : 0;
+    const flare = since >= 0 ? Math.exp(-since * 3.4) * (reduced ? 0.06 : 0.3) : 0;
+    material.opacity = (reduced ? 0.045 : 0.1) + approach + flare;
+  });
+
+  return (
+    <group>
+      <mesh ref={coneRef} position={[0, height / 2 + slot.h * 0.45, 0]}>
+        <cylinderGeometry args={[topRadius, bottomRadius, height, 24, 1, true]} />
+        <meshBasicMaterial
+          map={map}
+          color={slot.tier.faceLight}
+          transparent
+          opacity={0.1}
+          side={THREE.DoubleSide}
+          blending={THREE.AdditiveBlending}
+          depthWrite={false}
+          toneMapped={false}
+        />
+      </mesh>
+      <mesh position={[0, slot.h + 0.04, 0]} rotation={[-Math.PI / 2, 0, 0]}>
+        <planeGeometry args={[slot.w * 1.6, slot.w * 1.6]} />
+        <meshBasicMaterial
+          map={glowTexture(slot.tier.glow)}
+          transparent
+          opacity={0.34}
+          blending={THREE.AdditiveBlending}
+          depthWrite={false}
+          toneMapped={false}
+        />
+      </mesh>
+      <mesh position={[0, height + slot.h * 0.45, 0]}>
+        <planeGeometry args={[slot.w * 1.1, slot.w * 1.1]} />
+        <meshBasicMaterial
+          map={glowTexture('#fff4d8')}
+          transparent
+          opacity={0.45}
+          blending={THREE.AdditiveBlending}
+          depthWrite={false}
+          toneMapped={false}
+        />
+      </mesh>
+    </group>
+  );
+}
+
+/** The podium itself kicks down and springs back when its card hits. */
+function PodiumBody({ slot, reduced }: { slot: PodiumSlot; reduced: boolean }) {
+  const ref = useRef<THREE.Group>(null);
+  useFrame(() => {
+    const group = ref.current;
+    if (!group) return;
+    const since = ceremonyClock.current - slot.delay - DROP_SECONDS;
+    const kick = since >= 0 && !reduced ? Math.max(0, Math.exp(-since * 6) * Math.cos(since * 24)) : 0;
+    group.position.y = -0.18 * kick;
+  });
+  return (
+    <group ref={ref}>
+      <PodiumBase slot={slot} />
+    </group>
   );
 }
 
@@ -1907,7 +2012,8 @@ function Podium({
 }) {
   return (
     <group position={[slot.x, 0, slot.z]}>
-      <PodiumBase slot={slot} />
+      <PodiumBody slot={slot} reduced={reduced} />
+      <PodiumBeam slot={slot} reduced={reduced} />
       <SlamCard slot={slot} onOpen={onOpen} reduced={reduced} launch={launch} shake={shake} onImpact={onImpact} />
       <ImpactRing slot={slot} reduced={reduced} launch={launch} />
       <ImpactBurst slot={slot} reduced={reduced} launch={launch} />
@@ -2134,7 +2240,7 @@ export function WinnerStage3D({ rows, onOpen, mode = 'ranked' }: WinnerStage3DPr
   const onImpact = useCallback(() => {
     const el = flashRef.current;
     if (!el) return;
-    el.animate([{ opacity: 0.38 }, { opacity: 0 }], { duration: 320, easing: 'ease-out' });
+    el.animate([{ opacity: 0.55 }, { opacity: 0 }], { duration: 320, easing: 'ease-out' });
   }, []);
 
   useEffect(() => {

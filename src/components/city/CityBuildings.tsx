@@ -688,7 +688,11 @@ function GameBillboard({
       fade.frame.emissiveIntensity = fade.frameBase * mul;
     }
 
-    const d = Math.hypot(craftPos.x - slot.x, craftPos.z - slot.z);
+    // During the ceremony the tour camera is the viewer. The UFO stays parked over
+    // downtown, so measuring from it left every outlying sign unloaded and invisible
+    // exactly when the flyby was staring at it.
+    const viewer = cinematic ? state.camera.position : craftPos;
+    const d = Math.hypot(viewer.x - slot.x, viewer.z - slot.z);
     const shouldLoad = featured || d < LOAD_DISTANCE;
     const shouldRender = featured || d < RENDER_DISTANCE;
     if (shouldRender !== visible) setVisible(shouldRender);

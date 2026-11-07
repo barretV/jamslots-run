@@ -129,14 +129,18 @@ export function CityScene({
 
   useEffect(() => {
     const winnerUrls = buildings.filter((b) => ribbons.has(b.game.gameId)).map((b) => b.game.thumbnailUrl);
+    // The honorable-mentions pass flies to signs far from the parked UFO, so their art
+    // has to be warm before the camera cuts to them.
+    const honorUrls = honorStops.map((stop) => stop.slot.game.thumbnailUrl);
     preloadCityThumbnails([
       ...winnerUrls,
+      ...honorUrls,
       ...buildings
         .filter((b) => b.topVotes || b.topToday)
         .slice(0, 70)
         .map((b) => b.game.thumbnailUrl),
     ]);
-  }, [buildings, ribbons]);
+  }, [buildings, honorStops, ribbons]);
 
   useEffect(() => {
     let alive = true;

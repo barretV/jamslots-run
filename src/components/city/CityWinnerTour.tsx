@@ -1,6 +1,7 @@
 import { useFrame } from '@react-three/fiber';
-import { useRef } from 'react';
+import { useMemo, useRef } from 'react';
 import * as THREE from 'three';
+import { HONOR_WAVE_SIZE, HONORABLE_MENTIONS } from '../../data/honorableMentions';
 import { TOUR_PRIZE_IDS, resolveOctoberPrizes } from '../../lib/octoberWinners';
 import type { CityBuildingSlot } from '../../lib/citySpiral';
 import type { JamGame } from '../../types';
@@ -11,14 +12,28 @@ export interface TourStop {
   prizeId: string;
 }
 
+export interface HonorStop {
+  slot: CityBuildingSlot;
+  index: number;
+  wave: number;
+  waveCount: number;
+  indexInWave: number;
+}
+
 export interface TourStep {
   index: number;
+  kind: 'winner' | 'honor';
   title: string;
-  prizeId: string;
+  prizeId?: string;
+  wave?: number;
+  waveCount?: number;
 }
 
 const DWELL = 3.25;
 const BLEND = 0.55;
+/** Honorable mentions are a fast pass: two beats each, then a hard cut. */
+const HONOR_DWELL = 2;
+const HONOR_BLEND = 0.3;
 /** Celebration hold: the camera hangs over the burning skyline before moving. */
 const HOLD = 5.2;
 /** Fly-in that settles onto the first winner. */
@@ -43,6 +58,63 @@ export function pickTourStops(buildings: CityBuildingSlot[], games: JamGame[]): 
   return stops;
 }
 
+/**
+ * Honorable mentions in run.world row order, skipping any title that is not a jam
+ * game we can place (one entry lives outside the jam feed). Waves are counted after
+ * that skip so the caption never promises a fifth game that does not exist.
+ */
+export function pickHonorStops(buildings: CityBuildingSlot[]): HonorStop[] {
+  const byGameId = new Map(buildings.map((b) => [b.game.gameId, b]));
+  const slots: CityBuildingSlot[] = [];
+  for (const mention of HONORABLE_MENTIONS) {
+    const slot = byGameId.get(mention.gameId);
+    if (slot) slots.push(slot);
+  }
+  const waveCount = Math.ceil(slots.length / HONOR_WAVE_SIZE);
+  return slots.map((slot, index) => ({
+    slot,
+    index,
+    wave: Math.floor(index / HONOR_WAVE_SIZE) + 1,
+    waveCount,
+    indexInWave: (index % HONOR_WAVE_SIZE) + 1,
+  }));
+}
+
+interface Segment {
+  slot: CityBuildingSlot;
+  kind: 'winner' | 'honor';
+  prizeId?: string;
+  dwell: number;
+  span: number;
+  start: number;
+  wave?: number;
+  waveCount?: number;
+}
+
+/** One timeline for both halves so the last winner blends straight into wave one. */
+function buildSegments(stops: TourStop[], honorStops: HonorStop[]): Segment[] {
+  const segments: Segment[] = [];
+  let cursor = 0;
+  const push = (segment: Omit<Segment, 'start'>) => {
+    segments.push({ ...segment, start: cursor });
+    cursor += segment.span;
+  };
+  for (const stop of stops) {
+    push({ slot: stop.slot, kind: 'winner', prizeId: stop.prizeId, dwell: DWELL, span: DWELL + BLEND });
+  }
+  for (const stop of honorStops) {
+    push({
+      slot: stop.slot,
+      kind: 'honor',
+      dwell: HONOR_DWELL,
+      span: HONOR_DWELL + HONOR_BLEND,
+      wave: stop.wave,
+      waveCount: stop.waveCount,
+    });
+  }
+  return segments;
+}
+
 function pose(
   slot: CityBuildingSlot,
   focusX: number,
@@ -58,9 +130,10 @@ function pose(
   look.set(slot.x, y + 1, slot.z);
 }
 
-/** Moves the camera across a few winner covers, then hands back to flight. */
+/** Moves the camera across the winners, then a fast pass of the honorable mentions. */
 export function CityWinnerTour({
   stops,
+  honorStops = [],
   focusX,
   focusZ,
   active,
@@ -69,6 +142,7 @@ export function CityWinnerTour({
   onIntro,
 }: {
   stops: TourStop[];
+  honorStops?: HonorStop[];
   focusX: number;
   focusZ: number;
   active: boolean;
@@ -92,6 +166,9 @@ export function CityWinnerTour({
   const lookB = useRef(new THREE.Vector3());
   const look = useRef(new THREE.Vector3());
   const wide = useRef(new THREE.Vector3());
+  const segments = useMemo(() => buildSegments(stops, honorStops), [stops, honorStops]);
+  const segmentsRef = useRef(segments);
+  segmentsRef.current = segments;
 
   useFrame((state, delta) => {
     if (!active) {
@@ -103,7 +180,8 @@ export function CityWinnerTour({
     }
     if (finished.current) return;
     const cam = state.camera as THREE.PerspectiveCamera;
-    if (stops.length === 0) {
+    const list = segmentsRef.current;
+    if (list.length === 0) {
       finished.current = true;
       onDoneRef.current();
       return;
@@ -113,7 +191,6 @@ export function CityWinnerTour({
       introFired.current = true;
       onIntroRef.current?.();
     }
-    const span = DWELL + BLEND;
     const t = elapsed.current - INTRO;
 
     // Opening shot: wide aerial over the skyline, easing down onto the champion's
@@ -121,7 +198,7 @@ export function CityWinnerTour({
     // that establishes the whole city rather than snapping to a single building.
     if (t < 0) {
       const flight = elapsed.current;
-      const first = stops[0];
+      const first = list[0];
       pose(first.slot, focusX, focusZ, 0, posB.current, lookB.current);
       const outward = Math.atan2(first.slot.x - focusX, first.slot.z - focusZ);
 
@@ -176,22 +253,25 @@ export function CityWinnerTour({
       return;
     }
 
-    const total = stops.length * span - BLEND;
+    const last = list[list.length - 1];
+    const total = last.start + last.dwell;
     if (t >= total) {
       finished.current = true;
       onDoneRef.current();
       return;
     }
-    const cursor = t / span;
-    const i = Math.min(stops.length - 1, Math.floor(cursor));
-    const local = cursor - i;
-    const mix = local < DWELL / span ? 0 : (local - DWELL / span) / (BLEND / span);
+
+    let i = 0;
+    while (i < list.length - 1 && t >= list[i + 1].start) i += 1;
+    const seg = list[i];
+    const next = list[Math.min(list.length - 1, i + 1)];
+    const local = t - seg.start;
+    const blendLen = Math.max(0.0001, seg.span - seg.dwell);
+    const mix = Math.min(1, Math.max(0, (local - seg.dwell) / blendLen));
     const eased = mix * mix * (3 - 2 * mix);
-    const dolly = Math.min(1, (t - i * span) / DWELL);
-    const a = stops[i];
-    const b = stops[Math.min(stops.length - 1, i + 1)];
-    pose(a.slot, focusX, focusZ, dolly, posA.current, lookA.current);
-    pose(b.slot, focusX, focusZ, 0, posB.current, lookB.current);
+    const dolly = Math.min(1, local / seg.dwell);
+    pose(seg.slot, focusX, focusZ, dolly, posA.current, lookA.current);
+    pose(next.slot, focusX, focusZ, 0, posB.current, lookB.current);
     cam.position.lerpVectors(posA.current, posB.current, eased);
     look.current.lerpVectors(lookA.current, lookB.current, eased);
     cam.lookAt(look.current);
@@ -199,7 +279,14 @@ export function CityWinnerTour({
     cam.updateProjectionMatrix();
     if (i !== index.current) {
       index.current = i;
-      onStepRef.current({ index: i, title: a.slot.game.title, prizeId: a.prizeId });
+      onStepRef.current({
+        index: i,
+        kind: seg.kind,
+        title: seg.slot.game.title,
+        prizeId: seg.prizeId,
+        wave: seg.wave,
+        waveCount: seg.waveCount,
+      });
     }
   });
 

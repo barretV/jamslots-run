@@ -16,7 +16,7 @@ import { CityRoad } from './CityRoad';
 import { CitySearchlights } from './CitySearchlights';
 import { CitySky } from './CitySky';
 import { CityTraffic } from './CityTraffic';
-import { CityWinnerTour, pickTourStops, type TourStep } from './CityWinnerTour';
+import { CityWinnerTour, pickHonorStops, pickTourStops, type TourStep } from './CityWinnerTour';
 import { UfoRig, type FlightInput, type SteerTarget } from './UfoRig';
 
 export type CityFlightMode = 'cinematic' | 'fly' | 'landing' | 'landed';
@@ -94,6 +94,7 @@ export function CityScene({
   const spawn = useMemo(() => computeCitySpawn(buildings), [buildings]);
   const ribbons = useMemo(() => ribbonByGameId(games), [games]);
   const tourStops = useMemo(() => pickTourStops(buildings, games), [buildings, games]);
+  const honorStops = useMemo(() => pickHonorStops(buildings), [buildings]);
   const fireworkSpots = useMemo(() => {
     const fromTour = tourStops.map((stop) => ({
       x: stop.slot.x,
@@ -211,6 +212,7 @@ export function CityScene({
       <CityFireworks focusX={spawn.focusX} focusZ={spawn.focusZ} spots={fireworkSpots} />
       <CityWinnerTour
         stops={tourStops}
+        honorStops={honorStops}
         focusX={spawn.focusX}
         focusZ={spawn.focusZ}
         active={celebrating && mode === 'cinematic'}

@@ -8,7 +8,7 @@ import type { JamGame } from '../../types';
 import { formatPrizeMoney, OCTOBER_PRIZES } from '../../lib/octoberWinners';
 import { CityScene, type CityFlightMode } from './CityScene';
 import { coverApproachPoint } from './CityBuildings';
-import { pickTourStops, type TourStep } from './CityWinnerTour';
+import { pickHonorStops, pickTourStops, type TourStep } from './CityWinnerTour';
 import { type FlightInput, type SteerTarget } from './UfoRig';
 
 interface InteractiveCityProps {
@@ -59,7 +59,8 @@ export function InteractiveCity({ games, open, onClose, onOpen, filterLabel, isF
   const layout = useMemo(() => buildCityLayout(games), [games]);
   const citySpawn = useMemo(() => computeCitySpawn(layout.buildings), [layout]);
   const tourStops = useMemo(() => pickTourStops(layout.buildings, games), [layout, games]);
-  const showTour = celebrating && tourStops.length > 0;
+  const honorStops = useMemo(() => pickHonorStops(layout.buildings), [layout]);
+  const showTour = celebrating && (tourStops.length > 0 || honorStops.length > 0);
   // The ceremony is held until the first frames are drawn, so the aerial shot and
   // the title card are watched rather than hidden behind a cold canvas.
   // The tour camera runs while the veil is still up so the first aerial frame
@@ -134,6 +135,14 @@ export function InteractiveCity({ games, open, onClose, onOpen, filterLabel, isF
 
 
   const onTourStep = useCallback((step: TourStep) => {
+    if (step.kind === 'honor') {
+      setTourCard({
+        title: step.title,
+        prize: `Honorable Mention · Wave ${step.wave} of ${step.waveCount}`,
+        amount: '',
+      });
+      return;
+    }
     const prize = OCTOBER_PRIZES.find((item) => item.id === step.prizeId);
     setTourCard({
       title: step.title,

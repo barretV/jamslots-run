@@ -512,20 +512,44 @@ function paintInfoPlaque(
   ctx.fillStyle = `${accent}2e`;
   ctx.fillRect(pad, Math.round(height * 0.79), width - pad * 2, 2);
 
-  const footerY = Math.round(height * 0.915);
-  ctx.font = `600 ${Math.round(width * 0.029)}px Outfit, system-ui, sans-serif`;
-  ctx.fillStyle = '#bdb2d1';
-  const author = game?.creatorName ?? prize.creatorName;
-  let creator = author ? `by ${author}` : 'Creator to be announced';
-  while (ctx.measureText(creator).width > maxWidth * 0.5 && creator.length > 8) {
-    creator = `${creator.slice(0, -2)}…`;
-  }
-  ctx.fillText(creator, pad, footerY);
+  const footerCenter = Math.round(height * 0.9);
+  ctx.textBaseline = 'middle';
 
+  // Prize on the right.
+  const money = formatPrizeMoney(prize.amount);
+  const moneySize = Math.round(width * 0.074);
   ctx.textAlign = 'right';
-  ctx.font = `900 ${Math.round(width * 0.069)}px Outfit, system-ui, sans-serif`;
+  ctx.font = `900 ${moneySize}px Unbounded, Outfit, system-ui, sans-serif`;
   ctx.fillStyle = accent;
-  ctx.fillText(formatPrizeMoney(prize.amount), width - pad, footerY);
+  ctx.fillText(money, width - pad, footerCenter);
+  const moneyWidth = ctx.measureText(money).width;
+
+  // Creator on the left. These are the people who made the thing, so the credit
+  // gets real weight instead of a truncated whisper under the title.
+  const author = game?.creatorName ?? prize.creatorName;
+  const name = author || 'Creator to be announced';
+  const bySize = Math.round(width * 0.032);
+  const nameSpace = width - pad * 2 - moneyWidth - Math.round(width * 0.055);
+  let nameSize = Math.round(width * 0.052);
+  let fitted = name;
+  ctx.font = `800 ${nameSize}px Outfit, system-ui, sans-serif`;
+  while (nameSize > Math.round(width * 0.034) && ctx.measureText(fitted).width > nameSpace - bySize * 2.4) {
+    nameSize -= 2;
+    ctx.font = `800 ${nameSize}px Outfit, system-ui, sans-serif`;
+  }
+  while (fitted.length > 4 && ctx.measureText(fitted).width > nameSpace - bySize * 2.4) {
+    fitted = fitted.slice(0, -1);
+  }
+
+  ctx.textAlign = 'left';
+  ctx.font = `800 ${bySize}px Outfit, system-ui, sans-serif`;
+  ctx.fillStyle = accent;
+  ctx.fillText('BY', pad, footerCenter + 2);
+  const byWidth = ctx.measureText('BY').width;
+  ctx.font = `800 ${nameSize}px Outfit, system-ui, sans-serif`;
+  ctx.fillStyle = '#fff6e2';
+  ctx.fillText(fitted, pad + byWidth + bySize * 0.5, footerCenter + 2);
+  ctx.textBaseline = 'alphabetic';
 }
 
 

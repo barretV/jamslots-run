@@ -1865,7 +1865,9 @@ function StageContent({
 }
 
 const MIN_LOADER_MS = 900;
-const MAX_LOADER_MS = 6500;
+/* Posters are the whole show, so the curtain waits for them; the progress bar
+ * makes the wait part of the ceremony instead of a placeholder slam. */
+const MAX_LOADER_MS = 14000;
 const LOADER_FADE_MS = 700;
 
 /**

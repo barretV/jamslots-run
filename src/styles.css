@@ -3944,7 +3944,7 @@ body.library-immersive-open {
   text-align: center;
   pointer-events: none;
   transform: translateX(-50%);
-  animation: city-intro-in 4.9s ease-out forwards;
+  animation: city-intro-in 4.2s ease-out forwards;
 }
 
 .interactive-city-intro__kicker {

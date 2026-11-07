@@ -261,7 +261,7 @@ export function CityFireworks({
             vFlash = aFlash;
             vec4 mv = modelViewMatrix * vec4(position, 1.0);
             float dist = max(30.0, -mv.z);
-            gl_PointSize = clamp(aFlash * 14000.0 / dist, 60.0, 460.0);
+            gl_PointSize = clamp(aFlash * 11000.0 / dist, 50.0, 320.0);
             gl_Position = projectionMatrix * mv;
           }
         `,

@@ -20,7 +20,7 @@ export interface TourStep {
 const DWELL = 3.25;
 const BLEND = 0.55;
 /** Celebration hold: the camera hangs over the burning skyline before moving. */
-const HOLD = 4.2;
+const HOLD = 5.2;
 /** Fly-in that settles onto the first winner. */
 const DESCENT = 2.6;
 const INTRO = HOLD + DESCENT;

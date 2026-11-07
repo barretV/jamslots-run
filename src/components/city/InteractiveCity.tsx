@@ -62,7 +62,9 @@ export function InteractiveCity({ games, open, onClose, onOpen, filterLabel, isF
   const showTour = celebrating && tourStops.length > 0;
   // The ceremony is held until the first frames are drawn, so the aerial shot and
   // the title card are watched rather than hidden behind a cold canvas.
-  const tourLive = showTour && revealed;
+  // The tour camera runs while the veil is still up so the first aerial frame
+  // compiles and uploads behind it instead of hitching on reveal.
+  const tourLive = showTour && sceneReady;
   const sceneMode: CityFlightMode = tourLive ? 'cinematic' : mode;
   modeRef.current = sceneMode;
   const favSlots = useMemo(
@@ -118,14 +120,18 @@ export function InteractiveCity({ games, open, onClose, onOpen, filterLabel, isF
     const id = window.setTimeout(() => {
       setLoadingGone(true);
       setRevealed(true);
-    }, 1150);
+    }, 1300);
     return () => window.clearTimeout(id);
   }, [sceneReady]);
 
-  const onIntro = useCallback(() => {
+  useEffect(() => {
+    if (!revealed) return;
     setIntroCard(true);
-    window.setTimeout(() => setIntroCard(false), 4900);
-  }, []);
+    const id = window.setTimeout(() => setIntroCard(false), 4200);
+    return () => window.clearTimeout(id);
+  }, [sceneReady]);
+
+
 
   const onTourStep = useCallback((step: TourStep) => {
     const prize = OCTOBER_PRIZES.find((item) => item.id === step.prizeId);
@@ -363,7 +369,6 @@ export function InteractiveCity({ games, open, onClose, onOpen, filterLabel, isF
               isFavorite={isFavorite}
               celebrating={tourLive}
               onTourDone={beginFlight}
-              onIntro={onIntro}
               onReady={onCityReady}
               onTourStep={onTourStep}
               onCraftMove={(pos) => {
@@ -442,7 +447,7 @@ export function InteractiveCity({ games, open, onClose, onOpen, filterLabel, isF
             </div>
           ) : null}
 
-          {tourLive ? (
+          {revealed ? (
             <button type="button" className="interactive-city-skip" onClick={beginFlight}>
               Skip
             </button>

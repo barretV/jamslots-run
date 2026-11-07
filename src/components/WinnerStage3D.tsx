@@ -8,9 +8,12 @@ import { formatPrizeMoney, type ResolvedPrize } from '../lib/octoberWinners';
 import { useReducedMotion } from '../lib/useReducedMotion';
 import type { JamGame } from '../types';
 
+type StageMode = 'ranked' | 'special' | 'story';
+
 interface WinnerStage3DProps {
   rows: ResolvedPrize[];
   onOpen: (game: JamGame) => void;
+  mode?: StageMode;
 }
 
 interface TierPalette {
@@ -23,7 +26,7 @@ interface TierPalette {
   label: string;
 }
 
-const TIERS: Record<'gold' | 'silver' | 'bronze' | 'place', TierPalette> = {
+const TIERS: Record<'gold' | 'silver' | 'bronze' | 'place' | 'special', TierPalette> = {
   gold: {
     face: '#ffc93a',
     faceLight: '#fff4b8',
@@ -60,6 +63,15 @@ const TIERS: Record<'gold' | 'silver' | 'bronze' | 'place', TierPalette> = {
     glow: '#8ff0ff',
     label: 'Finalist',
   },
+  special: {
+    face: '#f472b6',
+    faceLight: '#ffe4f1',
+    faceDeep: '#9d174d',
+    ink: '#3b0620',
+    body: '#2b1624',
+    glow: '#f9a8d4',
+    label: 'Special pick',
+  },
 };
 
 interface PodiumProfile {
@@ -89,9 +101,17 @@ const NARROW_PROFILES: Record<number, PodiumProfile> = {
 
 const PLAQUE_ASPECT = 2.4;
 
+function specialProfile(narrow: boolean): PodiumProfile {
+  return narrow
+    ? { w: 2.7, h: 1.5, d: 1.65, art: 2.75 }
+    : { w: 3.4, h: 1.1, d: 2.0, art: 3.4 };
+}
+
 interface PodiumSlot {
   row: ResolvedPrize;
   place: number;
+  mode: StageMode;
+  kicker: string;
   tier: TierPalette;
   x: number;
   z: number;
@@ -128,49 +148,72 @@ function ordinal(place: number): string {
   }
 }
 
-function tierFor(place: number): TierPalette {
+function tierFor(place: number, mode: StageMode): TierPalette {
+  if (mode === 'special') return TIERS.special;
   if (place === 1) return TIERS.gold;
   if (place === 2) return TIERS.silver;
   if (place === 3) return TIERS.bronze;
   return TIERS.place;
 }
 
-function buildSlots(rows: ResolvedPrize[], narrow: boolean): PodiumSlot[] {
+function buildSlots(rows: ResolvedPrize[], narrow: boolean, mode: StageMode): PodiumSlot[] {
   const ranked = [...rows].sort((a, b) => (a.prize.place ?? 99) - (b.prize.place ?? 99));
   const count = ranked.length;
-  const positions: Record<number, { x: number; z: number }> = narrow
-    ? count >= 5
-      ? {
-          1: { x: 0, z: -2.6 },
-          2: { x: -3.1, z: -0.8 },
-          3: { x: 3.1, z: -0.8 },
-          4: { x: -3.55, z: 2.4 },
-          5: { x: 3.55, z: 2.4 },
-        }
-      : { 1: { x: 0, z: -1.4 }, 2: { x: -3.0, z: 0.8 }, 3: { x: 3.0, z: 0.8 } }
-    : count >= 5
-      ? {
-          1: { x: 0, z: 0 },
-          2: { x: -4.0, z: 0.28 },
-          3: { x: 4.0, z: 0.28 },
-          4: { x: -8.15, z: 0.8 },
-          5: { x: 8.15, z: 0.8 },
-        }
-      : { 1: { x: 0, z: 0 }, 2: { x: -4.6, z: 0.3 }, 3: { x: 4.6, z: 0.3 } };
+  const positions: Record<number, { x: number; z: number }> =
+    mode === 'special'
+      ? narrow
+        ? {
+            1: { x: -2.8, z: -1.6 },
+            2: { x: 2.8, z: -1.6 },
+            3: { x: -2.8, z: 1.8 },
+            4: { x: 2.8, z: 1.8 },
+          }
+        : {
+            1: { x: -6.6, z: 0.5 },
+            2: { x: -2.2, z: 0.15 },
+            3: { x: 2.2, z: 0.15 },
+            4: { x: 6.6, z: 0.5 },
+          }
+      : narrow
+        ? count >= 5
+          ? {
+              1: { x: 0, z: -2.6 },
+              2: { x: -3.1, z: -0.8 },
+              3: { x: 3.1, z: -0.8 },
+              4: { x: -3.55, z: 2.4 },
+              5: { x: 3.55, z: 2.4 },
+            }
+          : { 1: { x: 0, z: -1.4 }, 2: { x: -3.0, z: 0.8 }, 3: { x: 3.0, z: 0.8 } }
+        : count >= 5
+          ? {
+              1: { x: 0, z: 0 },
+              2: { x: -4.0, z: 0.28 },
+              3: { x: 4.0, z: 0.28 },
+              4: { x: -8.15, z: 0.8 },
+              5: { x: 8.15, z: 0.8 },
+            }
+          : { 1: { x: 0, z: 0 }, 2: { x: -5.6, z: 0.3 }, 3: { x: 5.6, z: 0.3 } };
 
   const profiles = narrow ? NARROW_PROFILES : WIDE_PROFILES;
-
-  return ranked.map((row, index) => {
+  const slots = ranked.map((row, index) => {
     const place = row.prize.place ?? index + 1;
-    const profile = profiles[place] ?? profiles[5];
+    const profile = mode === 'special' ? specialProfile(narrow) : profiles[place] ?? profiles[5];
     const position = positions[place] ?? { x: 0, z: 0 };
     const plaqueH = profile.art / PLAQUE_ASPECT;
-    const cardBase = profile.h + 0.22;
+    // Leaves room for the angled nameplate on the podium top so it never bites
+    // into the info plaque above it.
+    const cardBase = profile.h + 0.78;
     const cardTop = cardBase + profile.art + plaqueH + 0.16;
+    const kicker =
+      mode === 'special'
+        ? `Special category · ${row.prize.category}`
+        : `${ordinal(place)} place · ${row.prize.category}`;
     return {
       row,
       place,
-      tier: tierFor(place),
+      mode,
+      kicker,
+      tier: tierFor(place, mode),
       x: position.x,
       z: position.z,
       w: profile.w,
@@ -180,9 +223,14 @@ function buildSlots(rows: ResolvedPrize[], narrow: boolean): PodiumSlot[] {
       plaqueH,
       cardBase,
       cardTop,
-      delay: 0.28 + (count - place) * 0.22,
+      delay: 0,
     };
   });
+
+  // Physical left-to-right order, so the impacts travel across the stage like a wave.
+  return slots
+    .sort((a, b) => a.x - b.x || a.z - b.z)
+    .map((slot, index) => ({ ...slot, delay: 0.16 + index * 0.16 }));
 }
 
 function measureSlots(slots: PodiumSlot[]): StageBounds {
@@ -200,7 +248,10 @@ function measureSlots(slots: PodiumSlot[]): StageBounds {
     maxX = Math.max(maxX, slot.x + half);
     minZ = Math.min(minZ, slot.z - slot.d / 2);
     maxZ = Math.max(maxZ, slot.z + slot.d / 2);
-    maxY = Math.max(maxY, slot.cardTop + (slot.place === 1 ? 0.55 : 0.08));
+    maxY = Math.max(
+      maxY,
+      slot.cardTop + (slot.mode !== 'special' && slot.place === 1 ? 0.55 : 0.08),
+    );
   }
   return {
     width: maxX - minX,
@@ -339,6 +390,7 @@ function paintInfoPlaque(
   height: number,
   row: ResolvedPrize,
   accent: string,
+  kicker: string,
 ) {
   const { prize, game } = row;
   const pad = Math.round(width * 0.04);
@@ -371,17 +423,22 @@ function paintInfoPlaque(
   ctx.lineWidth = 2;
   ctx.stroke();
 
+  const maxWidth = width - pad * 2;
+
   ctx.textBaseline = 'alphabetic';
   ctx.textAlign = 'left';
-  ctx.font = `800 ${Math.round(width * 0.052)}px Outfit, system-ui, sans-serif`;
+  let kickerSize = Math.round(width * 0.052);
+  let kickerText = kicker.toUpperCase();
+  ctx.font = `800 ${kickerSize}px Outfit, system-ui, sans-serif`;
+  while (kickerSize > Math.round(width * 0.03) && ctx.measureText(kickerText).width > maxWidth) {
+    kickerSize -= 1;
+    ctx.font = `800 ${kickerSize}px Outfit, system-ui, sans-serif`;
+  }
+  while (kickerText.length > 8 && ctx.measureText(kickerText).width > maxWidth) {
+    kickerText = kickerText.slice(0, -1);
+  }
   ctx.fillStyle = accent;
-  ctx.fillText(
-    `${ordinal(prize.place ?? 1).toUpperCase()} PLACE  ·  ${prize.category.toUpperCase()}`,
-    pad,
-    Math.round(height * 0.17),
-  );
-
-  const maxWidth = width - pad * 2;
+  ctx.fillText(kickerText, pad, Math.round(height * 0.17));
   let fontSize = Math.round(width * 0.105);
   let lines: string[] = [];
   while (fontSize >= Math.round(width * 0.06)) {
@@ -418,7 +475,8 @@ function paintInfoPlaque(
   const footerY = Math.round(height * 0.915);
   ctx.font = `600 ${Math.round(width * 0.029)}px Outfit, system-ui, sans-serif`;
   ctx.fillStyle = '#bdb2d1';
-  let creator = game?.creatorName ? `by ${game.creatorName}` : 'Creator to be announced';
+  const author = game?.creatorName ?? prize.creatorName;
+  let creator = author ? `by ${author}` : 'Creator to be announced';
   while (ctx.measureText(creator).width > maxWidth * 0.5 && creator.length > 8) {
     creator = `${creator.slice(0, -2)}…`;
   }
@@ -467,11 +525,27 @@ function paintCoin(
 
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
-  ctx.font = `900 ${Math.round(width * 0.58)}px Unbounded, Outfit, system-ui, sans-serif`;
-  ctx.fillStyle = tier.ink;
   ctx.shadowColor = 'rgba(255,255,255,0.28)';
   ctx.shadowOffsetY = 5;
-  ctx.fillText(String(place), cx, cy + width * 0.035);
+  ctx.fillStyle = tier.ink;
+  if (place > 0) {
+    ctx.font = `900 ${Math.round(width * 0.58)}px Unbounded, Outfit, system-ui, sans-serif`;
+    ctx.fillText(String(place), cx, cy + width * 0.035);
+  } else {
+    const outer = width * 0.22;
+    const inner = width * 0.095;
+    ctx.beginPath();
+    for (let i = 0; i < 10; i++) {
+      const radius = i % 2 === 0 ? outer : inner;
+      const angle = -Math.PI / 2 + (i * Math.PI) / 5;
+      const px = cx + Math.cos(angle) * radius;
+      const py = cy + Math.sin(angle) * radius;
+      if (i === 0) ctx.moveTo(px, py);
+      else ctx.lineTo(px, py);
+    }
+    ctx.closePath();
+    ctx.fill();
+  }
   ctx.shadowOffsetY = 0;
   ctx.shadowColor = 'transparent';
 
@@ -502,9 +576,186 @@ function paintPodiumLabel(
 
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
-  ctx.font = '800 72px Outfit, system-ui, sans-serif';
+  const label = text.toUpperCase();
+  const maxWidth = width - 36;
+  let fontSize = 72;
+  ctx.font = `800 ${fontSize}px Outfit, system-ui, sans-serif`;
+  while (fontSize > 26 && ctx.measureText(label).width > maxWidth) {
+    fontSize -= 2;
+    ctx.font = `800 ${fontSize}px Outfit, system-ui, sans-serif`;
+  }
   ctx.fillStyle = '#fff8e8';
-  ctx.fillText(text.toUpperCase(), width / 2, height / 2 + 2);
+  ctx.fillText(label, width / 2, height / 2 + 2);
+}
+
+function paintStoryCover(
+  ctx: CanvasRenderingContext2D,
+  width: number,
+  height: number,
+  prize: ResolvedPrize['prize'],
+  place: number,
+  tier: TierPalette,
+  mode: StageMode,
+) {
+  const cx = width / 2;
+  const pad = width * 0.075;
+  let seed = 1789 + place * 101;
+  const rand = () => {
+    seed = (seed * 16807) % 2147483647;
+    return seed / 2147483647;
+  };
+
+  ctx.clearRect(0, 0, width, height);
+  const sky = ctx.createLinearGradient(0, 0, 0, height);
+  sky.addColorStop(0, '#120a26');
+  sky.addColorStop(0.46, '#070410');
+  sky.addColorStop(1, '#030207');
+  ctx.fillStyle = sky;
+  ctx.fillRect(0, 0, width, height);
+
+  const haze = ctx.createRadialGradient(cx, height * 0.38, 0, cx, height * 0.38, width * 0.58);
+  haze.addColorStop(0, `${tier.face}55`);
+  haze.addColorStop(0.42, `${tier.faceDeep}24`);
+  haze.addColorStop(1, 'rgba(3,2,7,0)');
+  ctx.fillStyle = haze;
+  ctx.fillRect(0, 0, width, height);
+
+  ctx.save();
+  ctx.translate(cx, height * 0.42);
+  for (let i = 0; i < 20; i++) {
+    const angle = (i / 20) * Math.PI * 2 + 0.15;
+    ctx.rotate(angle);
+    const ray = ctx.createLinearGradient(0, 0, width * 0.52, 0);
+    ray.addColorStop(0, `${tier.glow}18`);
+    ray.addColorStop(1, `${tier.glow}00`);
+    ctx.fillStyle = ray;
+    ctx.beginPath();
+    ctx.moveTo(0, 0);
+    ctx.lineTo(width * 0.52, -width * 0.005);
+    ctx.lineTo(width * 0.52, width * 0.005);
+    ctx.closePath();
+    ctx.fill();
+    ctx.rotate(-angle);
+  }
+  ctx.restore();
+
+  for (let i = 0; i < 150; i++) {
+    const x = rand() * width;
+    const y = rand() * height * 0.64;
+    const radius = rand() < 0.1 ? 2.2 : rand() < 0.5 ? 1.2 : 0.7;
+    ctx.fillStyle = `rgba(255, ${230 + Math.floor(rand() * 25)}, 235, ${0.25 + rand() * 0.55})`;
+    ctx.beginPath();
+    ctx.arc(x, y, radius, 0, Math.PI * 2);
+    ctx.fill();
+  }
+
+  const moonX = cx;
+  const moonY = height * 0.33;
+  const moonR = width * 0.145;
+  const moonGlow = ctx.createRadialGradient(moonX, moonY, moonR * 0.4, moonX, moonY, moonR * 2.4);
+  moonGlow.addColorStop(0, `${tier.glow}55`);
+  moonGlow.addColorStop(1, `${tier.glow}00`);
+  ctx.fillStyle = moonGlow;
+  ctx.beginPath();
+  ctx.arc(moonX, moonY, moonR * 2.4, 0, Math.PI * 2);
+  ctx.fill();
+  const moon = ctx.createLinearGradient(moonX - moonR, moonY - moonR, moonX + moonR, moonY + moonR);
+  moon.addColorStop(0, tier.faceLight);
+  moon.addColorStop(0.62, tier.face);
+  moon.addColorStop(1, tier.faceDeep);
+  ctx.fillStyle = moon;
+  ctx.beginPath();
+  ctx.arc(moonX, moonY, moonR, 0, Math.PI * 2);
+  ctx.fill();
+
+  const horizon = height * 0.64;
+  ctx.fillStyle = '#08040f';
+  ctx.beginPath();
+  ctx.moveTo(0, height);
+  ctx.lineTo(0, horizon + height * 0.04);
+  for (let i = 0; i <= 7; i++) {
+    const x = (i / 7) * width;
+    const y = horizon + Math.sin(i * 1.4 + place) * height * 0.035 - (i % 3 === 0 ? height * 0.04 : 0);
+    ctx.lineTo(x, y);
+  }
+  ctx.lineTo(width, height);
+  ctx.closePath();
+  ctx.fill();
+  ctx.fillStyle = '#040209';
+  ctx.beginPath();
+  ctx.moveTo(0, height);
+  ctx.lineTo(0, horizon + height * 0.11);
+  ctx.quadraticCurveTo(width * 0.28, horizon + height * 0.03, width * 0.5, horizon + height * 0.1);
+  ctx.quadraticCurveTo(width * 0.74, horizon + height * 0.17, width, horizon + height * 0.07);
+  ctx.lineTo(width, height);
+  ctx.closePath();
+  ctx.fill();
+
+  const reflection = ctx.createLinearGradient(0, horizon, 0, height);
+  reflection.addColorStop(0, `${tier.glow}22`);
+  reflection.addColorStop(1, `${tier.glow}00`);
+  ctx.fillStyle = reflection;
+  ctx.fillRect(cx - width * 0.18, horizon, width * 0.36, height - horizon);
+
+  const vignette = ctx.createRadialGradient(cx, height * 0.46, height * 0.2, cx, height * 0.46, height * 0.75);
+  vignette.addColorStop(0, 'rgba(0,0,0,0)');
+  vignette.addColorStop(1, 'rgba(0,0,0,0.62)');
+  ctx.fillStyle = vignette;
+  ctx.fillRect(0, 0, width, height);
+
+  ctx.textAlign = 'left';
+  ctx.textBaseline = 'alphabetic';
+  ctx.font = `800 ${Math.round(width * 0.034)}px Outfit, system-ui, sans-serif`;
+  ctx.fillStyle = tier.glow;
+  const eyebrow =
+    mode === 'story' ? 'STORY & VIDEO' : mode === 'special' ? 'SPECIAL CATEGORY' : prize.category.toUpperCase();
+  ctx.fillText(eyebrow, pad, pad + 18);
+
+  const badgeX = width - pad - width * 0.06;
+  const badgeY = pad + width * 0.055;
+  ctx.beginPath();
+  ctx.arc(badgeX, badgeY, width * 0.06, 0, Math.PI * 2);
+  ctx.fillStyle = tier.face;
+  ctx.fill();
+  ctx.strokeStyle = `${tier.faceLight}bb`;
+  ctx.lineWidth = 2;
+  ctx.stroke();
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillStyle = tier.ink;
+  if (mode === 'special') {
+    const outer = width * 0.032;
+    const inner = width * 0.014;
+    ctx.beginPath();
+    for (let i = 0; i < 10; i++) {
+      const radius = i % 2 === 0 ? outer : inner;
+      const angle = -Math.PI / 2 + (i * Math.PI) / 5;
+      const px = badgeX + Math.cos(angle) * radius;
+      const py = badgeY + Math.sin(angle) * radius;
+      if (i === 0) ctx.moveTo(px, py);
+      else ctx.lineTo(px, py);
+    }
+    ctx.closePath();
+    ctx.fill();
+  } else {
+    ctx.font = `900 ${Math.round(width * 0.062)}px Unbounded, Outfit, system-ui, sans-serif`;
+    ctx.fillText(String(place), badgeX, badgeY + width * 0.004);
+  }
+
+  const shade = ctx.createLinearGradient(0, height * 0.62, 0, height);
+  shade.addColorStop(0, 'rgba(3,2,7,0)');
+  shade.addColorStop(0.55, 'rgba(3,2,7,0.72)');
+  shade.addColorStop(1, 'rgba(3,2,7,0.96)');
+  ctx.fillStyle = shade;
+  ctx.fillRect(0, height * 0.6, width, height * 0.4);
+
+  // No title here: the info plaque directly below already carries it, and a
+  // poster that repeats it reads as a placeholder rather than artwork.
+  const spark = ctx.createLinearGradient(0, height * 0.86, 0, height);
+  spark.addColorStop(0, `${tier.glow}00`);
+  spark.addColorStop(1, `${tier.glow}33`);
+  ctx.fillStyle = spark;
+  ctx.fillRect(0, height * 0.86, width, height * 0.14);
 }
 
 function paintArena(ctx: CanvasRenderingContext2D, width: number, height: number) {
@@ -596,6 +847,49 @@ function usePosterTexture(url: string | undefined): THREE.Texture | null {
     };
   }, [url]);
   return texture;
+}
+
+/** Story/video winners have no jam game, so their art comes from the prize itself. */
+function coverUrl(row: ResolvedPrize): string | undefined {
+  return row.game?.thumbnailUrl || row.prize.thumbnailUrl || undefined;
+}
+
+function GameCover({ slot, art }: { slot: PodiumSlot; art: number }) {
+  const texture = usePosterTexture(coverUrl(slot.row));
+  // Never show an empty panel if a thumbnail is still in flight: the generated
+  // poster keeps the slam looking finished, then swaps to the real art.
+  if (!texture) return <GeneratedCover slot={slot} art={art} />;
+  return (
+    <mesh position={[0, 0, 0.061]}>
+      <planeGeometry args={[art, art]} />
+      <meshBasicMaterial map={texture} toneMapped={false} />
+    </mesh>
+  );
+}
+
+function GeneratedCover({ slot, art }: { slot: PodiumSlot; art: number }) {
+  const { row } = slot;
+  const texture = useCanvasTexture(
+    (ctx, width, height) =>
+      paintStoryCover(ctx, width, height, row.prize, slot.place, slot.tier, slot.mode),
+    768,
+    768,
+    [row.prize.id, row.prize.title, row.prize.category, slot.place, slot.mode, slot.tier.face],
+  );
+  return (
+    <mesh position={[0, 0, 0.061]}>
+      <planeGeometry args={[art, art]} />
+      <meshBasicMaterial map={texture} toneMapped={false} />
+    </mesh>
+  );
+}
+
+function CardCover({ slot, art }: { slot: PodiumSlot; art: number }) {
+  return coverUrl(slot.row) ? (
+    <GameCover slot={slot} art={art} />
+  ) : (
+    <GeneratedCover slot={slot} art={art} />
+  );
 }
 
 function Arena() {
@@ -710,11 +1004,13 @@ function PodiumBase({ slot }: { slot: PodiumSlot }) {
   const coinRadius = Math.min(w * 0.26, h * 0.3, 0.55);
   const coinY = h * 0.55;
   const coinZ = d / 2 + 0.09;
+  // Special categories have no ranking, so they get the star medal instead of a numeral.
+  const medal = slot.mode === 'special' ? 0 : place;
   const coin = useCanvasTexture(
-    (ctx, width, height) => paintCoin(ctx, width, height, place, tier),
+    (ctx, width, height) => paintCoin(ctx, width, height, medal, tier),
     512,
     512,
-    [place, tier],
+    [medal, tier],
   );
   const label = useCanvasTexture(
     (ctx, width, height) => paintPodiumLabel(ctx, width, height, tier.label, tier.glow),
@@ -822,22 +1118,22 @@ function easeOutBounce(value: number): number {
   return n1 * t * t + 0.984375;
 }
 
-function SlamCard({ slot, onOpen, reduced }: { slot: PodiumSlot; onOpen: (game: JamGame) => void; reduced: boolean }) {
+function SlamCard({ slot, onOpen, reduced, launch }: { slot: PodiumSlot; onOpen: (game: JamGame) => void; reduced: boolean; launch: boolean }) {
   const cardRef = useRef<THREE.Group>(null);
   const hoverRef = useRef<THREE.Group>(null);
   const clockStart = useRef<number | null>(null);
   const [hovered, setHovered] = useState(false);
   const { art, plaqueH, cardBase, place, tier, row } = slot;
   const game = row.game;
+  const canOpen = slot.mode !== 'story' && Boolean(game);
   const targetY = cardBase;
   const startY = cardBase + 13;
-  const poster = usePosterTexture(game?.thumbnailUrl);
   const glow = useMemo(() => glowTexture(tier.glow), [tier.glow]);
   const info = useCanvasTexture(
-    (ctx, width, height) => paintInfoPlaque(ctx, width, height, row, tier.face),
+    (ctx, width, height) => paintInfoPlaque(ctx, width, height, row, tier.face, slot.kicker),
     1536,
     640,
-    [row.prize.id, row.prize.title, row.prize.amount, game?.gameId, game?.creatorName, tier.face],
+    [row.prize.id, row.prize.title, row.prize.amount, game?.gameId, game?.creatorName, tier.face, slot.kicker],
   );
 
   useEffect(() => {
@@ -850,6 +1146,14 @@ function SlamCard({ slot, onOpen, reduced }: { slot: PodiumSlot; onOpen: (game: 
     const group = cardRef.current;
     if (!group) return;
     const elapsed = state.clock.elapsedTime;
+
+    if (!launch) {
+      clockStart.current = null;
+      group.position.y = startY;
+      group.scale.set(1, 1, 1);
+      return;
+    }
+
     if (clockStart.current === null) clockStart.current = elapsed;
 
     if (reduced) {
@@ -881,7 +1185,7 @@ function SlamCard({ slot, onOpen, reduced }: { slot: PodiumSlot; onOpen: (game: 
   });
 
   const activate = () => {
-    if (game) onOpen(game);
+    if (canOpen && game) onOpen(game);
   };
 
   return (
@@ -891,7 +1195,7 @@ function SlamCard({ slot, onOpen, reduced }: { slot: PodiumSlot; onOpen: (game: 
         onPointerOver={(event) => {
           event.stopPropagation();
           setHovered(true);
-          document.body.style.cursor = 'pointer';
+          if (canOpen) document.body.style.cursor = 'pointer';
         }}
         onPointerOut={(event) => {
           event.stopPropagation();
@@ -900,7 +1204,7 @@ function SlamCard({ slot, onOpen, reduced }: { slot: PodiumSlot; onOpen: (game: 
         }}
         onClick={(event) => {
           event.stopPropagation();
-          activate();
+          if (canOpen) activate();
         }}
       >
         <group position={[0, plaqueH / 2, 0]}>
@@ -942,24 +1246,14 @@ function SlamCard({ slot, onOpen, reduced }: { slot: PodiumSlot; onOpen: (game: 
               envMapIntensity={1.2}
             />
           </RoundedBox>
-          {poster ? (
-            <mesh position={[0, 0, 0.061]}>
-              <planeGeometry args={[art, art]} />
-              <meshBasicMaterial map={poster} toneMapped={false} />
-            </mesh>
-          ) : (
-            <mesh position={[0, 0, 0.061]}>
-              <planeGeometry args={[art, art]} />
-              <meshStandardMaterial color="#17102b" metalness={0.3} roughness={0.6} />
-            </mesh>
-          )}
+          <CardCover slot={slot} art={art} />
           <mesh position={[0, (art + 0.13) / 2 + 0.012, 0.07]}>
             <boxGeometry args={[art * 0.72, 0.035, 0.03]} />
             <meshBasicMaterial color={tier.glow} toneMapped={false} />
           </mesh>
         </group>
 
-        {place === 1 ? <Crown art={art} cardTop={art + plaqueH + 0.16} /> : null}
+        {slot.mode !== 'special' && place === 1 ? <Crown art={art} cardTop={art + plaqueH + 0.16} /> : null}
       </group>
     </group>
   );
@@ -1011,19 +1305,30 @@ function Crown({ art, cardTop }: { art: number; cardTop: number }) {
   );
 }
 
-function ImpactRing({ slot, reduced }: { slot: PodiumSlot; reduced: boolean }) {
+function ImpactRing({ slot, reduced, launch }: { slot: PodiumSlot; reduced: boolean; launch: boolean }) {
   const ringRef = useRef<THREE.Mesh>(null);
   const materialRef = useRef<THREE.MeshBasicMaterial>(null);
+  const flashRef = useRef<THREE.Mesh>(null);
+  const flashMaterialRef = useRef<THREE.MeshBasicMaterial>(null);
   const startRef = useRef<number | null>(null);
 
   useFrame((state) => {
     const ring = ringRef.current;
     const material = materialRef.current;
-    if (!ring || !material || reduced) return;
+    const flash = flashRef.current;
+    const flashMaterial = flashMaterialRef.current;
+    if (!ring || !material || !flash || !flashMaterial) return;
+    if (!launch || reduced) {
+      ring.visible = false;
+      flash.visible = false;
+      startRef.current = null;
+      return;
+    }
     if (startRef.current === null) startRef.current = state.clock.elapsedTime;
     const local = state.clock.elapsedTime - startRef.current - slot.delay - 0.78;
     if (local < 0 || local > 0.8) {
       ring.visible = false;
+      flash.visible = false;
       return;
     }
     ring.visible = true;
@@ -1031,31 +1336,133 @@ function ImpactRing({ slot, reduced }: { slot: PodiumSlot; reduced: boolean }) {
     const scale = 0.35 + progress * 2.2;
     ring.scale.set(scale, scale, scale);
     material.opacity = (1 - progress) * 0.65;
+
+    if (local < 0.34) {
+      const flare = local / 0.34;
+      flash.visible = true;
+      flash.scale.setScalar(0.85 + flare * 2.5);
+      flashMaterial.opacity = (1 - flare) * 0.8;
+    } else {
+      flash.visible = false;
+    }
   });
 
   return (
-    <mesh ref={ringRef} rotation={[-Math.PI / 2, 0, 0]} position={[0, slot.h + 0.11, 0]} visible={false}>
-      <ringGeometry args={[0.62, 0.72, 64]} />
+    <>
+      <mesh ref={ringRef} rotation={[-Math.PI / 2, 0, 0]} position={[0, slot.h + 0.11, 0]} visible={false}>
+        <ringGeometry args={[0.62, 0.72, 64]} />
+        <meshBasicMaterial
+          ref={materialRef}
+          color={slot.tier.glow}
+          transparent
+          opacity={0}
+          side={THREE.DoubleSide}
+          blending={THREE.AdditiveBlending}
+          depthWrite={false}
+          toneMapped={false}
+        />
+      </mesh>
+      <mesh ref={flashRef} position={[0, slot.h + 0.55, 0.34]} visible={false} renderOrder={4}>
+        <planeGeometry args={[1, 1]} />
+        <meshBasicMaterial
+          ref={flashMaterialRef}
+          map={glowTexture(slot.tier.glow)}
+          transparent
+          opacity={0}
+          blending={THREE.AdditiveBlending}
+          depthWrite={false}
+          toneMapped={false}
+        />
+      </mesh>
+    </>
+  );
+}
+
+function ImpactBurst({ slot, reduced, launch }: { slot: PodiumSlot; reduced: boolean; launch: boolean }) {
+  const meshRef = useRef<THREE.InstancedMesh>(null);
+  const startRef = useRef<number | null>(null);
+  const dummy = useMemo(() => new THREE.Object3D(), []);
+  const count = 24;
+  const sparks = useMemo(
+    () =>
+      Array.from({ length: count }, (_, index) => {
+        const angle = (index / count) * Math.PI * 2 + Math.random() * 0.3;
+        const reach = 0.7 + Math.random() * 1.6;
+        return {
+          dx: Math.cos(angle) * reach,
+          dz: Math.sin(angle) * reach,
+          lift: 1.5 + Math.random() * 2.4,
+          size: 0.035 + Math.random() * 0.055,
+          spin: new THREE.Vector3(
+            (Math.random() - 0.5) * 8,
+            (Math.random() - 0.5) * 8,
+            (Math.random() - 0.5) * 8,
+          ),
+        };
+      }),
+    [count, slot.place],
+  );
+
+  useFrame((state) => {
+    const mesh = meshRef.current;
+    if (!mesh) return;
+    if (!launch || reduced) {
+      mesh.visible = false;
+      startRef.current = null;
+      return;
+    }
+    if (startRef.current === null) startRef.current = state.clock.elapsedTime;
+    const local = state.clock.elapsedTime - startRef.current - slot.delay - 0.78;
+    if (local < 0 || local > 0.95) {
+      mesh.visible = false;
+      return;
+    }
+    mesh.visible = true;
+    const progress = local / 0.95;
+    const fade = 1 - progress;
+    sparks.forEach((spark, index) => {
+      dummy.position.set(
+        spark.dx * progress * 2.3,
+        slot.h + 0.14 + spark.lift * local - 7.5 * local * local,
+        spark.dz * progress * 2.3,
+      );
+      dummy.rotation.set(spark.spin.x * local, spark.spin.y * local, spark.spin.z * local);
+      dummy.scale.setScalar(spark.size * fade);
+      dummy.updateMatrix();
+      mesh.setMatrixAt(index, dummy.matrix);
+    });
+    mesh.instanceMatrix.needsUpdate = true;
+  });
+
+  return (
+    <instancedMesh
+      ref={meshRef}
+      args={[undefined as unknown as THREE.BufferGeometry, undefined as unknown as THREE.Material, count]}
+      visible={false}
+      frustumCulled={false}
+      renderOrder={4}
+    >
+      <planeGeometry args={[1, 1]} />
       <meshBasicMaterial
-        ref={materialRef}
         color={slot.tier.glow}
         transparent
-        opacity={0}
+        opacity={0.9}
         side={THREE.DoubleSide}
         blending={THREE.AdditiveBlending}
         depthWrite={false}
         toneMapped={false}
       />
-    </mesh>
+    </instancedMesh>
   );
 }
 
-function Podium({ slot, onOpen, reduced }: { slot: PodiumSlot; onOpen: (game: JamGame) => void; reduced: boolean }) {
+function Podium({ slot, onOpen, reduced, launch }: { slot: PodiumSlot; onOpen: (game: JamGame) => void; reduced: boolean; launch: boolean }) {
   return (
     <group position={[slot.x, 0, slot.z]}>
       <PodiumBase slot={slot} />
-      <SlamCard slot={slot} onOpen={onOpen} reduced={reduced} />
-      <ImpactRing slot={slot} reduced={reduced} />
+      <SlamCard slot={slot} onOpen={onOpen} reduced={reduced} launch={launch} />
+      <ImpactRing slot={slot} reduced={reduced} launch={launch} />
+      <ImpactBurst slot={slot} reduced={reduced} launch={launch} />
       <pointLight
         position={[0, slot.h + 3.4, 3.2]}
         intensity={slot.place === 1 ? 24 : 15}
@@ -1080,37 +1487,53 @@ interface ConfettiPiece {
   x: number;
   y: number;
   z: number;
-  speed: number;
+  fall: number;
   sway: number;
+  drift: number;
   phase: number;
-  rotation: THREE.Euler;
+  flutter: number;
+  rx: number;
+  ry: number;
+  rz: number;
   spin: THREE.Vector3;
   size: number;
   color: THREE.Color;
 }
 
+/** The confetti field sits well behind the podiums so the cards stay the focus. */
+const CONFETTI_BACK_Z = -17.5;
+const CONFETTI_DEPTH = 12.5;
+const CONFETTI_TOP = 14.5;
+
+function spawnConfettiPiece(spread = false): ConfettiPiece {
+  return {
+    x: -17 + Math.random() * 34,
+    y: spread ? -1 + Math.random() * CONFETTI_TOP : CONFETTI_TOP + Math.random() * 3,
+    z: CONFETTI_BACK_Z + Math.random() * CONFETTI_DEPTH,
+    fall: 0.5 + Math.random() * 1.35,
+    sway: 0.4 + Math.random() * 1.9,
+    drift: 0.25 + Math.random() * 0.9,
+    phase: Math.random() * Math.PI * 2,
+    flutter: 1.4 + Math.random() * 3.2,
+    rx: Math.random() * 6,
+    ry: Math.random() * 6,
+    rz: Math.random() * 6,
+    spin: new THREE.Vector3(
+      (Math.random() - 0.5) * 3.4,
+      (Math.random() - 0.5) * 3.4,
+      (Math.random() - 0.5) * 3.4,
+    ),
+    size: 0.2 + Math.random() * 0.34,
+    color: new THREE.Color(CONFETTI_COLORS[Math.floor(Math.random() * CONFETTI_COLORS.length)]),
+  };
+}
+
 function WinnerConfetti({ reduced }: { reduced: boolean }) {
   const size = useThree((state) => state.size);
-  const count = size.width < 720 ? 150 : 300;
+  const count = size.width < 720 ? 240 : 460;
   const meshRef = useRef<THREE.InstancedMesh>(null);
   const pieces = useMemo<ConfettiPiece[]>(
-    () =>
-      Array.from({ length: count }, () => ({
-        x: -10 + Math.random() * 20,
-        y: Math.random() * 13,
-        z: -2 + Math.random() * 7,
-        speed: 0.55 + Math.random() * 1.15,
-        sway: 0.2 + Math.random() * 1.1,
-        phase: Math.random() * Math.PI * 2,
-        rotation: new THREE.Euler(Math.random() * 6, Math.random() * 6, Math.random() * 6),
-        spin: new THREE.Vector3(
-          (Math.random() - 0.5) * 4,
-          (Math.random() - 0.5) * 4,
-          (Math.random() - 0.5) * 4,
-        ),
-        size: 0.12 + Math.random() * 0.16,
-        color: new THREE.Color(CONFETTI_COLORS[Math.floor(Math.random() * CONFETTI_COLORS.length)]),
-      })),
+    () => Array.from({ length: count }, () => spawnConfettiPiece(true)),
     [count],
   );
   const dummy = useMemo(() => new THREE.Object3D(), []);
@@ -1127,26 +1550,33 @@ function WinnerConfetti({ reduced }: { reduced: boolean }) {
     if (!mesh) return;
     const dt = Math.min(delta, 0.05);
     const time = state.clock.elapsedTime;
+    // Slow gusts so the whole field ebbs and flows instead of falling straight down.
+    const gust = Math.sin(time * 0.23) * 1.6 + Math.sin(time * 0.61 + 1.2) * 0.5;
+
     pieces.forEach((piece, index) => {
       if (!reduced) {
-        piece.y -= piece.speed * dt;
-        if (piece.y < -0.5) {
-          piece.y = 12 + Math.random() * 2;
-          piece.x = -10 + Math.random() * 20;
-          piece.z = -2 + Math.random() * 7;
+        piece.y -= piece.fall * dt;
+        piece.rx += piece.spin.x * dt;
+        piece.ry += piece.spin.y * dt;
+        piece.rz += piece.spin.z * dt;
+        if (piece.y < -1.4) {
+          piece.y = CONFETTI_TOP + Math.random() * 3;
+          piece.x = -17 + Math.random() * 34;
+          piece.z = CONFETTI_BACK_Z + Math.random() * CONFETTI_DEPTH;
         }
       }
       dummy.position.set(
-        piece.x + Math.sin(time * 0.9 + piece.phase) * piece.sway * 0.35,
+        piece.x +
+          Math.sin(time * 0.75 + piece.phase) * piece.sway +
+          Math.sin(time * 0.31 + piece.phase * 1.7) * 0.6 +
+          gust * piece.drift,
         piece.y,
-        piece.z + Math.cos(time * 0.7 + piece.phase) * 0.18,
+        piece.z + Math.cos(time * 0.58 + piece.phase) * 0.75,
       );
-      dummy.rotation.set(
-        piece.rotation.x + time * piece.spin.x * (reduced ? 0 : 0.35),
-        piece.rotation.y + time * piece.spin.y * (reduced ? 0 : 0.35),
-        piece.rotation.z + time * piece.spin.z * (reduced ? 0 : 0.35),
-      );
-      dummy.scale.set(piece.size, piece.size * 2.35, piece.size);
+      dummy.rotation.set(piece.rx, piece.ry, piece.rz);
+      // Squash on one axis so each piece reads as a tumbling paper flake.
+      const flip = reduced ? 1 : 0.22 + Math.abs(Math.sin(time * piece.flutter + piece.phase)) * 0.78;
+      dummy.scale.set(piece.size * flip, piece.size * 2.3, piece.size);
       dummy.updateMatrix();
       mesh.setMatrixAt(index, dummy.matrix);
     });
@@ -1158,19 +1588,35 @@ function WinnerConfetti({ reduced }: { reduced: boolean }) {
       ref={meshRef}
       args={[undefined as unknown as THREE.BufferGeometry, undefined as unknown as THREE.Material, count]}
       frustumCulled={false}
-      renderOrder={2}
+      renderOrder={1}
     >
       <planeGeometry args={[1, 1]} />
-      <meshBasicMaterial side={THREE.DoubleSide} toneMapped={false} transparent opacity={0.92} />
+      <meshBasicMaterial
+        side={THREE.DoubleSide}
+        toneMapped={false}
+        transparent
+        opacity={0.94}
+        depthWrite={false}
+      />
     </instancedMesh>
   );
 }
 
-function StageContent({ rows, onOpen }: { rows: ResolvedPrize[]; onOpen: (game: JamGame) => void }) {
+function StageContent({
+  rows,
+  onOpen,
+  mode,
+  launch,
+}: {
+  rows: ResolvedPrize[];
+  onOpen: (game: JamGame) => void;
+  mode: StageMode;
+  launch: boolean;
+}) {
   const size = useThree((state) => state.size);
   const reduced = useReducedMotion();
   const narrow = size.width / Math.max(1, size.height) < 1.05;
-  const slots = useMemo(() => buildSlots(rows, narrow), [rows, narrow]);
+  const slots = useMemo(() => buildSlots(rows, narrow, mode), [rows, narrow, mode]);
   const bounds = useMemo(() => measureSlots(slots), [slots]);
 
   return (
@@ -1186,6 +1632,7 @@ function StageContent({ rows, onOpen }: { rows: ResolvedPrize[]; onOpen: (game: 
           slot={slot}
           onOpen={onOpen}
           reduced={reduced}
+          launch={launch}
         />
       ))}
       <WinnerConfetti reduced={reduced} />
@@ -1202,12 +1649,80 @@ function StageContent({ rows, onOpen }: { rows: ResolvedPrize[]; onOpen: (game: 
   );
 }
 
-/** Full-bleed 3D award ceremony: five podiums, square covers, live confetti. */
-export function WinnerStage3D({ rows, onOpen }: WinnerStage3DProps) {
+const MIN_LOADER_MS = 900;
+const MAX_LOADER_MS = 6500;
+const LOADER_FADE_MS = 700;
+
+/**
+ * Full-bleed 3D award ceremony: podiums plus covers slam down left-to-right.
+ *
+ * Every cover is downloaded before the wave starts, so the cards never appear
+ * half-painted mid-slam. A short minimum loader time gives the ceremony a
+ * deliberate beat instead of popping in instantly; a hard timeout keeps a slow
+ * network from trapping the screen behind the loader.
+ */
+export function WinnerStage3D({ rows, onOpen, mode = 'ranked' }: WinnerStage3DProps) {
   const ranked = useMemo(
     () => [...rows].sort((a, b) => (a.prize.place ?? 99) - (b.prize.place ?? 99)),
     [rows],
   );
+  const covers = useMemo(
+    () => ranked.map(coverUrl).filter((url): url is string => Boolean(url)),
+    [ranked],
+  );
+  const [progress, setProgress] = useState(0);
+  const [launch, setLaunch] = useState(false);
+  const [showLoader, setShowLoader] = useState(true);
+
+  useEffect(() => {
+    let alive = true;
+    let startTimer = 0;
+    let hideTimer = 0;
+    let maxTimer = 0;
+    let done = 0;
+    const startedAt = performance.now();
+
+    setProgress(0);
+    setLaunch(false);
+    setShowLoader(true);
+
+    const coversDone = covers.map((url) =>
+      loadGameThumbnail(url)
+        .catch(() => null)
+        .then(() => {
+          done += 1;
+          if (alive) setProgress(done / covers.length);
+        }),
+    );
+    const fontsDone = document.fonts?.ready?.catch(() => undefined) ?? Promise.resolve();
+    const artwork = Promise.all([...coversDone, fontsDone]).then(() => undefined);
+    const deadline = new Promise<void>((resolve) => {
+      maxTimer = window.setTimeout(resolve, MAX_LOADER_MS);
+    });
+
+    Promise.race([artwork, deadline]).then(() => {
+      if (!alive) return;
+      const remaining = Math.max(0, MIN_LOADER_MS - (performance.now() - startedAt));
+      startTimer = window.setTimeout(() => {
+        if (!alive) return;
+        setProgress(1);
+        setLaunch(true);
+        hideTimer = window.setTimeout(() => {
+          if (alive) setShowLoader(false);
+        }, LOADER_FADE_MS);
+      }, remaining);
+    });
+
+    return () => {
+      alive = false;
+      window.clearTimeout(startTimer);
+      window.clearTimeout(hideTimer);
+      window.clearTimeout(maxTimer);
+    };
+  }, [covers]);
+
+  const percent = Math.round(Math.min(1, Math.max(0.08, progress)) * 100);
+  const playable = useMemo(() => ranked.filter((row) => Boolean(row.game)), [ranked]);
 
   return (
     <div className="winner-stage3d" role="group" aria-label="October Jam winners on a 3D podium stage">
@@ -1222,17 +1737,41 @@ export function WinnerStage3D({ rows, onOpen }: WinnerStage3DProps) {
         }}
       >
         <Suspense fallback={null}>
-          <StageContent rows={ranked} onOpen={onOpen} />
+          <StageContent rows={ranked} onOpen={onOpen} mode={mode} launch={launch} />
         </Suspense>
       </Canvas>
+
+      {showLoader ? (
+        <div
+          className={`winner-stage3d__loader${launch ? ' is-done' : ''}`}
+          role="status"
+          aria-live="polite"
+          aria-label={launch ? 'Ceremony starting' : `Loading winners artwork ${percent} percent`}
+        >
+          <div className="winner-stage3d__loader-panel">
+            <p className="winner-stage3d__loader-kicker">October Jam · Hall of Fame</p>
+            <p className="winner-stage3d__loader-title">Rolling out the red carpet</p>
+            <div className="winner-stage3d__loader-track">
+              <div className="winner-stage3d__loader-fill" style={{ width: `${percent}%` }} />
+            </div>
+            <p className="winner-stage3d__loader-meta">
+              <span>{launch ? 'Places, everyone' : 'Summoning the champions'}</span>
+              <span>{launch ? '100%' : `${percent}%`}</span>
+            </p>
+          </div>
+        </div>
+      ) : null}
+
       <div className="winner-stage3d__a11y">
-        {ranked.map(({ prize, game }) =>
-          game ? (
-            <button key={prize.id} type="button" onClick={() => onOpen(game)}>
-              Play {prize.title} by {game.creatorName}
-            </button>
-          ) : null,
-        )}
+        {mode === 'story'
+          ? null
+          : playable.map(({ prize, game }) =>
+              game ? (
+                <button key={prize.id} type="button" onClick={() => onOpen(game)}>
+                  Play {prize.title} by {game.creatorName}
+                </button>
+              ) : null,
+            )}
       </div>
     </div>
   );

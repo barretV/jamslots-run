@@ -8,8 +8,6 @@ import {
 } from '../lib/octoberWinners';
 import { useLibraryImmersiveOverlay } from '../lib/useLibraryImmersiveOverlay';
 import type { JamGame } from '../types';
-import { FitStage, SpecialScene, StoryScene, type SpecialItem } from './AwardsStage';
-import { WinnersConfetti } from './WinnersConfetti';
 
 const WinnerStage3D = lazy(() =>
   import('./WinnerStage3D').then((module) => ({ default: module.WinnerStage3D })),
@@ -88,13 +86,12 @@ export function WinnersModal({ games, open, onClose, onOpen }: WinnersModalProps
   const votesBronze = rowById(resolved, 'votes-3');
   const editorRows = [editorsGold, editorsSilver, editorsBronze, place4, place5];
   const voteRows = [votesGold, votesSilver, votesBronze];
-  const is3dStage = tab === 'editors' || tab === 'votes';
 
-  const specials: SpecialItem[] = [
-    { kind: 'sticky', row: rowById(resolved, 'special-sticky') },
-    { kind: 'money', row: rowById(resolved, 'special-money') },
-    { kind: 'social', row: rowById(resolved, 'special-social') },
-    { kind: 'theme', row: rowById(resolved, 'special-theme') },
+  const specialRows = [
+    rowById(resolved, 'special-sticky'),
+    rowById(resolved, 'special-money'),
+    rowById(resolved, 'special-social'),
+    rowById(resolved, 'special-theme'),
   ];
 
   const storyRows = [
@@ -102,6 +99,17 @@ export function WinnersModal({ games, open, onClose, onOpen }: WinnersModalProps
     rowById(resolved, 'story-2'),
     rowById(resolved, 'story-3'),
   ];
+
+  const stageMode: 'ranked' | 'special' | 'story' =
+    tab === 'special' ? 'special' : tab === 'story' ? 'story' : 'ranked';
+  const stageRows =
+    tab === 'editors'
+      ? editorRows
+      : tab === 'votes'
+        ? voteRows
+        : tab === 'special'
+          ? specialRows
+          : storyRows;
 
   return createPortal(
     <div className="winners-modal">
@@ -150,25 +158,23 @@ export function WinnersModal({ games, open, onClose, onOpen }: WinnersModalProps
             aria-labelledby={`winners-tab-${tab}`}
             aria-label={heading(tab)}
           >
-            {is3dStage ? (
-              <Suspense
-                key={tab}
-                fallback={
-                  <div className="winner-stage3d winner-stage3d--loading">
-                    <p>Raising the podiums…</p>
+            <Suspense
+              key={tab}
+              fallback={
+                <div className="winner-stage3d winner-stage3d--loading" role="status">
+                  <div className="winner-stage3d__loader-panel">
+                    <p className="winner-stage3d__loader-kicker">October Jam · Hall of Fame</p>
+                    <p className="winner-stage3d__loader-title">Preparing the ceremony</p>
+                    <div className="winner-stage3d__loader-track">
+                      <div className="winner-stage3d__loader-fill winner-stage3d__loader-fill--indeterminate" />
+                    </div>
                   </div>
-                }
-              >
-                <WinnerStage3D rows={tab === 'editors' ? editorRows : voteRows} onOpen={onOpen} />
-              </Suspense>
-            ) : (
-              <FitStage key={tab}>
-                {tab === 'special' ? <SpecialScene items={specials} onOpen={onOpen} /> : null}
-                {tab === 'story' ? <StoryScene rows={storyRows} /> : null}
-              </FitStage>
-            )}
+                </div>
+              }
+            >
+              <WinnerStage3D key={tab} rows={stageRows} mode={stageMode} onOpen={onOpen} />
+            </Suspense>
           </section>
-          {is3dStage ? null : <WinnersConfetti burstKey={tab} />}
         </div>
       </div>
     </div>,

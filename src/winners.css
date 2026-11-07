@@ -298,6 +298,101 @@
   50% { opacity: 1; }
 }
 
+/* ---------- cinematic preloader ---------- */
+
+.winner-stage3d__loader {
+  position: absolute;
+  inset: 0;
+  z-index: 12;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  background:
+    radial-gradient(760px 480px at 50% 44%, rgba(255, 196, 70, 0.16), transparent 68%),
+    radial-gradient(620px 420px at 50% 96%, rgba(139, 92, 246, 0.16), transparent 70%),
+    #06040d;
+  transition: opacity 0.62s ease;
+}
+
+.winner-stage3d__loader.is-done {
+  opacity: 0;
+  pointer-events: none;
+}
+
+.winner-stage3d__loader-panel {
+  width: min(360px, 82vw);
+  display: grid;
+  gap: 10px;
+  text-align: center;
+  animation: winner-stage-panel 0.7s ease both;
+}
+
+@keyframes winner-stage-panel {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: none; }
+}
+
+.winner-stage3d__loader-kicker {
+  margin: 0;
+  color: rgba(255, 214, 130, 0.78);
+  font: 700 10px/1.2 Outfit, system-ui, sans-serif;
+  letter-spacing: 0.32em;
+  text-transform: uppercase;
+}
+
+.winner-stage3d__loader-title {
+  margin: 0 0 4px;
+  color: #fff8e8;
+  font: 800 clamp(22px, 4.4vw, 30px)/1.08 Unbounded, Outfit, system-ui, sans-serif;
+  letter-spacing: -0.01em;
+}
+
+.winner-stage3d__loader-track {
+  position: relative;
+  height: 4px;
+  border-radius: 999px;
+  overflow: hidden;
+  background: rgba(255, 248, 232, 0.12);
+  box-shadow: inset 0 0 0 1px rgba(255, 248, 232, 0.06);
+}
+
+.winner-stage3d__loader-fill {
+  height: 100%;
+  width: 0;
+  border-radius: inherit;
+  background: linear-gradient(90deg, #ffb020, #ffd76a 55%, #fff5cf);
+  box-shadow: 0 0 14px rgba(255, 199, 84, 0.68);
+  transition: width 0.28s ease;
+}
+
+.winner-stage3d__loader-fill--indeterminate {
+  width: 38% !important;
+  transition: none;
+  animation: winner-stage-fill 1.15s ease-in-out infinite;
+}
+
+@keyframes winner-stage-fill {
+  0% { transform: translateX(-110%); }
+  100% { transform: translateX(310%); }
+}
+
+.winner-stage3d__loader-meta {
+  margin: 0;
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  color: rgba(233, 222, 255, 0.56);
+  font: 600 10px/1.2 Outfit, system-ui, sans-serif;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .winner-stage3d__loader-panel { animation: none; }
+  .winner-stage3d__loader { transition: opacity 0.2s linear; }
+  .winner-stage3d__loader-fill--indeterminate { animation-duration: 2.4s; }
+}
+
 .winners-confetti {
   position: absolute;
   inset: 0;

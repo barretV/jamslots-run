@@ -14,6 +14,9 @@ export interface OctoberPrize {
   category: string;
   title: string;
   amount: number;
+  /** Story/video winners are not jam games, so their art comes from the jam feed. */
+  thumbnailUrl?: string;
+  creatorName?: string;
 }
 
 export const OCTOBER_SECTIONS: { id: WinnerSection; heading: string }[] = [
@@ -136,6 +139,9 @@ export const OCTOBER_PRIZES: OctoberPrize[] = [
     category: 'Story and Video',
     title: 'The Spirit of the Dying Lake',
     amount: 1000,
+    creatorName: 'SuperNinja745',
+    thumbnailUrl:
+      'https://res.cloudinary.com/venusseriesai/image/upload/v1792688703/run-tv/content/image/ugc/Q2UzeMUsXIPNom1Byga7eXt7iSW2_the-spirit-of-the-dying-lake_thumb.png',
   },
   {
     id: 'story-2',
@@ -145,6 +151,9 @@ export const OCTOBER_PRIZES: OctoberPrize[] = [
     category: 'Story and Video',
     title: 'When the Darkness Watches',
     amount: 600,
+    creatorName: 'phoenix09',
+    thumbnailUrl:
+      'https://res.cloudinary.com/venusseriesai/image/upload/v1792772996/run-tv/content/image/ugc/VlNQOjryDOP7ZzKbmgBCCRcLaL73_the-silence-before-the-scream_thumb.png',
   },
   {
     id: 'story-3',
@@ -154,6 +163,9 @@ export const OCTOBER_PRIZES: OctoberPrize[] = [
     category: 'Story and Video',
     title: 'ASTRA: The Last Monster Hunter',
     amount: 400,
+    creatorName: 'IonicStork411',
+    thumbnailUrl:
+      'https://res.cloudinary.com/venusseriesai/image/upload/v1793001233/run-tv/content/image/ugc/Aoom45HapqPHmeGxT2NK7KXBjJ82_astra-the-last-monster-hunter-2_thumb.png',
   },
 ];
 

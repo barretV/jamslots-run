@@ -1,5 +1,7 @@
 import { lazy, Suspense, useEffect, useMemo, useState } from 'react';
 import type { JamGame } from '../types';
+import { preloadCityThumbnails } from '../lib/cityTextureCache';
+import { resolveOctoberPrizes } from '../lib/octoberWinners';
 import { useFavoriteCounts } from './FavoriteCountsProvider';
 import { GamePosterGrid } from './GamePosterGrid';
 import { LibrarySortSelect, sortHintPhrase, type LibrarySortMode } from './LibrarySortSelect';
@@ -143,6 +145,14 @@ export function LibraryList({
     const id = window.setTimeout(() => setDebouncedQuery(query.trim()), 200);
     return () => window.clearTimeout(id);
   }, [query]);
+
+  // Warm the ceremony art ahead of time so the winners' slam never reveals a placeholder card.
+  useEffect(() => {
+    const urls = resolveOctoberPrizes(games)
+      .map((row) => row.game?.thumbnailUrl || row.prize.thumbnailUrl)
+      .filter((url): url is string => Boolean(url));
+    preloadCityThumbnails(urls);
+  }, [games]);
 
   const sortedGames = useMemo(
     () => sortGames(games, sortMode, getCount),

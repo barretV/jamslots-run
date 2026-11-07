@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 
 const cache = new Map<string, THREE.Texture>();
+const pending = new Map<string, Promise<THREE.Texture>>();
 const loader = new THREE.TextureLoader();
 loader.setCrossOrigin('anonymous');
 
@@ -80,11 +81,21 @@ export function loadGameThumbnail(url: string): Promise<THREE.Texture> {
   if (!trimmed) return Promise.reject(new Error('empty url'));
   const cached = cache.get(trimmed);
   if (cached) return Promise.resolve(cached);
+  const inFlight = pending.get(trimmed);
+  if (inFlight) return inFlight;
 
-  return loadWithLoader(trimmed).then((tex) => {
-    cache.set(trimmed, tex);
-    return tex;
-  });
+  const request = loadWithLoader(trimmed)
+    .then((tex) => {
+      cache.set(trimmed, tex);
+      pending.delete(trimmed);
+      return tex;
+    })
+    .catch((error) => {
+      pending.delete(trimmed);
+      throw error;
+    });
+  pending.set(trimmed, request);
+  return request;
 }
 
 export function preloadCityThumbnails(urls: string[]): void {

@@ -222,7 +222,7 @@ export function CityScene({
       <CityRoad streets={streets} />
       <CityTraffic streets={streets} />
       <CityAirTraffic streets={streets} buildings={buildings} />
-      <CitySearchlights buildings={buildings.filter((b) => !ribbons.has(b.game.gameId))} />
+      {celebrating ? null : <CitySearchlights buildings={buildings.filter((b) => !ribbons.has(b.game.gameId))} />}
       {quality !== 'low' ? <CityRain /> : null}
       <CityLife buildings={buildings} />
       <CityBuildings
@@ -231,6 +231,7 @@ export function CityScene({
         spawn={spawn}
         isFavorite={isFavorite}
         ribbons={ribbons}
+        celebrating={celebrating}
       />
       <UfoRig
         inputRef={inputRef}

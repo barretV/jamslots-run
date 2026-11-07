@@ -21,6 +21,8 @@ interface CityBuildingsProps {
   spawn: CitySpawn;
   isFavorite?: (gameId: string) => boolean;
   ribbons?: Map<string, PrizeMetal>;
+  /** Cinematic winners tour: the sign is the star, so gameplay markers stay off it. */
+  celebrating?: boolean;
 }
 
 const PINK = '#f472b6';
@@ -483,52 +485,20 @@ function WinnerBuildingMarks({
       if (slots.length === 0) continue;
       const color = RIBBON_COLOR[metal];
       const radius = medalRadius(metal);
-      const glowMat = new THREE.MeshBasicMaterial({
-        color,
-        transparent: true,
-        opacity: 0.22,
-        blending: THREE.AdditiveBlending,
-        depthWrite: false,
-        toneMapped: false,
-      });
       const medalMat = new THREE.MeshBasicMaterial({ color, toneMapped: true });
-      const beacons = new THREE.InstancedMesh(new THREE.BoxGeometry(1, 1, 1), glowMat, slots.length);
       const medals = new THREE.InstancedMesh(new THREE.SphereGeometry(1, 18, 14), medalMat, slots.length);
-      const discs = new THREE.InstancedMesh(new THREE.CircleGeometry(1, 24), medalMat, slots.length * 2);
-      beacons.frustumCulled = false;
       medals.frustumCulled = false;
-      discs.frustumCulled = false;
       slots.forEach((b, i) => {
-        const yaw = Math.atan2(b.x, b.z);
-        const ox = Math.sin(yaw);
-        const oz = Math.cos(yaw);
-        const beaconH = b.height + 22;
-        dummy.position.set(b.x - oz * (b.width * 0.85), beaconH * 0.5, b.z + ox * (b.depth * 0.85));
-        dummy.rotation.set(0, 0, 0);
-        dummy.scale.set(1.35, beaconH, 1.35);
-        dummy.updateMatrix();
-        beacons.setMatrixAt(i, dummy.matrix);
-
+        // Just a small medal on the roof. The old flat coin discs and the tall glow
+        // columns read as random shapes floating across the skyline and the posters.
         dummy.position.set(b.x, b.height + radius * 0.55, b.z);
+        dummy.rotation.set(0, 0, 0);
         dummy.scale.set(radius * 0.28, radius * 0.28, radius * 0.28);
         dummy.updateMatrix();
         medals.setMatrixAt(i, dummy.matrix);
-
-        const side = radius * 0.34;
-        dummy.position.set(b.x - oz * (b.width * 1.8 + 2.2), b.height + radius * 0.2, b.z + ox * (b.depth * 1.8 + 2.2));
-        dummy.rotation.set(0, yaw, 0);
-        dummy.scale.set(side, side, side);
-        dummy.updateMatrix();
-        discs.setMatrixAt(i * 2, dummy.matrix);
-        dummy.rotation.set(0, yaw + Math.PI, 0);
-        dummy.updateMatrix();
-        discs.setMatrixAt(i * 2 + 1, dummy.matrix);
-
       });
-      beacons.instanceMatrix.needsUpdate = true;
       medals.instanceMatrix.needsUpdate = true;
-      discs.instanceMatrix.needsUpdate = true;
-      g.add(beacons, medals, discs);
+      g.add(medals);
     }
     return g;
   }, [buildings, ribbons]);
@@ -538,7 +508,14 @@ function WinnerBuildingMarks({
   return <primitive object={group} />;
 }
 
-export function CityBuildings({ buildings, spawn, craftPos, isFavorite, ribbons }: CityBuildingsProps) {
+export function CityBuildings({
+  buildings,
+  spawn,
+  craftPos,
+  isFavorite,
+  ribbons,
+  celebrating = false,
+}: CityBuildingsProps) {
   const shell = useCityShell(buildings);
   const facingRef = useRef<string | null>(null);
   const faceYawRef = useRef(0);
@@ -592,8 +569,10 @@ export function CityBuildings({ buildings, spawn, craftPos, isFavorite, ribbons 
   return (
     <group>
       <primitive object={shell} />
-      <CitySignalBeacons buildings={buildings} isFavorite={isFavorite} />
-      {ribbons && ribbons.size > 0 ? <WinnerBuildingMarks buildings={buildings} ribbons={ribbons} /> : null}
+      {celebrating ? null : <CitySignalBeacons buildings={buildings} isFavorite={isFavorite} />}
+      {!celebrating && ribbons && ribbons.size > 0 ? (
+        <WinnerBuildingMarks buildings={buildings} ribbons={ribbons} />
+      ) : null}
       <CityRankLandmarks buildings={buildings} />
       {buildings.map((b) => (
         <GameBillboard
@@ -606,6 +585,7 @@ export function CityBuildings({ buildings, spawn, craftPos, isFavorite, ribbons 
           isFavorite={isFavorite?.(b.game.gameId) ?? false}
           isNew={isNewThisVisit(b.game.gameId)}
           ribbon={ribbons?.get(b.game.gameId)}
+          cinematic={celebrating}
         />
       ))}
     </group>
@@ -621,6 +601,7 @@ function GameBillboard({
   isFavorite,
   isNew,
   ribbon,
+  cinematic,
 }: {
   slot: CityBuildingSlot;
   spawn: CitySpawn;
@@ -630,6 +611,7 @@ function GameBillboard({
   isFavorite?: boolean;
   isNew: boolean;
   ribbon?: PrizeMetal;
+  cinematic?: boolean;
 }) {
   const featured = ribbon != null;
   const [tex, setTex] = useState<THREE.Texture | null>(null);
@@ -837,12 +819,14 @@ function GameBillboard({
           </mesh>
         </>
       ) : (
-        <mesh position={[0, auraH * 0.5, 0]} material={frameMat}>
-          <boxGeometry args={[0.22, auraH, 0.22]} />
+        // Stops at the bottom of the panel: a mast that ran to the top of the sign
+        // drew a bright line straight down the middle of the cover art.
+        <mesh position={[0, poleHighBottom + poleHighH * 0.5, 0]} material={frameMat}>
+          <boxGeometry args={[0.22, poleHighH, 0.22]} />
         </mesh>
       )}
 
-      {isFavorite ? (
+      {isFavorite && !cinematic ? (
         <mesh position={[0, auraH * 0.5, 0]} renderOrder={4}>
           <cylinderGeometry args={[size * 0.62, size * 0.62, auraH + size * 0.6, 24, 1, true]} />
           <meshBasicMaterial
@@ -857,7 +841,7 @@ function GameBillboard({
           />
         </mesh>
       ) : null}
-      {isNew && !isFavorite ? (
+      {isNew && !isFavorite && !cinematic ? (
         <mesh position={[0, auraH * 0.5, 0]} renderOrder={4}>
           <cylinderGeometry args={[size * 0.62, size * 0.62, auraH + size * 0.6, 24, 1, true]} />
           <meshBasicMaterial
@@ -872,7 +856,7 @@ function GameBillboard({
           />
         </mesh>
       ) : null}
-      {isFavorite ? (
+      {isFavorite && !cinematic ? (
         <mesh position={[0, 0.12, 0]} rotation={[-Math.PI / 2, 0, 0]} renderOrder={3}>
           <ringGeometry args={[size * 0.45, size * 0.95, 32]} />
           <meshBasicMaterial
@@ -886,7 +870,7 @@ function GameBillboard({
           />
         </mesh>
       ) : null}
-      {isNew ? (
+      {isNew && !cinematic ? (
         <mesh position={[0, 0.2, 0]} rotation={[-Math.PI / 2, 0, 0]} renderOrder={3}>
           <ringGeometry args={[greenRadius * 0.5, greenRadius, 32]} />
           <meshBasicMaterial
@@ -924,7 +908,7 @@ function GameBillboard({
             <planeGeometry args={[size, size]} />
           </mesh>
         ) : null}
-        {ribbon ? (
+        {ribbon && !cinematic ? (
           <group position={[-(size + framePad) * 0.5 - 0.15, 0, artZ]}>
             <mesh>
               <boxGeometry args={[0.42, size * 0.62, 0.16]} />

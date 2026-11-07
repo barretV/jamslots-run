@@ -1,4 +1,4 @@
-import { useFrame } from '@react-three/fiber';
+import { useFrame, useThree } from '@react-three/fiber';
 import type { MutableRefObject } from 'react';
 import { useEffect, useMemo, useRef } from 'react';
 import * as THREE from 'three';
@@ -36,6 +36,40 @@ interface CitySceneProps {
   onTourDone?: () => void;
   onTourStep?: (step: TourStep) => void;
   onIntro?: () => void;
+  onReady?: () => void;
+}
+
+/** Holds the ceremony back until the renderer has compiled and drawn a few frames. */
+function CityWarmup({ onReady }: { onReady?: () => void }) {
+  const { gl, scene, camera } = useThree();
+  const frames = useRef(0);
+  const compiled = useRef(false);
+  const fired = useRef(false);
+  const started = useRef(0);
+
+  useFrame(() => {
+    if (fired.current) return;
+    if (!started.current) started.current = performance.now();
+    frames.current += 1;
+    if (!compiled.current) {
+      if (frames.current < 2) return;
+      compiled.current = true;
+      // One long frame: every material in the city compiles here, while the
+      // loading veil is still covering the canvas.
+      try {
+        gl.compile(scene, camera);
+      } catch {
+        // Fall through; the renderer compiles lazily if this fails.
+      }
+      return;
+    }
+    if (frames.current >= 8 && performance.now() - started.current >= 650) {
+      fired.current = true;
+      onReady?.();
+    }
+  });
+
+  return null;
 }
 
 export function CityScene({
@@ -53,6 +87,7 @@ export function CityScene({
   onTourDone,
   onTourStep,
   onIntro,
+  onReady,
 }: CitySceneProps) {
   const layout = useMemo(() => buildCityLayout(games), [games]);
   const { buildings, streets } = layout;
@@ -151,6 +186,7 @@ export function CityScene({
       <color attach="background" args={['#3a1f57']} />
       <fog attach="fog" args={[fogColor, 145, 760]} />
       <CitySky />
+      <CityWarmup onReady={onReady} />
 
       <hemisphereLight color="#7a63e8" groundColor="#0a0718" intensity={0.5} />
       <ambientLight intensity={0.1} color="#3b2566" />

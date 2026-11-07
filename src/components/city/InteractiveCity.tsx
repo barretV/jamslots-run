@@ -37,6 +37,10 @@ export function InteractiveCity({ games, open, onClose, onOpen, filterLabel, isF
   const [celebrating, setCelebrating] = useState(true);
   const [tourCard, setTourCard] = useState<{ title: string; prize: string; amount: string } | null>(null);
   const [introCard, setIntroCard] = useState(true);
+  const [canvasOn, setCanvasOn] = useState(false);
+  const [sceneReady, setSceneReady] = useState(false);
+  const [loadingGone, setLoadingGone] = useState(false);
+  const [revealed, setRevealed] = useState(false);
   const [nearBuilding, setNearBuilding] = useState<CityBuildingSlot | null>(null);
   const [steerId, setSteerId] = useState<string | null>(null);
   const [favOpen, setFavOpen] = useState(false);
@@ -56,7 +60,10 @@ export function InteractiveCity({ games, open, onClose, onOpen, filterLabel, isF
   const citySpawn = useMemo(() => computeCitySpawn(layout.buildings), [layout]);
   const tourStops = useMemo(() => pickTourStops(layout.buildings, games), [layout, games]);
   const showTour = celebrating && tourStops.length > 0;
-  const sceneMode: CityFlightMode = showTour ? 'cinematic' : mode;
+  // The ceremony is held until the first frames are drawn, so the aerial shot and
+  // the title card are watched rather than hidden behind a cold canvas.
+  const tourLive = showTour && revealed;
+  const sceneMode: CityFlightMode = tourLive ? 'cinematic' : mode;
   modeRef.current = sceneMode;
   const favSlots = useMemo(
     () => (isFavorite ? layout.buildings.filter((b) => isFavorite(b.game.gameId)) : []),
@@ -77,6 +84,43 @@ export function InteractiveCity({ games, open, onClose, onOpen, filterLabel, isF
       setIntroCard(true);
     }
   }, [open]);
+
+  const onCityReady = useCallback(() => setSceneReady(true), []);
+
+  useEffect(() => {
+    if (!open) return;
+    setCanvasOn(false);
+    setSceneReady(false);
+    setLoadingGone(false);
+    setRevealed(false);
+    let second = 0;
+    // Mount the canvas one paint after the veil so the veil is what people see first.
+    const first = requestAnimationFrame(() => {
+      second = requestAnimationFrame(() => setCanvasOn(true));
+    });
+    return () => {
+      cancelAnimationFrame(first);
+      cancelAnimationFrame(second);
+    };
+  }, [open]);
+
+  useEffect(() => {
+    if (!open || sceneReady) return;
+    // Never leave the veil up forever if the GPU refuses to warm.
+    const id = window.setTimeout(() => setSceneReady(true), 12000);
+    return () => window.clearTimeout(id);
+  }, [open, sceneReady]);
+
+  useEffect(() => {
+    if (!sceneReady) return;
+    // Hold the ceremony until the veil has finished fading, so the aerial shot is
+    // watched from its first frame instead of starting behind the transition.
+    const id = window.setTimeout(() => {
+      setLoadingGone(true);
+      setRevealed(true);
+    }, 1150);
+    return () => window.clearTimeout(id);
+  }, [sceneReady]);
 
   const onIntro = useCallback(() => {
     setIntroCard(true);
@@ -292,6 +336,7 @@ export function InteractiveCity({ games, open, onClose, onOpen, filterLabel, isF
           }}
           onKeyDown={onWrapKeyDown}
         >
+          {canvasOn ? (
           <Canvas
             dpr={[1, 1.6]}
             camera={{
@@ -316,9 +361,10 @@ export function InteractiveCity({ games, open, onClose, onOpen, filterLabel, isF
               landProgress={landProgress}
               quality={quality}
               isFavorite={isFavorite}
-              celebrating={showTour}
+              celebrating={tourLive}
               onTourDone={beginFlight}
               onIntro={onIntro}
+              onReady={onCityReady}
               onTourStep={onTourStep}
               onCraftMove={(pos) => {
                 const w = window as typeof window & {
@@ -329,15 +375,28 @@ export function InteractiveCity({ games, open, onClose, onOpen, filterLabel, isF
               onNearBuilding={setNearBuilding}
             />
           </Canvas>
+          ) : null}
+
+          {loadingGone ? null : (
+            <div className={`city-loading${sceneReady ? ' is-ready' : ''}`} aria-live="polite" aria-busy={!sceneReady}>
+              <div className="city-loading__glow" aria-hidden="true" />
+              <p className="city-loading__kicker">October Jam · Hall of Fame</p>
+              <p className="city-loading__title">Winners City</p>
+              <div className="city-loading__bar" aria-hidden="true">
+                <span />
+              </div>
+              <p className="city-loading__status">Lighting the skyline…</p>
+            </div>
+          )}
 
           <div className="interactive-city-hud">
-            {showTour && tourCard ? (
+            {tourLive && tourCard ? (
               <div className="interactive-city-caption">
                 <p className="interactive-city-caption__title">{tourCard.title}</p>
                 <p className="interactive-city-caption__prize">{tourCard.prize}</p>
                 {tourCard.amount ? <p className="interactive-city-caption__amount">{tourCard.amount}</p> : null}
               </div>
-            ) : showTour ? null : mode === 'fly' ? (
+            ) : tourLive ? null : mode === 'fly' ? (
               <p className="interactive-city-hud__hint">WASD move · Q down · E up · Shift faster</p>
             ) : mode === 'landed' ? (
               <p className="interactive-city-hud__hint">On the roof. Play or take off.</p>
@@ -349,7 +408,7 @@ export function InteractiveCity({ games, open, onClose, onOpen, filterLabel, isF
             ) : null}
           </div>
 
-          {showTour && introCard ? (
+          {tourLive && introCard ? (
             <div className="interactive-city-intro">
               <p className="interactive-city-intro__kicker">October Jam · Hall of Fame</p>
               <p className="interactive-city-intro__title">Winners City</p>
@@ -383,13 +442,13 @@ export function InteractiveCity({ games, open, onClose, onOpen, filterLabel, isF
             </div>
           ) : null}
 
-          {showTour ? (
+          {tourLive ? (
             <button type="button" className="interactive-city-skip" onClick={beginFlight}>
               Skip
             </button>
           ) : null}
 
-          {showTour ? null : (
+          {tourLive ? null : (
           <div className="interactive-city-touch" aria-label="Flight controls">
             <button type="button" className="interactive-city-touch__btn" onPointerDown={() => bumpVertical(1)}>
               Up

@@ -110,9 +110,9 @@ const PLAQUE_ASPECT = 2.05;
  * whole descent visible while still starting above the stage. */
 const SLAM_START = 0.3;
 const SLAM_STAGGER = 0.46;
-const DROP_SECONDS = 0.9;
+const DROP_SECONDS = 0.85;
 const DROP_HEIGHT = 4.6;
-/** Accelerating fall: slow enough to track at the top, fast enough to hit hard. */
+/** Ease-out power: quick off the top mark, then floating to a stop on the podium. */
 const DROP_EASE = 2.2;
 
 function specialProfile(narrow: boolean): PodiumProfile {
@@ -1333,10 +1333,15 @@ function SlamCard({
       let y = startY;
       if (local >= 0) {
         // Gravity slam from off-stage, then a bounce and a slow idle float.
-        y = startY + (targetY - startY) * Math.pow(progress, DROP_EASE);
+        // MashKin's landing curve: the card comes down fast off the top mark and
+        // floats to a stop, then bounces once. Accelerating into the podium pushed
+        // almost all of the travel into the last frames above the frame edge, which
+        // is what made it look like a teleport.
+        const ease = 1 - Math.pow(1 - progress, DROP_EASE);
+        y = startY + (targetY - startY) * ease;
         if (progress >= 1) {
           const since = local - DROP_SECONDS;
-          y = targetY + Math.abs(Math.sin(since * 12)) * 0.3 * Math.exp(-since * 5.5);
+          y = targetY + Math.abs(Math.sin(since * 6.2)) * 0.2 * Math.exp(-since * 4.4);
           y += Math.sin(since * 0.9 + place) * 0.018;
         }
       }
@@ -1354,7 +1359,15 @@ function SlamCard({
       const sinceLanding = local - DROP_SECONDS;
       const squash = sinceLanding >= 0 ? Math.exp(-sinceLanding * 9) : 0;
       const stretch = falling ? 0.14 * progress * progress : 0;
-      group.scale.set(1 - squash * 0.2, 1 + stretch - squash * 0.38, 1 - squash * 0.2);
+      // A card is almost as tall as the camera frame, so pure vertical travel just
+      // reads as a slow drift. Starting smaller and scaling up sells depth: the
+      // card falls towards the viewer instead of sliding down a wall.
+      const grow = 0.6 + 0.4 * (1 - Math.pow(1 - progress, DROP_EASE));
+      group.scale.set(
+        grow * (1 - squash * 0.16),
+        grow * (1 + stretch - squash * 0.32),
+        grow * (1 - squash * 0.16),
+      );
     }
 
     const hover = hoverRef.current;
@@ -1648,17 +1661,17 @@ function DustBurst({ slot, reduced, launch }: { slot: PodiumSlot; reduced: boole
   const meshRef = useRef<THREE.InstancedMesh>(null);
   const startRef = useRef<number | null>(null);
   const dummy = useMemo(() => new THREE.Object3D(), []);
-  const count = 34;
+  const count = 52;
   const puffs = useMemo(
     () =>
       Array.from({ length: count }, (_, index) => {
         const angle = (index / count) * Math.PI * 2 + Math.random() * 0.9;
-        const reach = 0.7 + Math.random() * 1.7;
+        const reach = 1.0 + Math.random() * 2.1;
         return {
           dx: Math.cos(angle) * reach,
           dz: Math.sin(angle) * reach,
-          lift: 0.7 + Math.random() * 1.4,
-          size: 0.1 + Math.random() * 0.16,
+          lift: 1.1 + Math.random() * 1.9,
+          size: 0.18 + Math.random() * 0.24,
         };
       }),
     [count],
@@ -1692,7 +1705,7 @@ function DustBurst({ slot, reduced, launch }: { slot: PodiumSlot; reduced: boole
       mesh.setMatrixAt(index, dummy.matrix);
     });
     mesh.instanceMatrix.needsUpdate = true;
-    (mesh.material as THREE.MeshBasicMaterial).opacity = 0.3 * (1 - progress);
+    (mesh.material as THREE.MeshBasicMaterial).opacity = 0.52 * (1 - progress);
   });
 
   return (
@@ -1707,12 +1720,83 @@ function DustBurst({ slot, reduced, launch }: { slot: PodiumSlot; reduced: boole
       <meshBasicMaterial
         color={slot.tier.faceLight}
         transparent
-        opacity={0.3}
+        opacity={0.52}
         side={THREE.DoubleSide}
         blending={THREE.AdditiveBlending}
         depthWrite={false}
         toneMapped={false}
       />
+    </instancedMesh>
+  );
+}
+
+/**
+ * Stage grit thrown off the lip on impact. MashKin sells a landing with rubble
+ * that arcs out and bounces; soft dust alone reads as fog.
+ */
+function ImpactDebris({ slot, reduced, launch }: { slot: PodiumSlot; reduced: boolean; launch: boolean }) {
+  const meshRef = useRef<THREE.InstancedMesh>(null);
+  const startRef = useRef<number | null>(null);
+  const dummy = useMemo(() => new THREE.Object3D(), []);
+  const count = 24;
+  const dur = 1.15;
+  const bits = useMemo(
+    () =>
+      Array.from({ length: count }, () => {
+        const angle = Math.random() * Math.PI * 2;
+        return {
+          angle,
+          speed: 1.5 + Math.random() * 2.4,
+          up: 2.4 + Math.random() * 2.6,
+          size: 0.08 + Math.random() * 0.13,
+          spin: (Math.random() - 0.5) * 12,
+          tilt: Math.random() * Math.PI,
+        };
+      }),
+    [count],
+  );
+
+  useFrame((state) => {
+    const mesh = meshRef.current;
+    if (!mesh) return;
+    if (!launch || reduced) {
+      mesh.visible = false;
+      startRef.current = null;
+      return;
+    }
+    if (startRef.current === null) startRef.current = state.clock.elapsedTime;
+    const local = state.clock.elapsedTime - startRef.current - slot.delay - DROP_SECONDS;
+    if (local < 0 || local > dur) {
+      mesh.visible = false;
+      return;
+    }
+    mesh.visible = true;
+    const t = local;
+    bits.forEach((bit, index) => {
+      const x = Math.cos(bit.angle) * bit.speed * t;
+      const z = Math.sin(bit.angle) * bit.speed * t * 0.55;
+      const floor = slot.h + 0.06 + bit.size * 0.5;
+      const y = Math.max(floor, slot.h + 0.2 + bit.up * t - 7.4 * t * t);
+      dummy.position.set(x, y, z + 0.25);
+      dummy.rotation.set(bit.tilt + t * bit.spin, bit.angle + t * bit.spin * 0.6, t * bit.spin);
+      const shrink = t > dur * 0.72 ? Math.max(0, 1 - (t - dur * 0.72) / (dur * 0.28)) : 1;
+      dummy.scale.setScalar(bit.size * shrink);
+      dummy.updateMatrix();
+      mesh.setMatrixAt(index, dummy.matrix);
+    });
+    mesh.instanceMatrix.needsUpdate = true;
+  });
+
+  return (
+    <instancedMesh
+      ref={meshRef}
+      args={[undefined as unknown as THREE.BufferGeometry, undefined as unknown as THREE.Material, count]}
+      visible={false}
+      frustumCulled={false}
+      renderOrder={4}
+    >
+      <boxGeometry args={[1, 1, 1]} />
+      <meshBasicMaterial color={slot.tier.faceLight} transparent opacity={0.92} toneMapped={false} />
     </instancedMesh>
   );
 }
@@ -1813,6 +1897,7 @@ function Podium({
       <ImpactRing slot={slot} reduced={reduced} launch={launch} />
       <ImpactBurst slot={slot} reduced={reduced} launch={launch} />
       <DustBurst slot={slot} reduced={reduced} launch={launch} />
+      <ImpactDebris slot={slot} reduced={reduced} launch={launch} />
       <LandingFlash slot={slot} reduced={reduced} launch={launch} />
       <PodiumLight slot={slot} reduced={reduced} launch={launch} />
       <pointLight

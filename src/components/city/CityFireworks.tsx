@@ -159,16 +159,28 @@ export function CityFireworks({
       vel: new Float32Array(COUNT * 3),
       grav: new Float32Array(COUNT),
       next: 0.2,
-      cursor: 6,
+      cursor: 10,
       fired: 0,
     };
-    // Open with a shell already in the air so the sky is never empty on arrival.
-    for (let i = 0; i < 6; i++) {
-      spawnBurst(next, i, skyAnchor(focusX, focusZ, i + 1), positions, lives, colors, flicker, flashLife);
-      next.age[i] = 0.12 + i * 0.22;
+    // Opening volley: ten shells spread across the skyline, all breaking at once
+    // so the celebration starts with a full-sky curtain instead of a slow warm-up.
+    for (let i = 0; i < 10; i++) {
+      const ang = i * 0.628 + 0.4;
+      const rad = 60 + (i % 4) * 46;
+      spawnBurst(
+        next,
+        i,
+        { x: focusX + Math.cos(ang) * rad, y: 140 + (i % 3) * 34, z: focusZ + Math.sin(ang) * rad },
+        positions,
+        lives,
+        colors,
+        flicker,
+        flashLife,
+      );
+      next.age[i] = 0.06 + i * 0.045;
       next.fired += 1;
     }
-    for (let i = 6; i < BURSTS; i++) parkBurst(i, positions, lives, flashLife);
+    for (let i = 10; i < BURSTS; i++) parkBurst(i, positions, lives, flashLife);
     sim.current = next;
   }
 
@@ -281,9 +293,16 @@ export function CityFireworks({
       spawnBurst(s, s.cursor, anchor, positions, lives, colors, flicker, flashLife);
       s.cursor = (s.cursor + 1) % BURSTS;
       s.fired += 1;
-      // Every third shell launches a follow-up almost immediately, so the sky
-      // swells and eases instead of ticking like a metronome.
-      s.next = s.fired % 3 === 0 ? 0.1 : 0.3 + Math.random() * 0.24;
+      // The opening minutes of the display run hot; after that it settles into a
+      // swell-and-ease cadence instead of ticking like a metronome.
+      s.next =
+        s.fired < 18
+          ? s.fired % 2 === 0
+            ? 0.08
+            : 0.16 + Math.random() * 0.1
+          : s.fired % 3 === 0
+            ? 0.1
+            : 0.3 + Math.random() * 0.24;
       if (s.fired % 5 === 0 && list.length > 0) {
         const spot = list[s.fired % list.length];
         spawnBurst(

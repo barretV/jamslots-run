@@ -124,7 +124,7 @@ export function InteractiveCity({ games, open, onClose, onOpen, filterLabel, isF
 
   const onIntro = useCallback(() => {
     setIntroCard(true);
-    window.setTimeout(() => setIntroCard(false), 2600);
+    window.setTimeout(() => setIntroCard(false), 4900);
   }, []);
 
   const onTourStep = useCallback((step: TourStep) => {

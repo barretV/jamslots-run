@@ -19,8 +19,13 @@ export interface TourStep {
 
 const DWELL = 3.25;
 const BLEND = 0.55;
-/** Establishing shot: high and wide over the city, settling onto the first winner. */
-const INTRO = 2.7;
+/** Celebration hold: the camera hangs over the burning skyline before moving. */
+const HOLD = 4.2;
+/** Fly-in that settles onto the first winner. */
+const DESCENT = 2.6;
+const INTRO = HOLD + DESCENT;
+const HOLD_ORBIT_START = 0.34;
+const HOLD_ORBIT_END = HOLD_ORBIT_START + 0.46;
 
 export function pickTourStops(buildings: CityBuildingSlot[], games: JamGame[]): TourStop[] {
   const byPrize = new Map<string, string>();
@@ -115,14 +120,41 @@ export function CityWinnerTour({
     // block. The title card plays over this, so the ceremony starts on a frame
     // that establishes the whole city rather than snapping to a single building.
     if (t < 0) {
-      const k = Math.min(1, Math.max(0, elapsed.current / INTRO));
-      const e = k * k * (3 - 2 * k);
+      const flight = elapsed.current;
       const first = stops[0];
       pose(first.slot, focusX, focusZ, 0, posB.current, lookB.current);
-      wide.current.set(focusX + 250, 270, focusZ + 250);
-      // Arc down over the roofline. A straight lerp from the aerial to the stop
-      // slices through the towers standing between them.
       const outward = Math.atan2(first.slot.x - focusX, first.slot.z - focusZ);
+
+      // Celebration hold: hang over the skyline and let the whole display play.
+      if (flight < HOLD) {
+        const k = flight / HOLD;
+        const eased = k * k * (3 - 2 * k);
+        const orbit = HOLD_ORBIT_START + eased * 0.46;
+        const radius = 360 - eased * 50;
+        cam.position.set(
+          focusX + Math.cos(orbit) * radius,
+          280 - eased * 34,
+          focusZ + Math.sin(orbit) * radius,
+        );
+        // Aim above the rooftops so the bursts and the skyline stay in frame; a
+        // low aim point turns the hold into a dive down the street grid.
+        look.current.set(focusX, 120 + eased * 12, focusZ).lerp(lookB.current, eased * 0.1);
+        // A whisper of roll so the hang is not a dead-still tripod.
+        cam.up.set(Math.sin(Math.sin(k * Math.PI) * 0.035), 1, 0).normalize();
+        cam.lookAt(look.current);
+        cam.fov = 68 - eased * 4;
+        cam.updateProjectionMatrix();
+        return;
+      }
+
+      // Fly-in: arc down over the roofline instead of through it.
+      const k = Math.min(1, Math.max(0, (flight - HOLD) / DESCENT));
+      const e = k * k * (3 - 2 * k);
+      wide.current.set(
+        focusX + Math.cos(HOLD_ORBIT_END) * 310,
+        246,
+        focusZ + Math.sin(HOLD_ORBIT_END) * 310,
+      );
       posA.current.set(
         posB.current.x + Math.sin(outward) * 85,
         posB.current.y + 120,
@@ -136,9 +168,10 @@ export function CityWinnerTour({
         wide.current.y * w + posA.current.y * m + posB.current.y * n,
         wide.current.z * w + posA.current.z * m + posB.current.z * n,
       );
+      cam.up.set(0, 1, 0);
       look.current.set(focusX, 34, focusZ).lerp(lookB.current, e * e);
       cam.lookAt(look.current);
-      cam.fov = 66 - 16 * e;
+      cam.fov = 64 - 14 * e;
       cam.updateProjectionMatrix();
       return;
     }

@@ -2031,3 +2031,19 @@
     transition: none;
   }
 }
+
+/* Cinematic grade: vignette and a touch of contrast over the stage canvas. */
+.winner-stage3d canvas {
+  filter: saturate(1.12) contrast(1.06);
+}
+
+.winner-stage3d::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  pointer-events: none;
+  background:
+    radial-gradient(ellipse at 50% 44%, rgba(0, 0, 0, 0) 42%, rgba(0, 0, 0, 0.5) 100%),
+    linear-gradient(180deg, rgba(6, 3, 14, 0.42) 0%, rgba(0, 0, 0, 0) 22%);
+}

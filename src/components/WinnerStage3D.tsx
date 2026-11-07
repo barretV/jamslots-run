@@ -126,12 +126,12 @@ function CeremonyClock() {
   return null;
 }
 
-const SLAM_START = 0.2;
-const SLAM_STAGGER = 0.32;
-const DROP_SECONDS = 0.5;
-const DROP_HEIGHT = 5.4;
+const SLAM_START = 0.14;
+const SLAM_STAGGER = 0.28;
+const DROP_SECONDS = 0.42;
+const DROP_HEIGHT = 5.8;
 /** Gravity curve: a beat of hang at the top mark, then a hard accelerating slam. */
-const DROP_EASE = 1.7;
+const DROP_EASE = 1.55;
 
 function specialProfile(narrow: boolean): PodiumProfile {
   return narrow
@@ -311,22 +311,33 @@ function StageCamera({
   const basePos = useRef(new THREE.Vector3());
   const aim = useRef(new THREE.Vector3());
 
+  const push = useRef(new THREE.Vector3());
+
   useFrame((_state, delta) => {
     const base = basePos.current;
     if (base.lengthSq() === 0) return;
     const state = shake.current;
     const dt = Math.min(delta, 0.05);
-    state.strength *= Math.exp(-5.5 * dt);
-    state.punch *= Math.exp(-3.2 * dt);
+    // Crisp hits: the shake and punch are gone in a few frames instead of
+    // lingering into a mushy drift.
+    state.strength *= Math.exp(-8 * dt);
+    state.punch *= Math.exp(-5.2 * dt);
     const jitter = state.strength > 0.003 ? state.strength : 0;
-    // Jitter decays from the impact outwards, like a camera taking the hit, and
-    // the punch dollies the whole stage toward the viewer on each slam.
+
+    // The camera never sits still: a dolly-in over the ceremony plus a lazy sway
+    // and roll is most of what makes MashKin's stage feel shot instead of drawn.
+    const time = ceremonyClock.current;
+    const settle = 1 + 0.16 * Math.max(0, 1 - time / 1.8);
+    const sway = Math.sin(time * 0.55) * 0.22;
+    const lift = Math.sin(time * 0.42 + 1.1) * 0.12;
+    const dir = push.current.copy(base).sub(aim.current);
     camera.position.set(
-      base.x + (Math.random() - 0.5) * jitter,
-      base.y + (Math.random() - 0.5) * jitter,
-      base.z - state.punch + (Math.random() - 0.5) * jitter * 0.6,
+      aim.current.x + dir.x * settle + sway + (Math.random() - 0.5) * jitter,
+      aim.current.y + dir.y * settle + lift + (Math.random() - 0.5) * jitter,
+      aim.current.z + dir.z * settle - state.punch + (Math.random() - 0.5) * jitter * 0.6,
     );
     camera.lookAt(aim.current);
+    camera.rotation.z += Math.sin(time * 0.37) * 0.006;
   });
 
   useEffect(() => {
@@ -1934,7 +1945,11 @@ function PodiumBeam({ slot, reduced }: { slot: PodiumSlot; reduced: boolean }) {
     // Swell on the approach, then blow out on the hit and settle.
     const approach = since < 0 ? Math.max(0, 1 + since / 0.4) * 0.05 : 0;
     const flare = since >= 0 ? Math.exp(-since * 3.4) * (reduced ? 0.06 : 0.3) : 0;
-    material.opacity = (reduced ? 0.045 : 0.1) + approach + flare;
+    // The rig strikes on before anything falls, so the stage lights come up first.
+    const strike = ceremonyClock.current - slot.delay * 0.45;
+    const ignite = Math.max(0, Math.min(1, strike / 0.22));
+    const pop = strike > 0 ? Math.exp(-strike * 7) * 0.22 : 0;
+    material.opacity = ((reduced ? 0.045 : 0.1) + approach + flare + pop) * ignite;
   });
 
   return (

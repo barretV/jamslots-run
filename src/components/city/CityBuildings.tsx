@@ -207,20 +207,8 @@ function useCityShell(buildings: CityBuildingSlot[]) {
           bodyTint,
           winGlow,
         );
-        const antennaH = Math.min(16, Math.max(7, b.height * 0.12));
-        pushBox(
-          stripBatch,
-          dummy,
-          b.x - Math.sin(yaw) * b.width * 0.24,
-          b.height + antennaH * 0.5,
-          b.z - Math.cos(yaw) * b.depth * 0.24,
-          0.28,
-          antennaH,
-          0.28,
-          0,
-          slabTint,
-          accent,
-        );
+        // Deliberately no antenna above the roof: a 12-unit rod standing on the roof
+        // ran the full height of the sign panel and drew a line down the cover art.
       } else if (kind === 3) {
         const n = Math.min(8, Math.max(1, b.tierScales.length));
         const segH = b.height / n;

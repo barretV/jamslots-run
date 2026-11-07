@@ -5,7 +5,6 @@ import * as THREE from 'three';
 import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
 import { loadGameThumbnail } from '../lib/cityTextureCache';
 import { formatPrizeMoney, type ResolvedPrize, type SpecialKind } from '../lib/octoberWinners';
-import { useReducedMotion } from '../lib/useReducedMotion';
 import type { JamGame } from '../types';
 
 type StageMode = 'ranked' | 'special' | 'story';
@@ -126,9 +125,9 @@ function CeremonyClock() {
   return null;
 }
 
-const SLAM_START = 0.14;
-const SLAM_STAGGER = 0.28;
-const DROP_SECONDS = 0.42;
+const SLAM_START = 0.1;
+const SLAM_STAGGER = 0.24;
+const DROP_SECONDS = 0.36;
 const DROP_HEIGHT = 5.8;
 /** Gravity curve: a beat of hang at the top mark, then a hard accelerating slam. */
 const DROP_EASE = 1.55;
@@ -2184,7 +2183,9 @@ function StageContent({
   onImpact: () => void;
 }) {
   const size = useThree((state) => state.size);
-  const reduced = useReducedMotion();
+  // MashKin drives its ceremony from an in-game setting, not the OS motion query.
+  // The winners stage always plays the full show.
+  const reduced = false;
   const narrow = size.width / Math.max(1, size.height) < 1.05;
   const slots = useMemo(() => buildSlots(rows, narrow, mode), [rows, narrow, mode]);
   const bounds = useMemo(() => measureSlots(slots), [slots]);

@@ -101,6 +101,15 @@ const NARROW_PROFILES: Record<number, PodiumProfile> = {
 
 const PLAQUE_ASPECT = 2.4;
 
+/* Ceremony timing. The drop is deliberately long enough to read as a fall and
+ * the stagger is wide enough that the impacts travel left-to-right as a wave. */
+const SLAM_START = 0.18;
+const SLAM_STAGGER = 0.26;
+const DROP_SECONDS = 0.66;
+/* Small enough that the fall itself is on camera; a card dropped from far
+ * overhead only becomes visible in the last frame or two, which reads as a pop. */
+const DROP_HEIGHT = 3.1;
+
 function specialProfile(narrow: boolean): PodiumProfile {
   return narrow
     ? { w: 2.7, h: 1.5, d: 1.65, art: 2.75 }
@@ -230,7 +239,7 @@ function buildSlots(rows: ResolvedPrize[], narrow: boolean, mode: StageMode): Po
   // Physical left-to-right order, so the impacts travel across the stage like a wave.
   return slots
     .sort((a, b) => a.x - b.x || a.z - b.z)
-    .map((slot, index) => ({ ...slot, delay: 0.16 + index * 0.16 }));
+    .map((slot, index) => ({ ...slot, delay: SLAM_START + index * SLAM_STAGGER }));
 }
 
 function measureSlots(slots: PodiumSlot[]): StageBounds {
@@ -262,9 +271,38 @@ function measureSlots(slots: PodiumSlot[]): StageBounds {
   };
 }
 
-function StageCamera({ bounds, narrow }: { bounds: StageBounds; narrow: boolean }) {
+function StageCamera({
+  bounds,
+  narrow,
+  shake,
+}: {
+  bounds: StageBounds;
+  narrow: boolean;
+  shake: { current: StageShake };
+}) {
   const camera = useThree((state) => state.camera);
   const size = useThree((state) => state.size);
+  const basePos = useRef(new THREE.Vector3());
+  const aim = useRef(new THREE.Vector3());
+
+  useFrame((_state, delta) => {
+    const base = basePos.current;
+    if (base.lengthSq() === 0) return;
+    const state = shake.current;
+    state.strength *= Math.exp(-5.5 * Math.min(delta, 0.05));
+    if (state.strength < 0.003) {
+      camera.position.copy(base);
+      camera.lookAt(aim.current);
+      return;
+    }
+    // Jitter decays from the impact outwards, like a camera taking the hit.
+    camera.position.set(
+      base.x + (Math.random() - 0.5) * state.strength,
+      base.y + (Math.random() - 0.5) * state.strength,
+      base.z + (Math.random() - 0.5) * state.strength * 0.6,
+    );
+    camera.lookAt(aim.current);
+  });
 
   useEffect(() => {
     const aspect = Math.max(0.35, size.width / Math.max(1, size.height));
@@ -279,7 +317,9 @@ function StageCamera({ bounds, narrow }: { bounds: StageBounds; narrow: boolean 
       bounds.centerY + Math.sin(elevation) * distance,
       Math.cos(elevation) * distance + bounds.centerZ,
     );
-    camera.lookAt(0, bounds.centerY, bounds.centerZ);
+    basePos.current.copy(camera.position);
+    aim.current.set(0, bounds.centerY, bounds.centerZ);
+    camera.lookAt(aim.current);
     if ((camera as THREE.PerspectiveCamera).isPerspectiveCamera) {
       const perspective = camera as THREE.PerspectiveCamera;
       perspective.fov = 34;
@@ -1111,24 +1151,23 @@ function PodiumBase({ slot }: { slot: PodiumSlot }) {
   );
 }
 
-function easeOutBounce(value: number): number {
-  const n1 = 7.5625;
-  const d1 = 2.75;
-  let t = value;
-  if (t < 1 / d1) return n1 * t * t;
-  if (t < 2 / d1) {
-    t -= 1.5 / d1;
-    return n1 * t * t + 0.75;
-  }
-  if (t < 2.5 / d1) {
-    t -= 2.25 / d1;
-    return n1 * t * t + 0.9375;
-  }
-  t -= 2.625 / d1;
-  return n1 * t * t + 0.984375;
+interface StageShake {
+  strength: number;
 }
 
-function SlamCard({ slot, onOpen, reduced, launch }: { slot: PodiumSlot; onOpen: (game: JamGame) => void; reduced: boolean; launch: boolean }) {
+function SlamCard({
+  slot,
+  onOpen,
+  reduced,
+  launch,
+  shake,
+}: {
+  slot: PodiumSlot;
+  onOpen: (game: JamGame) => void;
+  reduced: boolean;
+  launch: boolean;
+  shake: { current: StageShake };
+}) {
   const cardRef = useRef<THREE.Group>(null);
   const hoverRef = useRef<THREE.Group>(null);
   const clockStart = useRef<number | null>(null);
@@ -1137,7 +1176,9 @@ function SlamCard({ slot, onOpen, reduced, launch }: { slot: PodiumSlot; onOpen:
   const game = row.game;
   const canOpen = slot.mode !== 'story' && Boolean(game);
   const targetY = cardBase;
-  const startY = cardBase + 13;
+  const startY = cardBase + DROP_HEIGHT;
+  const landed = useRef(false);
+  const tilt = slot.place % 2 === 0 ? 0.07 : -0.07;
   const glow = useMemo(() => glowTexture(tier.glow), [tier.glow]);
   const info = useCanvasTexture(
     (ctx, width, height) => paintInfoPlaque(ctx, width, height, row, tier.face, slot.kicker),
@@ -1159,8 +1200,10 @@ function SlamCard({ slot, onOpen, reduced, launch }: { slot: PodiumSlot; onOpen:
 
     if (!launch) {
       clockStart.current = null;
+      landed.current = false;
       group.position.y = startY;
       group.scale.set(1, 1, 1);
+      group.rotation.z = 0;
       return;
     }
 
@@ -1169,19 +1212,31 @@ function SlamCard({ slot, onOpen, reduced, launch }: { slot: PodiumSlot; onOpen:
     if (reduced) {
       group.position.y = targetY;
       group.scale.set(1, 1, 1);
+      group.rotation.z = 0;
     } else {
       const local = elapsed - clockStart.current - slot.delay;
-      const progress = Math.min(1, Math.max(0, local / 0.9));
+      const progress = Math.min(1, Math.max(0, local / DROP_SECONDS));
       let y = startY;
       if (local >= 0) {
-        y = startY + (targetY - startY) * easeOutBounce(progress);
+        // Accelerating fall, then a damped bounce settle once it hits.
+        y = startY + (targetY - startY) * Math.pow(progress, 1.75);
         if (progress >= 1) {
-          y = targetY + Math.sin((local - 0.9) * 1.15 + place) * 0.014;
+          const since = local - DROP_SECONDS;
+          y = targetY + Math.abs(Math.sin(since * 12)) * 0.26 * Math.exp(-since * 5.5);
         }
       }
       group.position.y = y;
-      const impact = Math.max(0, 1 - Math.abs(progress - 0.88) / 0.14);
-      group.scale.set(1 + impact * 0.035, 1 - impact * 0.075, 1 + impact * 0.035);
+
+      // Tumble in, then a hard squash on contact that the shake sells.
+      const falling = local >= 0 && progress < 1;
+      group.rotation.z = falling ? tilt * (1 - progress) : 0;
+      if (!reduced && !landed.current && local >= DROP_SECONDS * 0.97) {
+        landed.current = true;
+        shake.current.strength = Math.max(shake.current.strength, place === 1 ? 0.55 : 0.34);
+      }
+      const sinceLanding = local - DROP_SECONDS;
+      const squash = sinceLanding >= 0 ? Math.exp(-sinceLanding * 7) : 0;
+      group.scale.set(1 + squash * 0.14, 1 - squash * 0.22, 1 + squash * 0.14);
     }
 
     const hover = hoverRef.current;
@@ -1335,17 +1390,17 @@ function ImpactRing({ slot, reduced, launch }: { slot: PodiumSlot; reduced: bool
       return;
     }
     if (startRef.current === null) startRef.current = state.clock.elapsedTime;
-    const local = state.clock.elapsedTime - startRef.current - slot.delay - 0.78;
-    if (local < 0 || local > 0.8) {
+    const local = state.clock.elapsedTime - startRef.current - slot.delay - DROP_SECONDS * 0.9;
+    if (local < 0 || local > 1) {
       ring.visible = false;
       flash.visible = false;
       return;
     }
     ring.visible = true;
-    const progress = local / 0.8;
-    const scale = 0.35 + progress * 2.2;
+    const progress = local / 1;
+    const scale = 0.35 + progress * 3.6;
     ring.scale.set(scale, scale, scale);
-    material.opacity = (1 - progress) * 0.65;
+    material.opacity = (1 - progress) * 0.85;
 
     if (local < 0.34) {
       const flare = local / 0.34;
@@ -1422,13 +1477,13 @@ function ImpactBurst({ slot, reduced, launch }: { slot: PodiumSlot; reduced: boo
       return;
     }
     if (startRef.current === null) startRef.current = state.clock.elapsedTime;
-    const local = state.clock.elapsedTime - startRef.current - slot.delay - 0.78;
-    if (local < 0 || local > 0.95) {
+    const local = state.clock.elapsedTime - startRef.current - slot.delay - DROP_SECONDS * 0.9;
+    if (local < 0 || local > 1.1) {
       mesh.visible = false;
       return;
     }
     mesh.visible = true;
-    const progress = local / 0.95;
+    const progress = local / 1.1;
     const fade = 1 - progress;
     sparks.forEach((spark, index) => {
       dummy.position.set(
@@ -1466,11 +1521,23 @@ function ImpactBurst({ slot, reduced, launch }: { slot: PodiumSlot; reduced: boo
   );
 }
 
-function Podium({ slot, onOpen, reduced, launch }: { slot: PodiumSlot; onOpen: (game: JamGame) => void; reduced: boolean; launch: boolean }) {
+function Podium({
+  slot,
+  onOpen,
+  reduced,
+  launch,
+  shake,
+}: {
+  slot: PodiumSlot;
+  onOpen: (game: JamGame) => void;
+  reduced: boolean;
+  launch: boolean;
+  shake: { current: StageShake };
+}) {
   return (
     <group position={[slot.x, 0, slot.z]}>
       <PodiumBase slot={slot} />
-      <SlamCard slot={slot} onOpen={onOpen} reduced={reduced} launch={launch} />
+      <SlamCard slot={slot} onOpen={onOpen} reduced={reduced} launch={launch} shake={shake} />
       <ImpactRing slot={slot} reduced={reduced} launch={launch} />
       <ImpactBurst slot={slot} reduced={reduced} launch={launch} />
       <pointLight
@@ -1617,11 +1684,13 @@ function StageContent({
   onOpen,
   mode,
   launch,
+  shake,
 }: {
   rows: ResolvedPrize[];
   onOpen: (game: JamGame) => void;
   mode: StageMode;
   launch: boolean;
+  shake: { current: StageShake };
 }) {
   const size = useThree((state) => state.size);
   const reduced = useReducedMotion();
@@ -1631,7 +1700,7 @@ function StageContent({
 
   return (
     <>
-      <StageCamera bounds={bounds} narrow={narrow} />
+      <StageCamera bounds={bounds} narrow={narrow} shake={shake} />
       <Arena />
       <StudioEnvironment />
       <StageLights />
@@ -1643,6 +1712,7 @@ function StageContent({
           onOpen={onOpen}
           reduced={reduced}
           launch={launch}
+          shake={shake}
         />
       ))}
       <WinnerConfetti reduced={reduced} />
@@ -1683,6 +1753,8 @@ export function WinnerStage3D({ rows, onOpen, mode = 'ranked' }: WinnerStage3DPr
   const [progress, setProgress] = useState(0);
   const [launch, setLaunch] = useState(false);
   const [showLoader, setShowLoader] = useState(true);
+  const [fading, setFading] = useState(false);
+  const shake = useRef<StageShake>({ strength: 0 });
 
   useEffect(() => {
     let alive = true;
@@ -1694,6 +1766,7 @@ export function WinnerStage3D({ rows, onOpen, mode = 'ranked' }: WinnerStage3DPr
 
     setProgress(0);
     setLaunch(false);
+    setFading(false);
     setShowLoader(true);
 
     const coversDone = covers.map((url) =>
@@ -1716,9 +1789,12 @@ export function WinnerStage3D({ rows, onOpen, mode = 'ranked' }: WinnerStage3DPr
       startTimer = window.setTimeout(() => {
         if (!alive) return;
         setProgress(1);
-        setLaunch(true);
+        // Fade the curtain first, then drop the cards into a clear frame.
+        setFading(true);
         hideTimer = window.setTimeout(() => {
-          if (alive) setShowLoader(false);
+          if (!alive) return;
+          setLaunch(true);
+          setShowLoader(false);
         }, LOADER_FADE_MS);
       }, remaining);
     });
@@ -1747,13 +1823,13 @@ export function WinnerStage3D({ rows, onOpen, mode = 'ranked' }: WinnerStage3DPr
         }}
       >
         <Suspense fallback={null}>
-          <StageContent rows={ranked} onOpen={onOpen} mode={mode} launch={launch} />
+          <StageContent rows={ranked} onOpen={onOpen} mode={mode} launch={launch} shake={shake} />
         </Suspense>
       </Canvas>
 
       {showLoader ? (
         <div
-          className={`winner-stage3d__loader${launch ? ' is-done' : ''}`}
+          className={`winner-stage3d__loader${fading ? ' is-done' : ''}`}
           role="status"
           aria-live="polite"
           aria-label={launch ? 'Ceremony starting' : `Loading winners artwork ${percent} percent`}

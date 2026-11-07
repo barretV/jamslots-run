@@ -936,10 +936,9 @@ function GameBillboard({
             </mesh>
           </group>
         ) : null}
-      </group>
 
-      {rankMat ? (
-        <group position={[0, digitY, 0]}>
+        {rankMat ? (
+        <group position={[0, digitY - y, 0]}>
           <mesh position={[0, 0, 0.16]} renderOrder={8} material={rankMat}>
             <planeGeometry args={[numeral, numeral]} />
           </mesh>
@@ -949,8 +948,8 @@ function GameBillboard({
         </group>
       ) : null}
 
-      {statsMat ? (
-        <group ref={statsRef} position={[statsX, statsY, 0]}>
+        {statsMat ? (
+        <group ref={statsRef} position={[statsX, statsY - y, 0]}>
           <mesh position={[0, 0, 0.16]} renderOrder={9} material={statsMat}>
             <planeGeometry args={[boardW, boardH]} />
           </mesh>
@@ -959,6 +958,7 @@ function GameBillboard({
           </mesh>
         </group>
       ) : null}
+      </group>
     </group>
   );
 }

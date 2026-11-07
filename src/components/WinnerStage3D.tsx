@@ -4,7 +4,7 @@ import { Suspense, useEffect, useMemo, useRef, useState } from 'react';
 import * as THREE from 'three';
 import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
 import { loadGameThumbnail } from '../lib/cityTextureCache';
-import { formatPrizeMoney, type ResolvedPrize } from '../lib/octoberWinners';
+import { formatPrizeMoney, type ResolvedPrize, type SpecialKind } from '../lib/octoberWinners';
 import { useReducedMotion } from '../lib/useReducedMotion';
 import type { JamGame } from '../types';
 
@@ -121,6 +121,8 @@ interface PodiumSlot {
   place: number;
   mode: StageMode;
   kicker: string;
+  /** Podium nameplate: the real category for specials, the rank otherwise. */
+  label: string;
   tier: TierPalette;
   x: number;
   z: number;
@@ -222,6 +224,7 @@ function buildSlots(rows: ResolvedPrize[], narrow: boolean, mode: StageMode): Po
       place,
       mode,
       kicker,
+      label: mode === 'special' ? row.prize.category.toUpperCase() : tierFor(place, mode).label,
       tier: tierFor(place, mode),
       x: position.x,
       z: position.z,
@@ -564,6 +567,7 @@ function paintCoin(
   height: number,
   place: number,
   tier: TierPalette,
+  kind?: SpecialKind,
 ) {
   const cx = width / 2;
   const cy = height / 2;
@@ -601,19 +605,76 @@ function paintCoin(
     ctx.font = `900 ${Math.round(width * 0.58)}px Unbounded, Outfit, system-ui, sans-serif`;
     ctx.fillText(String(place), cx, cy + width * 0.035);
   } else {
-    const outer = width * 0.22;
-    const inner = width * 0.095;
-    ctx.beginPath();
-    for (let i = 0; i < 10; i++) {
-      const radius = i % 2 === 0 ? outer : inner;
-      const angle = -Math.PI / 2 + (i * Math.PI) / 5;
-      const px = cx + Math.cos(angle) * radius;
-      const py = cy + Math.sin(angle) * radius;
-      if (i === 0) ctx.moveTo(px, py);
-      else ctx.lineTo(px, py);
+    // Special categories each carry their own medal instead of one shared star.
+    const R = radius * 0.62;
+    const ink = tier.ink;
+    ctx.fillStyle = ink;
+    ctx.strokeStyle = ink;
+    ctx.lineWidth = Math.max(4, width * 0.028);
+    ctx.lineCap = 'round';
+    ctx.lineJoin = 'round';
+
+    if (kind === 'money') {
+      ctx.beginPath();
+      ctx.arc(cx, cy, R * 0.92, 0, Math.PI * 2);
+      ctx.stroke();
+      ctx.font = `900 ${Math.round(width * 0.42)}px Unbounded, Outfit, system-ui, sans-serif`;
+      ctx.fillText('$', cx, cy + width * 0.012);
+    } else if (kind === 'social') {
+      const spread = R * 0.78;
+      const nodes: [number, number][] = [
+        [cx - spread, cy],
+        [cx + spread * 0.86, cy - spread * 0.72],
+        [cx + spread * 0.86, cy + spread * 0.72],
+      ];
+      ctx.beginPath();
+      ctx.moveTo(nodes[0][0], nodes[0][1]);
+      ctx.lineTo(nodes[1][0], nodes[1][1]);
+      ctx.moveTo(nodes[0][0], nodes[0][1]);
+      ctx.lineTo(nodes[2][0], nodes[2][1]);
+      ctx.stroke();
+      for (const [nx, ny] of nodes) {
+        ctx.beginPath();
+        ctx.arc(nx, ny, R * 0.26, 0, Math.PI * 2);
+        ctx.stroke();
+      }
+    } else if (kind === 'theme') {
+      // Crescent moon plus a sparkle, for the theme award.
+      ctx.beginPath();
+      ctx.arc(cx - R * 0.1, cy, R, Math.PI * 0.32, Math.PI * 1.68, false);
+      ctx.arc(cx + R * 0.34, cy, R * 0.82, Math.PI * 1.68, Math.PI * 0.32, true);
+      ctx.closePath();
+      ctx.fill();
+      const sx = cx + R * 0.62;
+      const sy = cy - R * 0.6;
+      const spike = R * 0.34;
+      ctx.beginPath();
+      ctx.moveTo(sx, sy - spike);
+      ctx.quadraticCurveTo(sx, sy, sx + spike, sy);
+      ctx.quadraticCurveTo(sx, sy, sx, sy + spike);
+      ctx.quadraticCurveTo(sx, sy, sx - spike, sy);
+      ctx.quadraticCurveTo(sx, sy, sx, sy - spike);
+      ctx.fill();
+    } else {
+      // Sticky: a star with a drip running off the bottom point.
+      const outer = R;
+      const inner = R * 0.44;
+      ctx.beginPath();
+      for (let i = 0; i < 10; i++) {
+        const radius = i % 2 === 0 ? outer : inner;
+        const angle = -Math.PI / 2 + (i * Math.PI) / 5;
+        const px = cx + Math.cos(angle) * radius;
+        const py = cy + Math.sin(angle) * radius;
+        if (i === 0) ctx.moveTo(px, py);
+        else ctx.lineTo(px, py);
+      }
+      ctx.closePath();
+      ctx.fill();
+      ctx.beginPath();
+      ctx.moveTo(cx - R * 0.14, cy + R * 0.8);
+      ctx.quadraticCurveTo(cx, cy + R * 1.34, cx + R * 0.14, cy + R * 0.8);
+      ctx.fill();
     }
-    ctx.closePath();
-    ctx.fill();
   }
   ctx.shadowOffsetY = 0;
   ctx.shadowColor = 'transparent';
@@ -1085,17 +1146,20 @@ function PodiumBase({ slot }: { slot: PodiumSlot }) {
   const coinZ = d / 2 + 0.09;
   // Special categories have no ranking, so they get the star medal instead of a numeral.
   const medal = slot.mode === 'special' ? 0 : place;
+  const kind = slot.mode === 'special' ? slot.row.prize.specialKind : undefined;
   const coin = useCanvasTexture(
-    (ctx, width, height) => paintCoin(ctx, width, height, medal, tier),
+    (ctx, width, height) => paintCoin(ctx, width, height, medal, tier, kind),
     512,
     512,
-    [medal, tier],
+    [medal, tier, kind],
   );
+  // Special podiums name the award itself, so the stage reads as four distinct
+  // honours instead of four identical "special pick" plaques.
   const label = useCanvasTexture(
-    (ctx, width, height) => paintPodiumLabel(ctx, width, height, tier.label, tier.glow),
+    (ctx, width, height) => paintPodiumLabel(ctx, width, height, slot.label, tier.glow),
     512,
     144,
-    [tier.label, tier.glow],
+    [slot.label, tier.glow],
   );
 
   return (
@@ -1204,7 +1268,9 @@ function SlamCard({
   const [hovered, setHovered] = useState(false);
   const { art, plaqueH, cardBase, place, tier, row } = slot;
   const game = row.game;
-  const canOpen = slot.mode !== 'story' && Boolean(game);
+  const linkUrl = row.prize.linkUrl;
+  // Story/video winners have no in-app game, but they do have a run.world page.
+  const canOpen = Boolean(game) || Boolean(linkUrl);
   const targetY = cardBase;
   const startY = cardBase + DROP_HEIGHT;
   const landed = useRef(false);
@@ -1283,7 +1349,11 @@ function SlamCard({
   });
 
   const activate = () => {
-    if (canOpen && game) onOpen(game);
+    if (game) {
+      onOpen(game);
+      return;
+    }
+    if (linkUrl) window.open(linkUrl, '_blank', 'noopener,noreferrer');
   };
 
   return (

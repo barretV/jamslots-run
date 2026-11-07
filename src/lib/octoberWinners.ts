@@ -5,6 +5,9 @@ export type WinnerSection = 'editors' | 'special' | 'votes' | 'story';
 /** Ribbon used on the city. Ranked metals beat a special category on the same game. */
 export type PrizeMetal = 'gold' | 'silver' | 'bronze' | 'place' | 'special';
 
+/** Special categories are told apart by their own medal on the podium. */
+export type SpecialKind = 'sticky' | 'money' | 'social' | 'theme';
+
 export interface OctoberPrize {
   id: string;
   section: WinnerSection;
@@ -12,11 +15,14 @@ export interface OctoberPrize {
   place?: number;
   metal: PrizeMetal;
   category: string;
+  specialKind?: SpecialKind;
   title: string;
   amount: number;
   /** Story/video winners are not jam games, so their art comes from the jam feed. */
   thumbnailUrl?: string;
   creatorName?: string;
+  /** Story/video entries live on run.world rather than as playable jam games. */
+  linkUrl?: string;
 }
 
 export const OCTOBER_SECTIONS: { id: WinnerSection; heading: string }[] = [
@@ -77,6 +83,7 @@ export const OCTOBER_PRIZES: OctoberPrize[] = [
     section: 'special',
     metal: 'special',
     category: 'Most Sticky',
+    specialKind: 'sticky',
     title: 'Night of Spiders',
     amount: 500,
   },
@@ -85,6 +92,7 @@ export const OCTOBER_PRIZES: OctoberPrize[] = [
     section: 'special',
     metal: 'special',
     category: 'Best Monetization',
+    specialKind: 'money',
     title: 'MONSTER CONGA! [NEW UPDATE!]',
     amount: 500,
   },
@@ -93,6 +101,7 @@ export const OCTOBER_PRIZES: OctoberPrize[] = [
     section: 'special',
     metal: 'special',
     category: 'Best Social Features',
+    specialKind: 'social',
     title: 'FRAGTOWN: Holloween Event',
     amount: 500,
   },
@@ -101,6 +110,7 @@ export const OCTOBER_PRIZES: OctoberPrize[] = [
     section: 'special',
     metal: 'special',
     category: 'Best Use of Theme',
+    specialKind: 'theme',
     title: 'Not on the List: Mash Crasher',
     amount: 500,
   },
@@ -140,6 +150,7 @@ export const OCTOBER_PRIZES: OctoberPrize[] = [
     title: 'The Spirit of the Dying Lake',
     amount: 1000,
     creatorName: 'SuperNinja745',
+    linkUrl: 'https://run.world/SuperNinja745/the-spirit-of-the-dying-lake',
     thumbnailUrl:
       'https://res.cloudinary.com/venusseriesai/image/upload/v1792688703/run-tv/content/image/ugc/Q2UzeMUsXIPNom1Byga7eXt7iSW2_the-spirit-of-the-dying-lake_thumb.png',
   },
@@ -152,6 +163,7 @@ export const OCTOBER_PRIZES: OctoberPrize[] = [
     title: 'When the Darkness Watches',
     amount: 600,
     creatorName: 'phoenix09',
+    linkUrl: 'https://run.world/phoenix09/the-silence-before-the-scream',
     thumbnailUrl:
       'https://res.cloudinary.com/venusseriesai/image/upload/v1792772996/run-tv/content/image/ugc/VlNQOjryDOP7ZzKbmgBCCRcLaL73_the-silence-before-the-scream_thumb.png',
   },
@@ -164,6 +176,7 @@ export const OCTOBER_PRIZES: OctoberPrize[] = [
     title: 'ASTRA: The Last Monster Hunter',
     amount: 400,
     creatorName: 'IonicStork411',
+    linkUrl: 'https://run.world/IonicStork411/astra-the-last-monster-hunter-2',
     thumbnailUrl:
       'https://res.cloudinary.com/venusseriesai/image/upload/v1793001233/run-tv/content/image/ugc/Aoom45HapqPHmeGxT2NK7KXBjJ82_astra-the-last-monster-hunter-2_thumb.png',
   },

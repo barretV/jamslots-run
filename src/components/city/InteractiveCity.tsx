@@ -337,7 +337,7 @@ export function InteractiveCity({ games, open, onClose, onOpen, filterLabel, isF
                 <p className="interactive-city-caption__prize">{tourCard.prize}</p>
                 {tourCard.amount ? <p className="interactive-city-caption__amount">{tourCard.amount}</p> : null}
               </div>
-            ) : mode === 'fly' ? (
+            ) : showTour ? null : mode === 'fly' ? (
               <p className="interactive-city-hud__hint">WASD move · Q down · E up · Shift faster</p>
             ) : mode === 'landed' ? (
               <p className="interactive-city-hud__hint">On the roof. Play or take off.</p>

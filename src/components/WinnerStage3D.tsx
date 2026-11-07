@@ -108,6 +108,24 @@ const PLAQUE_ASPECT = 2.05;
  * start fully off-screen only spends the last handful of frames in frame, which
  * is what made the wave look like teleporting cards; this distance keeps the
  * whole descent visible while still starting above the stage. */
+/*
+ * The ceremony advances on its own clamped clock instead of the renderer's wall
+ * clock. On a software renderer the stage runs at a few frames per second, and a
+ * 0.85s fall measured in wall time becomes three frames — which is exactly the
+ * "cards teleport" look. Capping each step means slow hardware sees every frame
+ * of the fall, just later; fast hardware is unaffected because ordinary frames
+ * are shorter than the cap.
+ */
+const ceremonyClock = { current: 0 };
+const CEREMONY_MAX_STEP = 0.1;
+
+function CeremonyClock() {
+  useFrame((_state, delta) => {
+    ceremonyClock.current += Math.min(delta, CEREMONY_MAX_STEP);
+  });
+  return null;
+}
+
 const SLAM_START = 0.3;
 const SLAM_STAGGER = 0.46;
 const DROP_SECONDS = 0.85;
@@ -1296,10 +1314,10 @@ function SlamCard({
     };
   }, []);
 
-  useFrame((state, delta) => {
+  useFrame((_state, delta) => {
     const group = cardRef.current;
     if (!group) return;
-    const elapsed = state.clock.elapsedTime;
+    const elapsed = ceremonyClock.current;
 
     if (!launch) {
       clockStart.current = null;
@@ -1509,7 +1527,7 @@ function ImpactRing({ slot, reduced, launch }: { slot: PodiumSlot; reduced: bool
   const flashMaterialRef = useRef<THREE.MeshBasicMaterial>(null);
   const startRef = useRef<number | null>(null);
 
-  useFrame((state) => {
+  useFrame(() => {
     const ring = ringRef.current;
     const material = materialRef.current;
     const flash = flashRef.current;
@@ -1521,8 +1539,8 @@ function ImpactRing({ slot, reduced, launch }: { slot: PodiumSlot; reduced: bool
       startRef.current = null;
       return;
     }
-    if (startRef.current === null) startRef.current = state.clock.elapsedTime;
-    const local = state.clock.elapsedTime - startRef.current - slot.delay - DROP_SECONDS * 0.9;
+    if (startRef.current === null) startRef.current = ceremonyClock.current;
+    const local = ceremonyClock.current - startRef.current - slot.delay - DROP_SECONDS * 0.9;
     if (local < 0 || local > 1) {
       ring.visible = false;
       flash.visible = false;
@@ -1600,7 +1618,7 @@ function ImpactBurst({ slot, reduced, launch }: { slot: PodiumSlot; reduced: boo
     [count, slot.place],
   );
 
-  useFrame((state) => {
+  useFrame(() => {
     const mesh = meshRef.current;
     if (!mesh) return;
     if (!launch || reduced) {
@@ -1608,8 +1626,8 @@ function ImpactBurst({ slot, reduced, launch }: { slot: PodiumSlot; reduced: boo
       startRef.current = null;
       return;
     }
-    if (startRef.current === null) startRef.current = state.clock.elapsedTime;
-    const local = state.clock.elapsedTime - startRef.current - slot.delay - DROP_SECONDS * 0.9;
+    if (startRef.current === null) startRef.current = ceremonyClock.current;
+    const local = ceremonyClock.current - startRef.current - slot.delay - DROP_SECONDS * 0.9;
     if (local < 0 || local > 1.1) {
       mesh.visible = false;
       return;
@@ -1674,7 +1692,7 @@ function DustBurst({ slot, reduced, launch }: { slot: PodiumSlot; reduced: boole
     [count],
   );
 
-  useFrame((state) => {
+  useFrame(() => {
     const mesh = meshRef.current;
     if (!mesh) return;
     if (!launch || reduced) {
@@ -1682,8 +1700,8 @@ function DustBurst({ slot, reduced, launch }: { slot: PodiumSlot; reduced: boole
       startRef.current = null;
       return;
     }
-    if (startRef.current === null) startRef.current = state.clock.elapsedTime;
-    const local = state.clock.elapsedTime - startRef.current - slot.delay - DROP_SECONDS * 0.98;
+    if (startRef.current === null) startRef.current = ceremonyClock.current;
+    const local = ceremonyClock.current - startRef.current - slot.delay - DROP_SECONDS * 0.98;
     if (local < 0 || local > 1.25) {
       mesh.visible = false;
       return;
@@ -1753,7 +1771,7 @@ function ImpactDebris({ slot, reduced, launch }: { slot: PodiumSlot; reduced: bo
     [count],
   );
 
-  useFrame((state) => {
+  useFrame(() => {
     const mesh = meshRef.current;
     if (!mesh) return;
     if (!launch || reduced) {
@@ -1761,8 +1779,8 @@ function ImpactDebris({ slot, reduced, launch }: { slot: PodiumSlot; reduced: bo
       startRef.current = null;
       return;
     }
-    if (startRef.current === null) startRef.current = state.clock.elapsedTime;
-    const local = state.clock.elapsedTime - startRef.current - slot.delay - DROP_SECONDS;
+    if (startRef.current === null) startRef.current = ceremonyClock.current;
+    const local = ceremonyClock.current - startRef.current - slot.delay - DROP_SECONDS;
     if (local < 0 || local > dur) {
       mesh.visible = false;
       return;
@@ -1802,7 +1820,7 @@ function ImpactDebris({ slot, reduced, launch }: { slot: PodiumSlot; reduced: bo
 function LandingFlash({ slot, reduced, launch }: { slot: PodiumSlot; reduced: boolean; launch: boolean }) {
   const ref = useRef<THREE.Mesh>(null);
   const startRef = useRef<number | null>(null);
-  useFrame((state) => {
+  useFrame(() => {
     const mesh = ref.current;
     if (!mesh) return;
     if (!launch || reduced) {
@@ -1810,8 +1828,8 @@ function LandingFlash({ slot, reduced, launch }: { slot: PodiumSlot; reduced: bo
       startRef.current = null;
       return;
     }
-    if (startRef.current === null) startRef.current = state.clock.elapsedTime;
-    const local = state.clock.elapsedTime - startRef.current - slot.delay - DROP_SECONDS;
+    if (startRef.current === null) startRef.current = ceremonyClock.current;
+    const local = ceremonyClock.current - startRef.current - slot.delay - DROP_SECONDS;
     if (local < 0 || local > 0.24) {
       mesh.visible = false;
       return;
@@ -1842,7 +1860,7 @@ function PodiumLight({ slot, reduced, launch }: { slot: PodiumSlot; reduced: boo
   const ref = useRef<THREE.PointLight>(null);
   const startRef = useRef<number | null>(null);
   const base = slot.place === 1 ? 24 : 15;
-  useFrame((state) => {
+  useFrame(() => {
     const light = ref.current;
     if (!light) return;
     if (!launch) {
@@ -1850,8 +1868,8 @@ function PodiumLight({ slot, reduced, launch }: { slot: PodiumSlot; reduced: boo
       light.intensity = base;
       return;
     }
-    if (startRef.current === null) startRef.current = state.clock.elapsedTime;
-    const local = state.clock.elapsedTime - startRef.current - slot.delay - DROP_SECONDS;
+    if (startRef.current === null) startRef.current = ceremonyClock.current;
+    const local = ceremonyClock.current - startRef.current - slot.delay - DROP_SECONDS;
     if (local < 0) {
       // Anticipation: the key light swells just before the card comes down.
       const lead = Math.max(0, Math.min(1, 1 + local / 0.32));
@@ -1972,11 +1990,11 @@ function WinnerConfetti({ reduced }: { reduced: boolean }) {
     if (mesh.instanceColor) mesh.instanceColor.needsUpdate = true;
   }, [pieces]);
 
-  useFrame((state, delta) => {
+  useFrame((_state, delta) => {
     const mesh = meshRef.current;
     if (!mesh) return;
     const dt = Math.min(delta, 0.05);
-    const time = state.clock.elapsedTime;
+    const time = ceremonyClock.current;
     // Slow gusts so the whole field ebbs and flows instead of falling straight down.
     const gust = Math.sin(time * 0.23) * 1.6 + Math.sin(time * 0.61 + 1.2) * 0.5;
 
@@ -2190,7 +2208,7 @@ export function WinnerStage3D({ rows, onOpen, mode = 'ranked' }: WinnerStage3DPr
     <div className="winner-stage3d" role="group" aria-label="October Jam winners on a 3D podium stage">
       <div ref={flashRef} className="winner-stage3d__flash" aria-hidden="true" />
       <Canvas
-        dpr={[1, 1.75]}
+        dpr={[1, 1.5]}
         camera={{ fov: 34, near: 0.1, far: 120, position: [0, 8, 16] }}
         gl={{
           antialias: true,
@@ -2200,6 +2218,7 @@ export function WinnerStage3D({ rows, onOpen, mode = 'ranked' }: WinnerStage3DPr
         }}
       >
         <Suspense fallback={null}>
+          <CeremonyClock />
           <StageContent rows={ranked} onOpen={onOpen} mode={mode} launch={launch} shake={shake} onImpact={onImpact} />
         </Suspense>
       </Canvas>

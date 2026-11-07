@@ -264,6 +264,22 @@
   outline: none;
 }
 
+/* Landing pop: a warm flash over the stage, driven from the 3D impact. */
+.winner-stage3d__flash {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  pointer-events: none;
+  opacity: 0;
+  mix-blend-mode: screen;
+  background: radial-gradient(
+    circle at 50% 46%,
+    rgba(255, 247, 222, 0.92) 0%,
+    rgba(255, 214, 140, 0.34) 36%,
+    rgba(255, 190, 90, 0) 68%
+  );
+}
+
 .winner-stage3d__a11y {
   position: absolute;
   width: 1px;

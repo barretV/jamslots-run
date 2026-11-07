@@ -1,6 +1,6 @@
 import { Canvas, useFrame, useThree } from '@react-three/fiber';
 import { RoundedBox, Sparkles } from '@react-three/drei';
-import { Suspense, useEffect, useMemo, useRef, useState } from 'react';
+import { Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import * as THREE from 'three';
 import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
 import { loadGameThumbnail } from '../lib/cityTextureCache';
@@ -101,14 +101,19 @@ const NARROW_PROFILES: Record<number, PodiumProfile> = {
 
 const PLAQUE_ASPECT = 2.05;
 
-/* Ceremony timing. The drop is deliberately long enough to read as a fall and
- * the stagger is wide enough that the impacts travel left-to-right as a wave. */
-/* MashKin-style ceremony beats: each winner is held off-stage, then slams in on
- * its own cue with a hard drop, a squash, a shockwave and a camera punch. */
-const SLAM_START = 0.5;
-const SLAM_STAGGER = 0.42;
-const DROP_SECONDS = 0.52;
-const DROP_HEIGHT = 7.6;
+/* MashKin-style ceremony beats: each winner is held above the frame, then slams
+ * in on its own cue with a hard drop, a squash, a shockwave and a camera punch.
+ *
+ * The fall has to stay *inside* the camera view to read. A drop tall enough to
+ * start fully off-screen only spends the last handful of frames in frame, which
+ * is what made the wave look like teleporting cards; this distance keeps the
+ * whole descent visible while still starting above the stage. */
+const SLAM_START = 0.3;
+const SLAM_STAGGER = 0.46;
+const DROP_SECONDS = 0.9;
+const DROP_HEIGHT = 4.6;
+/** Accelerating fall: slow enough to track at the top, fast enough to hit hard. */
+const DROP_EASE = 2.2;
 
 function specialProfile(narrow: boolean): PodiumProfile {
   return narrow
@@ -1255,12 +1260,14 @@ function SlamCard({
   reduced,
   launch,
   shake,
+  onImpact,
 }: {
   slot: PodiumSlot;
   onOpen: (game: JamGame) => void;
   reduced: boolean;
   launch: boolean;
   shake: { current: StageShake };
+  onImpact: () => void;
 }) {
   const cardRef = useRef<THREE.Group>(null);
   const hoverRef = useRef<THREE.Group>(null);
@@ -1297,6 +1304,7 @@ function SlamCard({
     if (!launch) {
       clockStart.current = null;
       landed.current = false;
+      group.visible = false;
       group.position.y = startY;
       group.scale.set(1, 1, 1);
       group.rotation.z = 0;
@@ -1306,16 +1314,26 @@ function SlamCard({
     if (clockStart.current === null) clockStart.current = elapsed;
 
     if (reduced) {
+      group.visible = true;
       group.position.y = targetY;
       group.scale.set(1, 1, 1);
       group.rotation.z = 0;
     } else {
       const local = elapsed - clockStart.current - slot.delay;
+      // Hold the card out of the scene until its own beat. Showing the whole
+      // queue waiting above the podiums is what made the wave read as one
+      // simultaneous drop instead of five separate slams.
+      if (local < 0) {
+        group.visible = false;
+        group.position.y = startY;
+        return;
+      }
+      group.visible = true;
       const progress = Math.min(1, Math.max(0, local / DROP_SECONDS));
       let y = startY;
       if (local >= 0) {
         // Gravity slam from off-stage, then a bounce and a slow idle float.
-        y = startY + (targetY - startY) * Math.pow(progress, 1.6);
+        y = startY + (targetY - startY) * Math.pow(progress, DROP_EASE);
         if (progress >= 1) {
           const since = local - DROP_SECONDS;
           y = targetY + Math.abs(Math.sin(since * 12)) * 0.3 * Math.exp(-since * 5.5);
@@ -1329,13 +1347,14 @@ function SlamCard({
       group.rotation.z = falling ? tilt * (1 - progress) : 0;
       if (!reduced && !landed.current && local >= DROP_SECONDS * 0.97) {
         landed.current = true;
-        shake.current.strength = Math.max(shake.current.strength, place === 1 ? 0.5 : 0.34);
-        shake.current.punch = Math.max(shake.current.punch, place === 1 ? 1.15 : 0.55);
+        shake.current.strength = Math.max(shake.current.strength, place === 1 ? 0.72 : 0.48);
+        shake.current.punch = Math.max(shake.current.punch, place === 1 ? 1.7 : 0.85);
+        if (!reduced) onImpact();
       }
       const sinceLanding = local - DROP_SECONDS;
       const squash = sinceLanding >= 0 ? Math.exp(-sinceLanding * 9) : 0;
-      const stretch = falling ? 0.1 * progress * progress : 0;
-      group.scale.set(1 - squash * 0.16, 1 + stretch - squash * 0.3, 1 - squash * 0.16);
+      const stretch = falling ? 0.14 * progress * progress : 0;
+      group.scale.set(1 - squash * 0.2, 1 + stretch - squash * 0.38, 1 - squash * 0.2);
     }
 
     const hover = hoverRef.current;
@@ -1698,6 +1717,45 @@ function DustBurst({ slot, reduced, launch }: { slot: PodiumSlot; reduced: boole
   );
 }
 
+/** White pop on the podium surface at the moment of impact. */
+function LandingFlash({ slot, reduced, launch }: { slot: PodiumSlot; reduced: boolean; launch: boolean }) {
+  const ref = useRef<THREE.Mesh>(null);
+  const startRef = useRef<number | null>(null);
+  useFrame((state) => {
+    const mesh = ref.current;
+    if (!mesh) return;
+    if (!launch || reduced) {
+      mesh.visible = false;
+      startRef.current = null;
+      return;
+    }
+    if (startRef.current === null) startRef.current = state.clock.elapsedTime;
+    const local = state.clock.elapsedTime - startRef.current - slot.delay - DROP_SECONDS;
+    if (local < 0 || local > 0.24) {
+      mesh.visible = false;
+      return;
+    }
+    mesh.visible = true;
+    const k = local / 0.24;
+    mesh.scale.setScalar(0.5 + k * 2.4);
+    (mesh.material as THREE.MeshBasicMaterial).opacity = 0.55 * (1 - k);
+  });
+  return (
+    <mesh ref={ref} position={[0, slot.h + 0.5, slot.d / 2 + 0.24]} visible={false} renderOrder={5}>
+      <planeGeometry args={[slot.w * 1.7, slot.w * 1.3]} />
+      <meshBasicMaterial
+        map={glowTexture('#ffffff')}
+        color="#fff4d8"
+        transparent
+        opacity={0}
+        blending={THREE.AdditiveBlending}
+        depthWrite={false}
+        toneMapped={false}
+      />
+    </mesh>
+  );
+}
+
 /** Stage key light that flares as the card lands, the cheap stand-in for a bloom pop. */
 function PodiumLight({ slot, reduced, launch }: { slot: PodiumSlot; reduced: boolean; launch: boolean }) {
   const ref = useRef<THREE.PointLight>(null);
@@ -1714,7 +1772,9 @@ function PodiumLight({ slot, reduced, launch }: { slot: PodiumSlot; reduced: boo
     if (startRef.current === null) startRef.current = state.clock.elapsedTime;
     const local = state.clock.elapsedTime - startRef.current - slot.delay - DROP_SECONDS;
     if (local < 0) {
-      light.intensity = base * 0.78;
+      // Anticipation: the key light swells just before the card comes down.
+      const lead = Math.max(0, Math.min(1, 1 + local / 0.32));
+      light.intensity = base * (0.78 + lead * 0.4);
       return;
     }
     light.intensity = base + Math.exp(-local * 5.5) * (slot.place === 1 ? 46 : 30) * (reduced ? 0.3 : 1);
@@ -1737,20 +1797,23 @@ function Podium({
   reduced,
   launch,
   shake,
+  onImpact,
 }: {
   slot: PodiumSlot;
   onOpen: (game: JamGame) => void;
   reduced: boolean;
   launch: boolean;
   shake: { current: StageShake };
+  onImpact: () => void;
 }) {
   return (
     <group position={[slot.x, 0, slot.z]}>
       <PodiumBase slot={slot} />
-      <SlamCard slot={slot} onOpen={onOpen} reduced={reduced} launch={launch} shake={shake} />
+      <SlamCard slot={slot} onOpen={onOpen} reduced={reduced} launch={launch} shake={shake} onImpact={onImpact} />
       <ImpactRing slot={slot} reduced={reduced} launch={launch} />
       <ImpactBurst slot={slot} reduced={reduced} launch={launch} />
       <DustBurst slot={slot} reduced={reduced} launch={launch} />
+      <LandingFlash slot={slot} reduced={reduced} launch={launch} />
       <PodiumLight slot={slot} reduced={reduced} launch={launch} />
       <pointLight
         position={[0, slot.h * 0.5, slot.d / 2 + 2.4]}
@@ -1890,12 +1953,14 @@ function StageContent({
   mode,
   launch,
   shake,
+  onImpact,
 }: {
   rows: ResolvedPrize[];
   onOpen: (game: JamGame) => void;
   mode: StageMode;
   launch: boolean;
   shake: { current: StageShake };
+  onImpact: () => void;
 }) {
   const size = useThree((state) => state.size);
   const reduced = useReducedMotion();
@@ -1918,6 +1983,7 @@ function StageContent({
           reduced={reduced}
           launch={launch}
           shake={shake}
+          onImpact={onImpact}
         />
       ))}
       <WinnerConfetti reduced={reduced} />
@@ -1962,6 +2028,14 @@ export function WinnerStage3D({ rows, onOpen, mode = 'ranked' }: WinnerStage3DPr
   const [showLoader, setShowLoader] = useState(true);
   const [fading, setFading] = useState(false);
   const shake = useRef<StageShake>({ strength: 0, punch: 0 });
+  const flashRef = useRef<HTMLDivElement>(null);
+  // Screen flash on each landing, played imperatively so a landing never
+  // re-renders the canvas. It is the cheap stand-in for a bloom pop.
+  const onImpact = useCallback(() => {
+    const el = flashRef.current;
+    if (!el) return;
+    el.animate([{ opacity: 0.38 }, { opacity: 0 }], { duration: 320, easing: 'ease-out' });
+  }, []);
 
   useEffect(() => {
     let alive = true;
@@ -1976,8 +2050,21 @@ export function WinnerStage3D({ rows, onOpen, mode = 'ranked' }: WinnerStage3DPr
     setFading(false);
     setShowLoader(true);
 
+    // Poster requests can fail outright when the jam grid floods the image
+    // queue, and a card that lands with its placeholder then looks broken. Keep
+    // retrying before the curtain opens so the slam always carries real art.
+    const loadCover = async (url: string) => {
+      for (let attempt = 0; attempt < 5; attempt += 1) {
+        try {
+          return await loadGameThumbnail(url);
+        } catch {
+          await new Promise((resolve) => window.setTimeout(resolve, 400 * (attempt + 1)));
+        }
+      }
+      return null;
+    };
     const coversDone = covers.map((url) =>
-      loadGameThumbnail(url)
+      loadCover(url)
         .catch(() => null)
         .then(() => {
           done += 1;
@@ -2019,6 +2106,7 @@ export function WinnerStage3D({ rows, onOpen, mode = 'ranked' }: WinnerStage3DPr
 
   return (
     <div className="winner-stage3d" role="group" aria-label="October Jam winners on a 3D podium stage">
+      <div ref={flashRef} className="winner-stage3d__flash" aria-hidden="true" />
       <Canvas
         dpr={[1, 1.75]}
         camera={{ fov: 34, near: 0.1, far: 120, position: [0, 8, 16] }}
@@ -2030,7 +2118,7 @@ export function WinnerStage3D({ rows, onOpen, mode = 'ranked' }: WinnerStage3DPr
         }}
       >
         <Suspense fallback={null}>
-          <StageContent rows={ranked} onOpen={onOpen} mode={mode} launch={launch} shake={shake} />
+          <StageContent rows={ranked} onOpen={onOpen} mode={mode} launch={launch} shake={shake} onImpact={onImpact} />
         </Suspense>
       </Canvas>
 

@@ -638,6 +638,7 @@ function GameBillboard({
   const triedRef = useRef(false);
   const auraRef = useRef<THREE.MeshBasicMaterial>(null);
   const greenRingRef = useRef<THREE.MeshBasicMaterial>(null);
+  const statsRef = useRef<THREE.Group>(null);
   const yawGroupRef = useRef<THREE.Group | null>(null);
   const leanRef = useRef<THREE.Group | null>(null);
   const baseYaw = Math.atan2(slot.x - spawn.focusX, slot.z - spawn.focusZ);
@@ -723,6 +724,12 @@ function GameBillboard({
         .catch(() => setTex(null));
     }
     if (shouldRender && !statsTex) setStatsTex(paintStats(slot, !!isFavorite, isNew));
+    // Plaques are unreadable from the air, and drawing them up there forces a
+    // big texture upload for every billboard the camera sweeps past.
+    if (statsRef.current) {
+      const cam = state.camera.position;
+      statsRef.current.visible = Math.hypot(cam.x - slot.x, cam.y - statsY, cam.z - slot.z) < 110;
+    }
     if (auraRef.current) {
       auraRef.current.opacity = 0.12 + 0.1 * (0.5 + 0.5 * Math.sin(state.clock.elapsedTime * 2.4));
     }
@@ -943,7 +950,7 @@ function GameBillboard({
       ) : null}
 
       {statsMat ? (
-        <group position={[statsX, statsY, 0]}>
+        <group ref={statsRef} position={[statsX, statsY, 0]}>
           <mesh position={[0, 0, 0.16]} renderOrder={9} material={statsMat}>
             <planeGeometry args={[boardW, boardH]} />
           </mesh>
